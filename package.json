@@ -16,7 +16,7 @@
     "build:esbuild": "node esbuild.config.js"
   },
   "files": [
-    "lib/"
+    "lib/*"
   ],
   "publishConfig": {
     "access": "public"
