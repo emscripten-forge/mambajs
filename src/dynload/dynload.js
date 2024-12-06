@@ -60,16 +60,16 @@ export async function loadDynlibsFromPackage(
     const auditWheelLibDir = `${sitepackages}/${
         pkg_file_name.split("-")[0]
     }.libs`;
-  
+
     // This prevents from reading large libraries multiple times.
     const readFileMemoized = memoize(Module.FS.readFile);
-  
+
     const forceGlobal = !!pkg_is_shared_library;
-    
+
 
 
     let dynlibs = [];
-  
+
     if (forceGlobal) {
       dynlibs = dynlibPaths.map((path) => {
         return {
@@ -92,7 +92,7 @@ export async function loadDynlibsFromPackage(
         };
       });
     }
-  
+
     dynlibs.sort((lib1, lib2) => Number(lib2.global) - Number(lib1.global));
     for (const { path, global } of dynlibs) {
       await loadDynlib(prefix, path, global, [auditWheelLibDir], readFileMemoized);
@@ -119,7 +119,7 @@ function createDynlibFS(
 
 
     const resolvePath = (path) => {
-        
+
         if (Module.PATH.basename(path) !== Module.PATH.basename(lib)) {
             //console.debug(`Searching a library from ${path}, required by ${lib}`);
         }
@@ -159,7 +159,7 @@ function createDynlibFS(
 
 function calculateGlobalLibs(
     libs,
-    readFileFunc, 
+    readFileFunc,
     Module
 ) {
     let readFile = Module.FS.readFile;
@@ -205,7 +205,7 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
             global: global,
             fs: fs
         })
-        
+
         const dsoOnlyLibName = Module.LDSO.loadedLibsByName[libName];
         const dsoFullLib = Module.LDSO.loadedLibsByName[lib];
         if(!dsoOnlyLibName && !dsoFullLib){
@@ -213,10 +213,10 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
         }
 
         if (!dsoOnlyLibName) {
-            
+
             Module.LDSO.loadedLibsByName[libName] = dsoFullLib
         }
-        
+
         if(!dsoFullLib){
             Module.LDSO.loadedLibsByName[lib] = dsoOnlyLibName;
         }
