@@ -6,16 +6,17 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
-    "build": "yarn run clean && tsc",
-    "build:prod": "yarn run clean && tsc",
+    "build": "yarn run clean && yarn run build:esbuild && yarn run build:types",
+    "build:types": "tsc --declaration src/index.ts --emitDeclarationOnly --outDir ./lib",
     "prettier": "prettier --list-different --write \"src/**/*.ts\"",
     "prettier:check": "prettier --check \"src/**/*.ts\"",
     "eslint": "eslint --ext .ts --fix .",
     "eslint:check": "eslint --ext .ts.",
-    "test": "jest"
+    "test": "jest",
+    "build:esbuild": "node esbuild.config.js"
   },
   "files": [
-    "lib/"
+    "lib/*"
   ],
   "publishConfig": {
     "access": "public"
@@ -36,16 +37,19 @@
   "dependencies": {
     "@emscripten-forge/untarjs": "^5.0.0",
     "assert": "^2.1.0",
+    "esbuild": "^0.24.0",
     "process": "^0.11.10",
     "url": "^0.11.4"
   },
   "devDependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@eslint/js": "^9.13.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.8.1",
-    "@typescript-eslint/eslint-plugin": "~6.13.2",
-    "@typescript-eslint/parser": "~6.13.2",
-    "eslint": "~8.55.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "~9.1.0",
     "eslint-plugin-jest": "~27.6.0",
     "eslint-plugin-prettier": "~5.0.1",
@@ -55,7 +59,6 @@
     "prettier": "^3.3.3",
     "rimraf": "^3.0.2",
     "ts-jest": "^29.2.5",
-    "typescript": "^5",
-    "typescript-eslint": "^8.12.2"
+    "typescript": "^5"
   }
 }
