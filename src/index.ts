@@ -220,7 +220,8 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   packagesJsonUrl: string,
   verbose: boolean = true,
   skipLoadingSharedLibs: boolean = false,
-  Module: any
+  Module: any,
+  pkgRootUrl: string
 ): Promise<IPackagesInfo> => {
   if (verbose) {
     console.log('fetching packages.json from', packagesJsonUrl);
@@ -238,11 +239,18 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   const untarjsReady = initUntarJS();
   const untarjs = await untarjsReady;
   let sharedLibs = await Promise.all(
-    packages.map(pkg =>
-      installCondaPackage(prefix, pkg.url, Module.FS, untarjs, verbose)
-    )
+    packages.map(pkg => {
+      const packageUrl =
+      pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
+      if (verbose) {
+        console.log(
+          `Install ${pkg.filename} taken from ${packageUrl}`
+        );
+      }
+      return installCondaPackage(prefix, packageUrl, Module.FS, untarjs, verbose);
+    })
   );
-
+  waitRunDependencies(Module);
   if (!skipLoadingSharedLibs) {
     loadShareLibs(packages, sharedLibs, prefix, Module);
   }
@@ -262,6 +270,20 @@ const loadShareLibs = (
     }
   });
 };
+
+const waitRunDependencies = (Module: any) => {
+  const promise = new Promise<void>((r) => {
+      Module.monitorRunDependencies = (n) => {
+          if (n === 0) {
+              r();
+          }
+      };
+  });
+  Module.addRunDependency("dummy");
+  Module.removeRunDependency("dummy");
+  return promise;
+}
+
 export default {
   installCondaPackage,
   bootstrapFromEmpackPackedEnvironment
