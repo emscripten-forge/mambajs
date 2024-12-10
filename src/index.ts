@@ -250,7 +250,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
       return installCondaPackage(prefix, packageUrl, Module.FS, untarjs, verbose);
     })
   );
-  waitRunDependencies(Module);
+  await waitRunDependencies(Module);
   if (!skipLoadingSharedLibs) {
     loadShareLibs(packages, sharedLibs, prefix, Module);
   }
