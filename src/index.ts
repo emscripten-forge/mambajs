@@ -47,10 +47,11 @@ export const installCondaPackage = async (
 ): Promise<FilesData> => {
   let sharedLibs: FilesData = {};
   let files = await untarjs.extract(url);
+  let newPrefix = prefix;
 
   if (Object.keys(files).length !== 0) {
     if (prefix === '/') {
-      prefix = '';
+      newPrefix = '';
     }
     if (url.toLowerCase().endsWith('.conda')) {
       let condaPackage: Uint8Array = new Uint8Array();
@@ -74,13 +75,13 @@ export const installCondaPackage = async (
       const packageInfoFiles: FilesData =
         await untarjs.extractData(packageInfo);
 
-      createCondaMetaFile(packageInfoFiles, prefix, FS, verbose);
-      saveFiles(prefix, FS, { ...condaFiles, ...packageInfoFiles }, verbose);
-      sharedLibs = getSharedLibs(condaFiles);
+      createCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
+      saveFiles(newPrefix, FS, { ...condaFiles, ...packageInfoFiles }, verbose);
+      sharedLibs = getSharedLibs(condaFiles, newPrefix);
     } else {
-      createCondaMetaFile(files, prefix, FS, verbose);
-      saveFiles(prefix, FS, files, verbose);
-      sharedLibs = getSharedLibs(files);
+      createCondaMetaFile(files, newPrefix, FS, verbose);
+      saveFiles(newPrefix, FS, files, verbose);
+      sharedLibs = getSharedLibs(files, newPrefix);
     }
 
     return sharedLibs;
@@ -89,12 +90,12 @@ export const installCondaPackage = async (
   throw new Error(`There is no file in ${url}`);
 };
 
-const getSharedLibs = (files: FilesData): FilesData => {
+const getSharedLibs = (files: FilesData, prefix:string): FilesData => {
   let sharedLibs: FilesData = {};
 
   Object.keys(files).map(file => {
     if (file.endsWith('.so') || file.includes('.so.')) {
-      sharedLibs[file] = files[file];
+      sharedLibs[`${prefix}/${file}`] = files[file];
     }
   });
   return sharedLibs;
@@ -221,7 +222,8 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   verbose: boolean = true,
   skipLoadingSharedLibs: boolean = false,
   Module: any,
-  pkgRootUrl: string
+  pkgRootUrl: string,
+  kernelName: string
 ): Promise<IPackagesInfo> => {
   if (verbose) {
     console.log('fetching packages.json from', packagesJsonUrl);
@@ -230,8 +232,8 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   let empackEnvMeta = await fetchJson(packagesJsonUrl);
   let packages: IEmpackEnvMetaPkg[] = empackEnvMeta.packages;
   let prefix = empackEnvMeta.prefix;
-  let pythonData = getPythonVersion(packages);
-  pythonData.prefix = prefix;
+  let packagesData = getPythonVersion(packages);
+  packagesData.prefix = prefix;
 
   if (verbose) {
     console.log('installCondaPackage');
@@ -251,11 +253,34 @@ export const bootstrapFromEmpackPackedEnvironment = async (
     })
   );
   await waitRunDependencies(Module);
+  if (kernelName === 'xpython') {
+    setupEnv(packagesData, Module)
+
+  }
   if (!skipLoadingSharedLibs) {
     loadShareLibs(packages, sharedLibs, prefix, Module);
   }
-  return pythonData;
+  return packagesData;
 };
+
+const setupEnv = (packagesData: IPackagesInfo, Module: any)=>{
+  const {prefix, pythonVersion} = packagesData;
+  let sidePath = '';
+  if(prefix == "/"){
+    Module.setenv("PYTHONHOME", `/`);
+    Module.setenv("PYTHONPATH", `/lib/python${pythonVersion}/site-packages:/usr/lib/python${pythonVersion}`);
+
+    sidePath = `/lib/python${pythonVersion}/site-packages`;
+}
+else{
+    Module.setenv("PYTHONHOME", prefix);
+    Module.setenv("PYTHONPATH", `${prefix}/lib/python${pythonVersion}/site-packages:/usr/lib/python${pythonVersion}`);
+    sidePath = `${prefix}/lib/python${pythonVersion}/site-packages`;
+}
+if (!Module.FS.analyzePath(`${sidePath}`).exists) {
+  Module.FS.mkdirTree(`${sidePath}`);
+}
+}
 
 const loadShareLibs = (
   packages: IEmpackEnvMetaPkg[],
@@ -263,8 +288,10 @@ const loadShareLibs = (
   prefix: string,
   Module: any
 ) => {
+  console.log('sharedLibs',sharedLibs);
   packages.map((pkg, i) => {
     let packageShareLibs = sharedLibs[i];
+    console.log('packageShareLibs',packageShareLibs);
     if (Object.keys(packageShareLibs).length) {
       loadDynlibsFromPackage(prefix, pkg.name, false, packageShareLibs, Module);
     }
