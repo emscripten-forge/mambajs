@@ -29,7 +29,12 @@
     ],
     "allowJs": true,
     "outDir": "lib",
-    "rootDir": "src"
+    "rootDir": "src",
+    "baseUrl": "./src",  
+    "paths": {
+      "*": ["*"]
+    },
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }
