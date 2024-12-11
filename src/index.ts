@@ -74,12 +74,11 @@ export const installCondaPackage = async (
       const condaFiles: FilesData = await untarjs.extractData(condaPackage);
       const packageInfoFiles: FilesData =
         await untarjs.extractData(packageInfo);
-
-      createCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
+      saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
       saveFiles(newPrefix, FS, { ...condaFiles, ...packageInfoFiles }, verbose);
       sharedLibs = getSharedLibs(condaFiles, newPrefix);
     } else {
-      createCondaMetaFile(files, newPrefix, FS, verbose);
+      saveCondaMetaFile(files, newPrefix, FS, verbose);
       saveFiles(newPrefix, FS, files, verbose);
       sharedLibs = getSharedLibs(files, newPrefix);
     }
@@ -90,7 +89,7 @@ export const installCondaPackage = async (
   throw new Error(`There is no file in ${url}`);
 };
 
-const getSharedLibs = (files: FilesData, prefix:string): FilesData => {
+const getSharedLibs = (files: FilesData, prefix: string): FilesData => {
   let sharedLibs: FilesData = {};
 
   Object.keys(files).map(file => {
@@ -112,6 +111,7 @@ const saveFiles = (
       let folderDest = `${prefix}/${folder}`;
       if (folder === 'site-packages') {
         folderDest = `${prefix}/lib/python3.11/site-packages`;
+        folder = 'lib/python3.11/site-packages';
       }
       savingFiles(files, folder, folderDest, FS, verbose);
     });
@@ -128,13 +128,13 @@ const savingFiles = (
   verbose: boolean
 ) => {
   Object.keys(files).forEach(filename => {
-    const regexp = new RegExp(`^${folder}`);
+    const regexp = new RegExp(`${folder}`);
     if (filename.match(regexp)) {
       if (!FS.analyzePath(folderDest).exists) {
         FS.mkdirTree(folderDest);
       }
       if (verbose) {
-        console.log(`Writing a file for ${folderDest} folder`, filename);
+        console.log(`Writing a file ${filename} for ${folderDest} folder`);
       }
       writeFile(files[filename], filename, FS, folder, folderDest, verbose);
     }
@@ -150,10 +150,12 @@ const writeFile = (
   verbose: boolean
 ): void => {
   let fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+
   let directoryPathes = fullPath.replace(new RegExp(`\/${fileName}`), '');
   if (directoryPathes.match(folder)) {
     directoryPathes = directoryPathes.replace(new RegExp(`${folder}`), '');
   }
+  
   let destPath = `${folderDest}${directoryPathes}/`;
   if (destPath) {
     if (!FS.analyzePath(destPath).exists) {
@@ -170,51 +172,92 @@ const writeFile = (
   FS.writeFile(destPath, encodedData);
 };
 
-const createCondaMetaFile = (
+const saveCondaMetaFile = (
   files: FilesData,
   prefix: string,
   FS: any,
   verbose: boolean
 ) => {
   let infoData: Uint8Array = new Uint8Array();
-
-  Object.keys(files).map(filename => {
-    let regexp = 'index.json';
-
-    if (filename.match(regexp)) {
-      infoData = files[filename];
+  let isCondaMetaFile = checkCondaMetaFile(files);
+  if (!isCondaMetaFile) {
+    if (verbose) {
+      console.log(`Creating and saving conda-meta json`);
     }
-  });
-  if (infoData.byteLength !== 0) {
-    let info = new TextDecoder('utf-8').decode(infoData);
-    try {
-      let condaPackageInfo = JSON.parse(info);
-      const condaMetaDir = `${prefix}/conda-meta`;
-      const path = `${condaMetaDir}/${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build}.json`;
+    Object.keys(files).map(filename => {
+      let regexp = 'index.json';
 
-      const pkgCondaMeta = {
-        name: condaPackageInfo.name,
-        version: condaPackageInfo.version,
-        build: condaPackageInfo.build,
-        build_number: condaPackageInfo.build_number
-      };
-
-      if (!FS.analyzePath(`${condaMetaDir}`).exists) {
-        FS.mkdirTree(`${condaMetaDir}`);
+      if (filename.match(regexp)) {
+        infoData = files[filename];
       }
+    });
+    if (infoData.byteLength !== 0) {
+      let info = new TextDecoder('utf-8').decode(infoData);
+      try {
+        let condaPackageInfo = JSON.parse(info);
+        const condaMetaDir = `${prefix}/conda-meta`;
+        const path = `${condaMetaDir}/${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build}.json`;
 
-      if (verbose) {
-        console.log(
-          `Creating conda-meta file for ${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build} package`
-        );
+        const pkgCondaMeta = {
+          name: condaPackageInfo.name,
+          version: condaPackageInfo.version,
+          build: condaPackageInfo.build,
+          build_number: condaPackageInfo.build_number
+        };
+
+        if (!FS.analyzePath(`${condaMetaDir}`).exists) {
+          FS.mkdirTree(`${condaMetaDir}`);
+        }
+
+        if (verbose) {
+          console.log(
+            `Creating conda-meta file for ${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build} package`
+          );
+        }
+        FS.writeFile(path, JSON.stringify(pkgCondaMeta));
+      } catch (error) {
+        console.error(error);
       }
-      FS.writeFile(path, JSON.stringify(pkgCondaMeta));
-    } catch (error) {
-      console.error(error);
+    } else {
+      console.log(
+        'There is no info folder, imposibly to create a conda meta json file'
+      );
     }
   } else {
-    console.log('There is no info folder');
+    if (verbose) {
+      console.log(`conda-meta file exists`);
+    }
+    let condaMetaFileData: Uint8Array = new Uint8Array();
+    let path = '';
+    Object.keys(files).forEach(filename => {
+      let regexp = 'conda-meta';
+      if (filename.match(regexp)) {
+        condaMetaFileData = files[filename];
+        path = filename;
+      }
+    });
+    let condaMetaDir = `${prefix}/conda-meta`;
+    if (!FS.analyzePath(`${condaMetaDir}`).exists) {
+      FS.mkdirTree(`${condaMetaDir}`);
+    }
+
+    if (verbose) {
+      console.log(`Saving conda-meta file ${path}`);
+    }
+    let condaMetaFile = new TextDecoder('utf-8').decode(condaMetaFileData);
+    FS.writeFile(`${prefix}/${path}`, condaMetaFile);
   }
+};
+
+const checkCondaMetaFile = (files: FilesData): boolean => {
+  let isCondaMetaFile = false;
+  Object.keys(files).forEach(filename => {
+    let regexp = 'conda-meta';
+    if (filename.match(regexp)) {
+      isCondaMetaFile = true;
+    }
+  });
+  return isCondaMetaFile;
 };
 
 export const bootstrapFromEmpackPackedEnvironment = async (
@@ -222,8 +265,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   verbose: boolean = true,
   skipLoadingSharedLibs: boolean = false,
   Module: any,
-  pkgRootUrl: string,
-  kernelName: string
+  pkgRootUrl: string
 ): Promise<IPackagesInfo> => {
   if (verbose) {
     console.log('fetching packages.json from', packagesJsonUrl);
@@ -242,45 +284,25 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   const untarjs = await untarjsReady;
   let sharedLibs = await Promise.all(
     packages.map(pkg => {
-      const packageUrl =
-      pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
+      const packageUrl = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
       if (verbose) {
-        console.log(
-          `Install ${pkg.filename} taken from ${packageUrl}`
-        );
+        console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
       }
-      return installCondaPackage(prefix, packageUrl, Module.FS, untarjs, verbose);
+      return installCondaPackage(
+        prefix,
+        packageUrl,
+        Module.FS,
+        untarjs,
+        verbose
+      );
     })
   );
   await waitRunDependencies(Module);
-  if (kernelName === 'xpython') {
-    setupEnv(packagesData, Module)
-
-  }
   if (!skipLoadingSharedLibs) {
     loadShareLibs(packages, sharedLibs, prefix, Module);
   }
   return packagesData;
 };
-
-const setupEnv = (packagesData: IPackagesInfo, Module: any)=>{
-  const {prefix, pythonVersion} = packagesData;
-  let sidePath = '';
-  if(prefix == "/"){
-    Module.setenv("PYTHONHOME", `/`);
-    Module.setenv("PYTHONPATH", `/lib/python${pythonVersion}/site-packages:/usr/lib/python${pythonVersion}`);
-
-    sidePath = `/lib/python${pythonVersion}/site-packages`;
-}
-else{
-    Module.setenv("PYTHONHOME", prefix);
-    Module.setenv("PYTHONPATH", `${prefix}/lib/python${pythonVersion}/site-packages:/usr/lib/python${pythonVersion}`);
-    sidePath = `${prefix}/lib/python${pythonVersion}/site-packages`;
-}
-if (!Module.FS.analyzePath(`${sidePath}`).exists) {
-  Module.FS.mkdirTree(`${sidePath}`);
-}
-}
 
 const loadShareLibs = (
   packages: IEmpackEnvMetaPkg[],
@@ -288,10 +310,9 @@ const loadShareLibs = (
   prefix: string,
   Module: any
 ) => {
-  console.log('sharedLibs',sharedLibs);
+  console.log('sharedLibs', sharedLibs);
   packages.map((pkg, i) => {
     let packageShareLibs = sharedLibs[i];
-    console.log('packageShareLibs',packageShareLibs);
     if (Object.keys(packageShareLibs).length) {
       loadDynlibsFromPackage(prefix, pkg.name, false, packageShareLibs, Module);
     }
@@ -299,17 +320,17 @@ const loadShareLibs = (
 };
 
 const waitRunDependencies = (Module: any) => {
-  const promise = new Promise<void>((r) => {
-      Module.monitorRunDependencies = (n) => {
-          if (n === 0) {
-              r();
-          }
-      };
+  const promise = new Promise<void>(r => {
+    Module.monitorRunDependencies = n => {
+      if (n === 0) {
+        r();
+      }
+    };
   });
-  Module.addRunDependency("dummy");
-  Module.removeRunDependency("dummy");
+  Module.addRunDependency('dummy');
+  Module.removeRunDependency('dummy');
   return promise;
-}
+};
 
 export default {
   installCondaPackage,

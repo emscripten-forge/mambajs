@@ -30,11 +30,9 @@ function isInSharedLibraryPath(prefix, libPath){
     if (libPath.startsWith("/")){
         const dirname = libPath.substring(0, libPath.lastIndexOf("/"));
         if(prefix == "/"){
-            console.log('dirname 1',dirname);
             return (dirname == `/lib`);
         }
         else{
-          console.log('dirname 2',dirname);
           return (dirname == `${prefix}/lib`);
         }
     }
@@ -63,11 +61,8 @@ console.log('dynlibPaths',dynlibPaths);
         pkg_file_name.split("-")[0]
     }.libs`;
 
-
-    console.log('auditWheelLibDir',auditWheelLibDir);
     // This prevents from reading large libraries multiple times.
     const readFileMemoized = memoize(Module.FS.readFile);
-console.log('readFileMemoized',readFileMemoized);
     const forceGlobal = !!pkg_is_shared_library;
 
 
@@ -88,9 +83,7 @@ console.log('readFileMemoized',readFileMemoized);
         readFileMemoized,
         Module
       );
-if (Module.PATH) {
-    console.log('+++');
-}
+
       dynlibs = Object.keys(dynlibPaths).map((path) =>{
         const global = globalLibs.has(Module.PATH.basename(path));
         return {
@@ -103,10 +96,8 @@ if (Module.PATH) {
 console.log('dynlibs',dynlibs);
     dynlibs.sort((lib1, lib2) => Number(lib2.global) - Number(lib1.global));
     for (const { path, global } of dynlibs) {
-        console.log(' dynlibs.sort: path -  ', path);
-        console.log(' dynlibs.sort: global', global);
 
-      await loadDynlib(prefix, path, global, [auditWheelLibDir], readFileMemoized);
+      await loadDynlib(prefix, path, global, [auditWheelLibDir], readFileMemoized, Module);
     }
   }
 
@@ -118,9 +109,7 @@ function createDynlibFS(
     Module
 ) {
 
-    console.log('createDynlibFS');
     const dirname = lib.substring(0, lib.lastIndexOf("/"));
-    console.log('createDynlibFS: dirname',dirname);
     let _searchDirs = searchDirs || [];
 
     if(prefix == "/"){
@@ -129,7 +118,6 @@ function createDynlibFS(
     else{
         _searchDirs = _searchDirs.concat([dirname], [`${prefix}/lib`]);
     }
-    console.log('createDynlibFS: _searchDirs',_searchDirs);
 
     const resolvePath = (path) => {
 
@@ -177,9 +165,7 @@ function calculateGlobalLibs(
     Module
 ) {
 
-    console.log('libs',libs);
     let readFile = Module.FS.readFile;
-    console.log('calculateGlobalLibs readFiles');
     if (readFileFunc !== undefined) {
         readFile = readFileFunc;
     }
@@ -187,9 +173,14 @@ function calculateGlobalLibs(
     const globalLibs = new Set();
 
     Object.keys(libs).map((lib) => {
-        console.log('through lib');
+
+        if (!Module.FS.analyzePath(`${lib}`).exists) {
+            console.log('lib path does not exist');
+          } else {
+            console.log('it is exist');
+          }
+
         const binary = readFile(lib);
-        console.log('binary');
         const needed = Module.getDylinkMetadata(binary).neededDynlibs;
         console.log('needed',needed);
         needed.forEach((lib) => {
@@ -211,20 +202,14 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
     if (searchDirs === undefined) {
         searchDirs = [];
     }
-    try {
+ 
     const releaseDynlibLock = await acquireDynlibLock();
-    } catch(error) {
-console.error(error);
-    };
     
 
     try {
-        console.log('createDynlibFS')
-        const fs = createDynlibFS(prefix, lib, searchDirs, readFileFunc);
+        const fs = createDynlibFS(prefix, lib, searchDirs, readFileFunc, Module);
 
         const libName = Module.PATH.basename(lib);
-        console.log('libName', libName);
-        console.log('lib', lib)
 
         await Module.loadDynamicLibrary(libName, {
             loadAsync: true,
@@ -233,9 +218,11 @@ console.error(error);
             global: global,
             fs: fs
         })
-
+console.log('---LDSO---');
+        console.log('libName',libName);
         const dsoOnlyLibName = Module.LDSO.loadedLibsByName[libName];
         console.log('dsoOnlyLibName',dsoOnlyLibName);
+        console.log('lib',lib);
         const dsoFullLib = Module.LDSO.loadedLibsByName[lib];
         console.log('dsoFullLib',dsoFullLib);
         if(!dsoOnlyLibName && !dsoFullLib){
@@ -244,7 +231,6 @@ console.error(error);
 
         if (!dsoOnlyLibName) {
             console.log('!dsoOnlyLibName');
-
             Module.LDSO.loadedLibsByName[libName] = dsoFullLib
         }
 
