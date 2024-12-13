@@ -325,7 +325,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   const untarjs = await untarjsReady;
 
   if (pythonPackage && pythonVersion) {
-    initPrimaryPhase(
+    await initPrimaryPhase(
       pythonPackage,
       pythonVersion,
       verbose,
