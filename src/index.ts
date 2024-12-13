@@ -296,8 +296,7 @@ const initPrimaryPhase = async (
     console.log(`Installing a python package from ${url}`);
   }
   await installCondaPackage(prefix, url, Module.FS, untarjs, verbose);
-  
-    Module.init_phase_1(pythonPackage, pythonVersion, verbose);
+  await Module.init_phase_1(prefix, pythonVersion, verbose);
 
 };
 
