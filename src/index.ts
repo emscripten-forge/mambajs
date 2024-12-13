@@ -39,7 +39,7 @@ const splitPackages = (packages: IEmpackEnvMetaPkg[]): IPackagesInfo => {
   }
 };
 
-export const installCondaPackage = async (
+export const installCondaPackages = async (
   prefix: string,
   url: string,
   FS: any,
@@ -47,6 +47,28 @@ export const installCondaPackage = async (
   verbose: boolean
 ): Promise<FilesData> => {
   let sharedLibs: FilesData = {};
+  let newPrefix = prefix;
+  if (!url) {
+    throw new Error(`There is no file in ${url}`);
+  }
+
+  let files = await installCondaPackage(prefix, url, FS, untarjs, verbose);
+  if (prefix === '/') {
+    newPrefix = '';
+  }
+  if (Object.keys(files).length !== 0) {
+    sharedLibs = getSharedLibs(files, newPrefix);
+  }
+  return sharedLibs;
+};
+
+export const installCondaPackage = async (
+  prefix: string,
+  url: string,
+  FS: any,
+  untarjs: IUnpackJSAPI,
+  verbose: boolean
+): Promise<FilesData> => {
   let files = await untarjs.extract(url);
   let newPrefix = prefix;
 
@@ -77,19 +99,16 @@ export const installCondaPackage = async (
         await untarjs.extractData(packageInfo);
       saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
       saveFiles(newPrefix, FS, { ...condaFiles, ...packageInfoFiles }, verbose);
-      sharedLibs = getSharedLibs(condaFiles, newPrefix);
+      return condaFiles;
     } else {
       saveCondaMetaFile(files, newPrefix, FS, verbose);
       saveFiles(newPrefix, FS, files, verbose);
-      sharedLibs = getSharedLibs(files, newPrefix);
+      return files;
     }
-
-    return sharedLibs;
   }
 
   throw new Error(`There is no file in ${url}`);
 };
-
 const getSharedLibs = (files: FilesData, prefix: string): FilesData => {
   let sharedLibs: FilesData = {};
 
@@ -261,6 +280,27 @@ const checkCondaMetaFile = (files: FilesData): boolean => {
   return isCondaMetaFile;
 };
 
+const initPrimaryPhase = async (
+  pythonPackage: IEmpackEnvMetaPkg,
+  pythonVersion: number[],
+  verbose: boolean,
+  untarjs: IUnpackJSAPI,
+  Module: any,
+  pkgRootUrl: string,
+  prefix: string
+) => {
+  let url = pythonPackage.url
+    ? pythonPackage.url
+    : `${pkgRootUrl}/${pythonPackage.filename}`;
+  if (verbose) {
+    console.log(`Installing a python package from ${url}`);
+  }
+  await installCondaPackage(prefix, url, Module.FS, untarjs, verbose);
+  
+    Module.init_phase_1(pythonPackage, pythonVersion, verbose);
+
+};
+
 export const bootstrapFromEmpackPackedEnvironment = async (
   packagesJsonUrl: string,
   verbose: boolean = true,
@@ -283,8 +323,17 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   }
   const untarjsReady = initUntarJS();
   const untarjs = await untarjsReady;
-  if (Module.init_phase_1 && pythonPackage) {
-    Module.init_phase_1(pythonPackage, pythonVersion, verbose);
+
+  if (pythonPackage && pythonVersion) {
+    initPrimaryPhase(
+      pythonPackage,
+      pythonVersion,
+      verbose,
+      untarjs,
+      Module,
+      pkgRootUrl,
+      prefix
+    );
   }
   if (packages?.length) {
     let sharedLibs = await Promise.all(
@@ -293,7 +342,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
         if (verbose) {
           console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
         }
-        return installCondaPackage(
+        return installCondaPackages(
           prefix,
           packageUrl,
           Module.FS,
