@@ -127,7 +127,7 @@ function createDynlibFS(
 
         for (const dir of _searchDirs) {
             const fullPath = Module.PATH.join2(dir, path);
-            console.log('createDynlibFS: fullPath',fullPath);
+            //console.log('createDynlibFS: fullPath',fullPath);
             if (Module.FS.findObject(fullPath) !== null) {
                 return fullPath;
             }
@@ -181,13 +181,14 @@ function calculateGlobalLibs(
           }
 
         const binary = readFile(lib);
+        console.log('binary', binary);
         const needed = Module.getDylinkMetadata(binary).neededDynlibs;
         console.log('needed',needed);
         needed.forEach((lib) => {
             globalLibs.add(lib);
         });
     });
-
+    console.log('globalLibs', globalLibs);
     return globalLibs;
 }
 
@@ -205,12 +206,12 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
  
     const releaseDynlibLock = await acquireDynlibLock();
     
-
+    console.log('loadDynlib');
     try {
         const fs = createDynlibFS(prefix, lib, searchDirs, readFileFunc, Module);
 
         const libName = Module.PATH.basename(lib);
-
+        console.log('libName', libName);
         await Module.loadDynamicLibrary(libName, {
             loadAsync: true,
             nodelete: true,
@@ -218,7 +219,7 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
             global: global,
             fs: fs
         })
-console.log('---LDSO---');
+        console.log('---LDSO---');
         console.log('libName',libName);
         const dsoOnlyLibName = Module.LDSO.loadedLibsByName[libName];
         console.log('dsoOnlyLibName',dsoOnlyLibName);

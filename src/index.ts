@@ -19,9 +19,10 @@ export interface IPackagesInfo {
   pythonPackage?: IEmpackEnvMetaPkg;
   pythonVersion?: number[];
   prefix?: string;
+  packages?: IEmpackEnvMetaPkg[];
 }
 
-const getPythonVersion = (packages: IEmpackEnvMetaPkg[]): IPackagesInfo => {
+const splitPackages = (packages: IEmpackEnvMetaPkg[]): IPackagesInfo => {
   let pythonPackage: IEmpackEnvMetaPkg | undefined = undefined;
   for (let i = 0; i < packages.length; i++) {
     if (packages[i].name == 'python') {
@@ -32,9 +33,9 @@ const getPythonVersion = (packages: IEmpackEnvMetaPkg[]): IPackagesInfo => {
   }
   if (pythonPackage) {
     let pythonVersion = pythonPackage.version.split('.').map(x => parseInt(x));
-    return { pythonPackage, pythonVersion };
+    return { pythonPackage, pythonVersion, packages };
   } else {
-    return {};
+    return { packages };
   }
 };
 
@@ -155,7 +156,7 @@ const writeFile = (
   if (directoryPathes.match(folder)) {
     directoryPathes = directoryPathes.replace(new RegExp(`${folder}`), '');
   }
-  
+
   let destPath = `${folderDest}${directoryPathes}/`;
   if (destPath) {
     if (!FS.analyzePath(destPath).exists) {
@@ -272,34 +273,39 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   }
 
   let empackEnvMeta = await fetchJson(packagesJsonUrl);
-  let packages: IEmpackEnvMetaPkg[] = empackEnvMeta.packages;
+  let allPackages: IEmpackEnvMetaPkg[] = empackEnvMeta.packages;
   let prefix = empackEnvMeta.prefix;
-  let packagesData = getPythonVersion(packages);
-  packagesData.prefix = prefix;
+  let { pythonPackage, pythonVersion, packages } = splitPackages(allPackages);
+  let packagesData = { prefix, pythonVersion };
 
   if (verbose) {
     console.log('installCondaPackage');
   }
   const untarjsReady = initUntarJS();
   const untarjs = await untarjsReady;
-  let sharedLibs = await Promise.all(
-    packages.map(pkg => {
-      const packageUrl = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
-      if (verbose) {
-        console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
-      }
-      return installCondaPackage(
-        prefix,
-        packageUrl,
-        Module.FS,
-        untarjs,
-        verbose
-      );
-    })
-  );
-  await waitRunDependencies(Module);
-  if (!skipLoadingSharedLibs) {
-    loadShareLibs(packages, sharedLibs, prefix, Module);
+  if (Module.init_phase_1 && pythonPackage) {
+    Module.init_phase_1(pythonPackage, pythonVersion, verbose);
+  }
+  if (packages?.length) {
+    let sharedLibs = await Promise.all(
+      packages.map(pkg => {
+        const packageUrl = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
+        if (verbose) {
+          console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
+        }
+        return installCondaPackage(
+          prefix,
+          packageUrl,
+          Module.FS,
+          untarjs,
+          verbose
+        );
+      })
+    );
+    await waitRunDependencies(Module);
+    if (!skipLoadingSharedLibs) {
+      loadShareLibs(packages, sharedLibs, prefix, Module);
+    }
   }
   return packagesData;
 };
