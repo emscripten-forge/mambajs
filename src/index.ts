@@ -98,11 +98,11 @@ export const installCondaPackage = async (
       const packageInfoFiles: FilesData =
         await untarjs.extractData(packageInfo);
       saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
-      saveFiles(newPrefix, FS, { ...condaFiles, ...packageInfoFiles }, verbose);
+      saveFiles(FS, { ...condaFiles, ...packageInfoFiles }, newPrefix);
       return condaFiles;
     } else {
       saveCondaMetaFile(files, newPrefix, FS, verbose);
-      saveFiles(newPrefix, FS, files, verbose);
+      saveFiles(FS, files, newPrefix);
       return files;
     }
   }
@@ -120,25 +120,28 @@ const getSharedLibs = (files: FilesData, prefix: string): FilesData => {
   return sharedLibs;
 };
 
-const saveFiles = (
-  prefix: string,
-  FS: any,
-  files: FilesData,
-  verbose: boolean
-): void => {
+function getParentDirectory(filePath: string) {
+  return filePath.substring(0, filePath.lastIndexOf('/'));
+}
+
+const saveFiles = (FS: any, files: FilesData, prefix: string): void => {
   try {
-    ['site-packages', 'etc', 'share'].forEach(folder => {
-      let folderDest = `${prefix}/${folder}`;
-      if (folder === 'site-packages') {
-        folderDest = `${prefix}/lib/python3.11/site-packages`;
-        folder = 'lib/python3.11/site-packages';
+    Object.keys(files).forEach(filename => {
+      const dir = getParentDirectory(filename);
+      console.log('dir', dir);
+      if (!FS.analyzePath(dir).exists) {
+        FS.mkdirTree(dir);
       }
-      savingFiles(files, folder, folderDest, FS, verbose);
+
+      let encodedData = new TextDecoder('utf-8').decode(files[filename]);
+      FS.writeFile(`${prefix}/${filename}`, encodedData);
     });
   } catch (error) {
     console.error(error);
   }
 };
+
+/*
 
 const savingFiles = (
   files: FilesData,
@@ -160,7 +163,8 @@ const savingFiles = (
     }
   });
 };
-
+*/
+/*
 const writeFile = (
   data: Uint8Array,
   fullPath: string,
@@ -191,7 +195,7 @@ const writeFile = (
   let encodedData = new TextDecoder('utf-8').decode(data);
   FS.writeFile(destPath, encodedData);
 };
-
+*/
 const saveCondaMetaFile = (
   files: FilesData,
   prefix: string,
@@ -297,7 +301,6 @@ const initPrimaryPhase = async (
   }
   await installCondaPackage(prefix, url, Module.FS, untarjs, verbose);
   await Module.init_phase_1(prefix, pythonVersion, verbose);
-
 };
 
 export const bootstrapFromEmpackPackedEnvironment = async (
