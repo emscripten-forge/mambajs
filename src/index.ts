@@ -96,7 +96,7 @@ export const installCondaPackage = async (
       }
       const condaFiles: FilesData = await untarjs.extractData(condaPackage);
       const packageInfoFiles: FilesData =
-        await untarjs.extractData(packageInfo);
+      await untarjs.extractData(packageInfo);
       saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
       saveFiles(FS, { ...condaFiles, ...packageInfoFiles }, newPrefix);
       return condaFiles;
@@ -128,7 +128,6 @@ const saveFiles = (FS: any, files: FilesData, prefix: string): void => {
   try {
     Object.keys(files).forEach(filename => {
       const dir = getParentDirectory(filename);
-      console.log('dir', dir);
       if (!FS.analyzePath(dir).exists) {
         FS.mkdirTree(dir);
       }
@@ -141,61 +140,6 @@ const saveFiles = (FS: any, files: FilesData, prefix: string): void => {
   }
 };
 
-/*
-
-const savingFiles = (
-  files: FilesData,
-  folder: string,
-  folderDest: string,
-  FS: any,
-  verbose: boolean
-) => {
-  Object.keys(files).forEach(filename => {
-    const regexp = new RegExp(`${folder}`);
-    if (filename.match(regexp)) {
-      if (!FS.analyzePath(folderDest).exists) {
-        FS.mkdirTree(folderDest);
-      }
-      if (verbose) {
-        console.log(`Writing a file ${filename} for ${folderDest} folder`);
-      }
-      writeFile(files[filename], filename, FS, folder, folderDest, verbose);
-    }
-  });
-};
-*/
-/*
-const writeFile = (
-  data: Uint8Array,
-  fullPath: string,
-  FS: any,
-  folder: string,
-  folderDest: string,
-  verbose: boolean
-): void => {
-  let fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-
-  let directoryPathes = fullPath.replace(new RegExp(`\/${fileName}`), '');
-  if (directoryPathes.match(folder)) {
-    directoryPathes = directoryPathes.replace(new RegExp(`${folder}`), '');
-  }
-
-  let destPath = `${folderDest}${directoryPathes}/`;
-  if (destPath) {
-    if (!FS.analyzePath(destPath).exists) {
-      FS.mkdirTree(destPath);
-    }
-  }
-
-  destPath = `${destPath}${fileName}`;
-  if (verbose) {
-    console.log(`Saving files into ${destPath}`);
-  }
-
-  let encodedData = new TextDecoder('utf-8').decode(data);
-  FS.writeFile(destPath, encodedData);
-};
-*/
 const saveCondaMetaFile = (
   files: FilesData,
   prefix: string,
@@ -283,7 +227,6 @@ const checkCondaMetaFile = (files: FilesData): boolean => {
   });
   return isCondaMetaFile;
 };
-
 const initPrimaryPhase = async (
   pythonPackage: IEmpackEnvMetaPkg,
   pythonVersion: number[],
@@ -319,6 +262,9 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   let prefix = empackEnvMeta.prefix;
   let { pythonPackage, pythonVersion, packages } = splitPackages(allPackages);
   let packagesData = { prefix, pythonVersion };
+
+  console.log('pythonPackage',pythonPackage);
+  console.log('packages',packages);
 
   if (verbose) {
     console.log('installCondaPackage');
@@ -367,11 +313,20 @@ const loadShareLibs = (
   prefix: string,
   Module: any
 ) => {
-  console.log('sharedLibs', sharedLibs);
-  packages.map((pkg, i) => {
+  packages.map(async (pkg, i) => {
     let packageShareLibs = sharedLibs[i];
     if (Object.keys(packageShareLibs).length) {
-      loadDynlibsFromPackage(prefix, pkg.name, false, packageShareLibs, Module);
+      let verifiedWasmSharedLibs: FilesData = {}; 
+     Object.keys(packageShareLibs).map((path) =>{
+      const isValidWasm = checkWasmMagicNumber(packageShareLibs[path]);
+      if (isValidWasm) {
+        verifiedWasmSharedLibs[path] = packageShareLibs[path];
+      }
+    });
+    console.log('verifiedWasmSharedLibs',verifiedWasmSharedLibs);
+    if (Object.keys(verifiedWasmSharedLibs).length) {
+      await loadDynlibsFromPackage(prefix, pkg.name, false, verifiedWasmSharedLibs, Module);
+    }
     }
   });
 };
@@ -388,6 +343,18 @@ const waitRunDependencies = (Module: any) => {
   Module.removeRunDependency('dummy');
   return promise;
 };
+
+
+const checkWasmMagicNumber= (uint8Array: Uint8Array) =>{
+  const WASM_MAGIC_NUMBER = [0x00, 0x61, 0x73, 0x6D];
+  
+  return (
+      uint8Array[0] === WASM_MAGIC_NUMBER[0] &&
+      uint8Array[1] === WASM_MAGIC_NUMBER[1] &&
+      uint8Array[2] === WASM_MAGIC_NUMBER[2] &&
+      uint8Array[3] === WASM_MAGIC_NUMBER[3]
+  );
+}
 
 export default {
   installCondaPackage,
