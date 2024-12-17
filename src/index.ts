@@ -120,7 +120,7 @@ const getSharedLibs = (files: FilesData, prefix: string): FilesData => {
   return sharedLibs;
 };
 
-function getParentDirectory(filePath: string) {
+const getParentDirectory = (filePath: string): string => {
   return filePath.substring(0, filePath.lastIndexOf('/'));
 }
 
@@ -144,7 +144,7 @@ const saveCondaMetaFile = (
   prefix: string,
   FS: any,
   verbose: boolean
-) => {
+): void => {
   let infoData: Uint8Array = new Uint8Array();
   let isCondaMetaFile = checkCondaMetaFile(files);
   if (!isCondaMetaFile) {
@@ -233,7 +233,7 @@ const initPrimaryPhase = async (
   Module: any,
   pkgRootUrl: string,
   prefix: string
-) => {
+): Promise<void> => {
   let url = pythonPackage.url
     ? pythonPackage.url
     : `${pkgRootUrl}/${pythonPackage.filename}`;
@@ -304,7 +304,7 @@ const loadShareLibs = (
   sharedLibs: FilesData[],
   prefix: string,
   Module: any
-) => {
+): void => {
   packages.map(async (pkg, i) => {
     let packageShareLibs = sharedLibs[i];
     if (Object.keys(packageShareLibs).length) {
@@ -322,7 +322,7 @@ const loadShareLibs = (
   });
 };
 
-const waitRunDependencies = (Module: any) => {
+const waitRunDependencies = (Module: any): Promise<void> => {
   const promise = new Promise<void>(r => {
     Module.monitorRunDependencies = n => {
       if (n === 0) {
@@ -336,7 +336,7 @@ const waitRunDependencies = (Module: any) => {
 };
 
 
-const checkWasmMagicNumber= (uint8Array: Uint8Array) =>{
+const checkWasmMagicNumber= (uint8Array: Uint8Array): boolean =>{
   const WASM_MAGIC_NUMBER = [0x00, 0x61, 0x73, 0x6D];
   
   return (
