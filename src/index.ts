@@ -132,11 +132,10 @@ const saveFiles = (FS: any, files: FilesData, prefix: string): void => {
         FS.mkdirTree(dir);
       }
 
-      let encodedData = new TextDecoder('utf-8').decode(files[filename]);
-      FS.writeFile(`${prefix}/${filename}`, encodedData);
+      FS.writeFile(`${prefix}/${filename}`, files[filename]);
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    throw new Error(error?.message);
   }
 };
 
@@ -183,18 +182,15 @@ const saveCondaMetaFile = (
           );
         }
         FS.writeFile(path, JSON.stringify(pkgCondaMeta));
-      } catch (error) {
-        console.error(error);
+      } catch (error: any) {
+        throw new Error(error?.message);
       }
-    } else {
+    } else if (verbose) {
       console.log(
         'There is no info folder, imposibly to create a conda meta json file'
       );
-    }
+      }
   } else {
-    if (verbose) {
-      console.log(`conda-meta file exists`);
-    }
     let condaMetaFileData: Uint8Array = new Uint8Array();
     let path = '';
     Object.keys(files).forEach(filename => {
@@ -212,7 +208,9 @@ const saveCondaMetaFile = (
     if (verbose) {
       console.log(`Saving conda-meta file ${path}`);
     }
-    let condaMetaFile = new TextDecoder('utf-8').decode(condaMetaFileData);
+
+    const json = JSON.stringify(condaMetaFileData);
+    const condaMetaFile = new TextEncoder().encode(json);
     FS.writeFile(`${prefix}/${path}`, condaMetaFile);
   }
 };
@@ -263,12 +261,6 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   let { pythonPackage, pythonVersion, packages } = splitPackages(allPackages);
   let packagesData = { prefix, pythonVersion };
 
-  console.log('pythonPackage',pythonPackage);
-  console.log('packages',packages);
-
-  if (verbose) {
-    console.log('installCondaPackage');
-  }
   const untarjsReady = initUntarJS();
   const untarjs = await untarjsReady;
 
@@ -323,7 +315,6 @@ const loadShareLibs = (
         verifiedWasmSharedLibs[path] = packageShareLibs[path];
       }
     });
-    console.log('verifiedWasmSharedLibs',verifiedWasmSharedLibs);
     if (Object.keys(verifiedWasmSharedLibs).length) {
       await loadDynlibsFromPackage(prefix, pkg.name, false, verifiedWasmSharedLibs, Module);
     }

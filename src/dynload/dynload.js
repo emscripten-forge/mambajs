@@ -48,7 +48,6 @@ export async function loadDynlibsFromPackage(
     dynlibPaths,
     Module
   ) {
-console.log('dynlibPaths',dynlibPaths);
     // assume that shared libraries of a package are located in <package-name>.libs directory,
     // following the convention of auditwheel.
     if(prefix == "/"){
@@ -93,7 +92,6 @@ console.log('dynlibPaths',dynlibPaths);
       });
     }
 
-console.log('dynlibs',dynlibs);
     dynlibs.sort((lib1, lib2) => Number(lib2.global) - Number(lib1.global));
     for (const { path, global } of dynlibs) {
 
@@ -122,12 +120,10 @@ function createDynlibFS(
     const resolvePath = (path) => {
 
         if (Module.PATH.basename(path) !== Module.PATH.basename(lib)) {
-            //console.debug(`Searching a library from ${path}, required by ${lib}`);
         }
 
         for (const dir of _searchDirs) {
             const fullPath = Module.PATH.join2(dir, path);
-            //console.log('createDynlibFS: fullPath',fullPath);
             if (Module.FS.findObject(fullPath) !== null) {
                 return fullPath;
             }
@@ -173,22 +169,12 @@ function calculateGlobalLibs(
     const globalLibs = new Set();
 
     Object.keys(libs).map((lib) => {
-
-        if (!Module.FS.analyzePath(`${lib}`).exists) {
-            console.log('lib path does not exist');
-          } else {
-            console.log('it is exist');
-          }
-
         const binary = readFile(lib);
-        console.log('binary', binary);
         const needed = Module.getDylinkMetadata(binary).neededDynlibs;
-        console.log('needed',needed);
         needed.forEach((lib) => {
             globalLibs.add(lib);
         });
     });
-    console.log('globalLibs', globalLibs);
     return globalLibs;
 }
 
@@ -206,12 +192,10 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
  
     const releaseDynlibLock = await acquireDynlibLock();
     
-    console.log('loadDynlib');
     try {
         const fs = createDynlibFS(prefix, lib, searchDirs, readFileFunc, Module);
 
         const libName = Module.PATH.basename(lib);
-        console.log('libName', libName);
         await Module.loadDynamicLibrary(libName, {
             loadAsync: true,
             nodelete: true,
@@ -219,28 +203,21 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
             global: global,
             fs: fs
         })
-        console.log('---LDSO---');
-        console.log('libName',libName);
         const dsoOnlyLibName = Module.LDSO.loadedLibsByName[libName];
-        console.log('dsoOnlyLibName',dsoOnlyLibName);
-        console.log('lib',lib);
         const dsoFullLib = Module.LDSO.loadedLibsByName[lib];
-        console.log('dsoFullLib',dsoFullLib);
         if(!dsoOnlyLibName && !dsoFullLib){
             console.execption(`Failed to load ${libName} from ${lib} LDSO not found`);
         }
 
         if (!dsoOnlyLibName) {
-            console.log('!dsoOnlyLibName');
             Module.LDSO.loadedLibsByName[libName] = dsoFullLib
         }
 
         if(!dsoFullLib){
-            console.log('!dsoFullLib');
             Module.LDSO.loadedLibsByName[lib] = dsoOnlyLibName;
         }
     } catch(error) {
-        console.error(error);
+        throw new Error(error?.message);
     }finally {
         releaseDynlibLock();
     }
