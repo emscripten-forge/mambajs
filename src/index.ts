@@ -96,7 +96,7 @@ export const installCondaPackage = async (
       }
       const condaFiles: FilesData = await untarjs.extractData(condaPackage);
       const packageInfoFiles: FilesData =
-      await untarjs.extractData(packageInfo);
+        await untarjs.extractData(packageInfo);
       saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
       saveFiles(FS, { ...condaFiles, ...packageInfoFiles }, newPrefix);
       return condaFiles;
@@ -122,7 +122,7 @@ const getSharedLibs = (files: FilesData, prefix: string): FilesData => {
 
 const getParentDirectory = (filePath: string): string => {
   return filePath.substring(0, filePath.lastIndexOf('/'));
-}
+};
 
 const saveFiles = (FS: any, files: FilesData, prefix: string): void => {
   try {
@@ -189,7 +189,7 @@ const saveCondaMetaFile = (
       console.log(
         'There is no info folder, imposibly to create a conda meta json file'
       );
-      }
+    }
   } else {
     let condaMetaFileData: Uint8Array = new Uint8Array();
     let path = '';
@@ -308,16 +308,22 @@ const loadShareLibs = (
   packages.map(async (pkg, i) => {
     let packageShareLibs = sharedLibs[i];
     if (Object.keys(packageShareLibs).length) {
-      let verifiedWasmSharedLibs: FilesData = {}; 
-     Object.keys(packageShareLibs).map((path) =>{
-      const isValidWasm = checkWasmMagicNumber(packageShareLibs[path]);
-      if (isValidWasm) {
-        verifiedWasmSharedLibs[path] = packageShareLibs[path];
+      let verifiedWasmSharedLibs: FilesData = {};
+      Object.keys(packageShareLibs).map(path => {
+        const isValidWasm = checkWasmMagicNumber(packageShareLibs[path]);
+        if (isValidWasm) {
+          verifiedWasmSharedLibs[path] = packageShareLibs[path];
+        }
+      });
+      if (Object.keys(verifiedWasmSharedLibs).length) {
+        await loadDynlibsFromPackage(
+          prefix,
+          pkg.name,
+          false,
+          verifiedWasmSharedLibs,
+          Module
+        );
       }
-    });
-    if (Object.keys(verifiedWasmSharedLibs).length) {
-      await loadDynlibsFromPackage(prefix, pkg.name, false, verifiedWasmSharedLibs, Module);
-    }
     }
   });
 };
@@ -335,17 +341,16 @@ const waitRunDependencies = (Module: any): Promise<void> => {
   return promise;
 };
 
+const checkWasmMagicNumber = (uint8Array: Uint8Array): boolean => {
+  const WASM_MAGIC_NUMBER = [0x00, 0x61, 0x73, 0x6d];
 
-const checkWasmMagicNumber= (uint8Array: Uint8Array): boolean =>{
-  const WASM_MAGIC_NUMBER = [0x00, 0x61, 0x73, 0x6D];
-  
   return (
-      uint8Array[0] === WASM_MAGIC_NUMBER[0] &&
-      uint8Array[1] === WASM_MAGIC_NUMBER[1] &&
-      uint8Array[2] === WASM_MAGIC_NUMBER[2] &&
-      uint8Array[3] === WASM_MAGIC_NUMBER[3]
+    uint8Array[0] === WASM_MAGIC_NUMBER[0] &&
+    uint8Array[1] === WASM_MAGIC_NUMBER[1] &&
+    uint8Array[2] === WASM_MAGIC_NUMBER[2] &&
+    uint8Array[3] === WASM_MAGIC_NUMBER[3]
   );
-}
+};
 
 export default {
   installCondaPackage,
