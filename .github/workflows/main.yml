@@ -42,12 +42,8 @@ jobs:
 
       - name: Build mambajs
         run: |
-          micromamba activate mambajs
-
           yarn run build
           
       - name: Run eslint
         run: |
-          micromamba activate mambajs
-
           yarn run eslint
