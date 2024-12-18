@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+        - main
+  pull_request:
+    branches:
+        - main
+
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: environment.yml
+          environment-name: mambajs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build mambajs
+        run: |
+          micromamba activate mambajs
+
+          yarn run build
+          
+      - name: Run eslint
+        run: |
+          micromamba activate mambajs
+
+          yarn run eslint

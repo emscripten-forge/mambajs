@@ -1,0 +1,6 @@
+name: mambajs
+channels:
+  - conda-forge
+dependencies:
+  - yarn
+  - nodejs
