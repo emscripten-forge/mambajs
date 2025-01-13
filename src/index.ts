@@ -277,6 +277,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
       prefix
     );
   }
+
   if (packages?.length) {
     let sharedLibs = await Promise.all(
       packages.map(pkg => {
@@ -298,6 +299,11 @@ export const bootstrapFromEmpackPackedEnvironment = async (
       loadShareLibs(packages, sharedLibs, prefix, Module);
     }
   }
+
+  if (bootstrapPython && pythonPackage && pythonVersion) {
+    globalThis.Module.init_phase_2(prefix, pythonVersion, verbose);
+  }
+
   return packagesData;
 };
 
