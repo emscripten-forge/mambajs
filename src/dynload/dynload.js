@@ -94,8 +94,12 @@ export async function loadDynlibsFromPackage(
 
     dynlibs.sort((lib1, lib2) => Number(lib2.global) - Number(lib1.global));
     for (const { path, global } of dynlibs) {
-
-      await loadDynlib(prefix, path, global, [auditWheelLibDir], readFileMemoized, Module);
+        try {
+            await loadDynlib(prefix, path, global, [auditWheelLibDir], readFileMemoized, Module);
+        } catch(e) {
+            // Not preventing the loop to continue
+            console.error(e);
+        }
     }
   }
 
