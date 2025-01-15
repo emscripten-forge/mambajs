@@ -296,7 +296,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
     );
     await waitRunDependencies(Module);
     if (!skipLoadingSharedLibs) {
-      loadShareLibs(packages, sharedLibs, prefix, Module);
+      await loadShareLibs(packages, sharedLibs, prefix, Module);
     }
   }
 
@@ -312,8 +312,8 @@ const loadShareLibs = (
   sharedLibs: FilesData[],
   prefix: string,
   Module: any
-): void => {
-  packages.map(async (pkg, i) => {
+): Promise<void[]> => {
+  return Promise.all(packages.map(async (pkg, i) => {
     let packageShareLibs = sharedLibs[i];
     if (Object.keys(packageShareLibs).length) {
       let verifiedWasmSharedLibs: FilesData = {};
@@ -324,7 +324,7 @@ const loadShareLibs = (
         }
       });
       if (Object.keys(verifiedWasmSharedLibs).length) {
-        await loadDynlibsFromPackage(
+        return await loadDynlibsFromPackage(
           prefix,
           pkg.name,
           false,
@@ -333,7 +333,7 @@ const loadShareLibs = (
         );
       }
     }
-  });
+  }));
 };
 
 const waitRunDependencies = (Module: any): Promise<void> => {
