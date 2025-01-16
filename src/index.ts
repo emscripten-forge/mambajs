@@ -81,6 +81,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   }
 
   if (bootstrapPython && pythonPackage && pythonVersion) {
+    // eslint-disable-next-line no-undef
     globalThis.Module.init_phase_2(prefix, pythonVersion, verbose);
   }
 
