@@ -10,7 +10,8 @@ This package has 2 methods:
 - `bootstrapFromEmpackPackedEnvironment( packagesJsonUrl, verbose, skipLoadingSharedLibs,Module, pkgRootUrl)` - downloading empack_env_meta.json and installing all conda packages from this file.
 
 The example of using:
-```sh
+
+```ts
 import {
   bootstrapFromEmpackPackedEnvironment,
   IPackagesInfo
