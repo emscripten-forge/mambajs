@@ -1,67 +1,125 @@
-import { FilesData, initUntarJS } from '@emscripten-forge/untarjs';
+import { FilesData, initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
   fetchJson,
   getPythonVersion,
   IEmpackEnvMetaPkg,
+  IEmpackEnvMeta,
   installCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 
-export const bootstrapFromEmpackPackedEnvironment = async (
-  packagesJsonUrl: string,
-  verbose: boolean = true,
-  skipLoadingSharedLibs: boolean = false,
-  Module: any,
-  pkgRootUrl: string,
-  bootstrapPython = false
-): Promise<void> => {
-  if (verbose) {
-    console.log('fetching packages.json from', packagesJsonUrl);
+
+export interface IBootstrapEmpackPackedEnvironmentOptions {
+  /**
+   * The empack lock file
+   */
+  empackEnvMeta: IEmpackEnvMeta;
+
+  /**
+   * The URL (CDN or similar) from which to download packages
+   */
+  pkgRootUrl: string;
+
+  /**
+   * The Emscripten Module
+   */
+  Module: any;
+
+  /**
+   * Whether to build in verbose mode, default to silent
+   */
+  verbose?: boolean;
+
+  /**
+   * The untarjs API. If not provided, one will be initialized.
+   */
+  untarjs?: IUnpackJSAPI;
+}
+
+/**
+ * Bootstrap a filesystem from an empack lock file
+ *
+ * @param options
+ */
+export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpackPackedEnvironmentOptions): Promise<void> => {
+  const { empackEnvMeta, pkgRootUrl, Module, verbose } = options;
+
+  let untarjs: IUnpackJSAPI;
+  if (options.untarjs) {
+    untarjs = options.untarjs;
+  } else {
+    const untarjsReady = initUntarJS();
+    untarjs = await untarjsReady;
   }
 
-  let empackEnvMeta = await fetchJson(packagesJsonUrl);
-  let allPackages: IEmpackEnvMetaPkg[] = empackEnvMeta.packages;
-  let prefix = empackEnvMeta.prefix;
-
-  const untarjsReady = initUntarJS();
-  const untarjs = await untarjsReady;
-
-  if (allPackages?.length) {
+  if (empackEnvMeta.packages.length) {
     let sharedLibs = await Promise.all(
-      allPackages.map(pkg => {
+      empackEnvMeta.packages.map(pkg => {
         const packageUrl = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
         if (verbose) {
           console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
         }
+
         return installCondaPackage(
-          prefix,
+          empackEnvMeta.prefix,
           packageUrl,
           Module.FS,
           untarjs,
-          verbose
+          !!verbose
         );
       })
     );
     await waitRunDependencies(Module);
-    if (!skipLoadingSharedLibs) {
-      await loadShareLibs(allPackages, sharedLibs, prefix, Module);
-    }
-  }
-
-  if (bootstrapPython) {
-    // Assuming these are defined by pyjs
-    const pythonVersion = getPythonVersion(allPackages);
-    await Module.init_phase_1(prefix, pythonVersion, verbose);
-    Module.init_phase_2(prefix, pythonVersion, verbose);
+    await loadShareLibs(empackEnvMeta.packages, sharedLibs, empackEnvMeta.prefix, Module);
   }
 };
 
-const loadShareLibs = (
+export interface IBootstrapPythonOptions {
+  /**
+   * The Python version as a list e.g. [3, 11]
+   */
+  pythonVersion: number[];
+
+  /**
+   * The environment prefix
+   */
+  prefix: string;
+
+  /**
+   * The Emscripten Module
+   */
+  Module: any;
+
+  /**
+   * Whether to build in verbose mode, default to silent
+   */
+  verbose?: boolean;
+}
+
+/**
+ * Bootstrap Python runtime
+ *
+ * @param options
+ */
+export async function bootstrapPython(options: IBootstrapPythonOptions) {
+  // Assuming these are defined by pyjs
+  await options.Module.init_phase_1(options.prefix, options.pythonVersion, options.verbose);
+  options.Module.init_phase_2(options.prefix, options.pythonVersion, options.verbose);
+}
+
+export interface ILoadSharedLibsOptions {
+
+}
+
+
+export async function loadShareLibs(
+  options: ILoadSharedLibsOptions,
+
   packages: IEmpackEnvMetaPkg[],
   sharedLibs: FilesData[],
   prefix: string,
   Module: any
-): Promise<void[]> => {
+): Promise<void[]> {
   return Promise.all(
     packages.map(async (pkg, i) => {
       let packageShareLibs = sharedLibs[i];
@@ -113,5 +171,5 @@ const checkWasmMagicNumber = (uint8Array: Uint8Array): boolean => {
 
 export default {
   installCondaPackage,
-  bootstrapFromEmpackPackedEnvironment
+  bootstrapEmpackPackedEnvironment
 };

@@ -9,14 +9,19 @@ export interface IEmpackEnvMetaPkg {
   url: string;
 }
 
-export async function fetchJson(url: string): Promise<any> {
-  let response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  let json = await response.json();
-  return json;
+export interface IEmpackEnvMeta {
+  prefix: string;
+  packages: IEmpackEnvMetaPkg[];
 }
+
+// export async function fetchJson(url: string): Promise<any> {
+//   let response = await fetch(url);
+//   if (!response.ok) {
+//     throw new Error(`HTTP error! status: ${response.status}`);
+//   }
+//   let json = await response.json();
+//   return json;
+// }
 
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));
