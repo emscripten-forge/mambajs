@@ -1,6 +1,27 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
-import { IEmpackEnvMeta, installCondaPackage, TSharedLibsMap } from './helper';
+import {
+  IEmpackEnvMeta,
+  IEmpackEnvMetaPkg,
+  installCondaPackage,
+  TSharedLibsMap
+} from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
+
+export function getPythonVersion(
+  packages: IEmpackEnvMetaPkg[]
+): number[] | undefined {
+  let pythonPackage: IEmpackEnvMetaPkg | undefined = undefined;
+  for (let i = 0; i < packages.length; i++) {
+    if (packages[i].name == 'python') {
+      pythonPackage = packages[i];
+      break;
+    }
+  }
+
+  if (pythonPackage) {
+    return pythonPackage.version.split('.').map(x => parseInt(x));
+  }
+}
 
 export interface IBootstrapEmpackPackedEnvironmentOptions {
   /**
@@ -136,20 +157,19 @@ export async function loadShareLibs(
 ): Promise<void[]> {
   const { sharedLibs, prefix, Module } = options;
 
-  return Promise.all(
-    sharedLibs.keys.map(async (pkg, i) => {
-      const packageShareLibs = sharedLibs[pkg];
+  const sharedLibsLoad: Promise<void>[] = [];
 
-      if (packageShareLibs) {
-        return await loadDynlibsFromPackage(
-          prefix,
-          pkg,
-          packageShareLibs,
-          Module
-        );
-      }
-    })
-  );
+  for (const pkgName of Object.keys(sharedLibs)) {
+    const packageShareLibs = sharedLibs[pkgName];
+
+    if (packageShareLibs) {
+      sharedLibsLoad.push(
+        loadDynlibsFromPackage(prefix, pkgName, packageShareLibs, Module)
+      );
+    }
+  }
+
+  return Promise.all(sharedLibsLoad);
 }
 
 const waitRunDependencies = (Module: any): Promise<void> => {

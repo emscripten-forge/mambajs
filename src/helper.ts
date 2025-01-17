@@ -24,15 +24,6 @@ export type TSharedLibs = string[];
  */
 export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
 
-// export async function fetchJson(url: string): Promise<any> {
-//   let response = await fetch(url);
-//   if (!response.ok) {
-//     throw new Error(`HTTP error! status: ${response.status}`);
-//   }
-//   let json = await response.json();
-//   return json;
-// }
-
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));
 }
@@ -72,22 +63,6 @@ export function isCondaMeta(files: FilesData): boolean {
     }
   });
   return isCondaMetaFile;
-}
-
-export function getPythonVersion(
-  packages: IEmpackEnvMetaPkg[]
-): number[] | undefined {
-  let pythonPackage: IEmpackEnvMetaPkg | undefined = undefined;
-  for (let i = 0; i < packages.length; i++) {
-    if (packages[i].name == 'python') {
-      pythonPackage = packages[i];
-      break;
-    }
-  }
-
-  if (pythonPackage) {
-    return pythonPackage.version.split('.').map(x => parseInt(x));
-  }
 }
 
 export function saveFiles(FS: any, files: FilesData, prefix: string): void {

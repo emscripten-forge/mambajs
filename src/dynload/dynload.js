@@ -43,7 +43,7 @@ function isInSharedLibraryPath(prefix, libPath){
 
 export async function loadDynlibsFromPackage(
     prefix,
-    pkg_file_name,
+    pkgName,
     dynlibPaths,
     Module
   ) {
@@ -55,9 +55,7 @@ export async function loadDynlibsFromPackage(
     else{
         var sitepackages = `${prefix}/lib/python3.11/site-packages`
     }
-    const auditWheelLibDir = `${sitepackages}/${
-        pkg_file_name.split("-")[0]
-    }.libs`;
+    const auditWheelLibDir = `${sitepackages}/${pkgName}.libs`;
 
     // This prevents from reading large libraries multiple times.
     const readFileMemoized = memoize(Module.FS.readFile);
