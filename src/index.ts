@@ -1,9 +1,5 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
-import {
-  IEmpackEnvMeta,
-  installCondaPackage,
-  TSharedLibsMap
-} from './helper';
+import { IEmpackEnvMeta, installCondaPackage, TSharedLibsMap } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 
 export interface IBootstrapEmpackPackedEnvironmentOptions {
@@ -34,7 +30,7 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
 }
 
 /**
- * Bootstrap a filesystem from an empack lock file
+ * Bootstrap a filesystem from an empack lock file. And return the installed shared libs.
  *
  * @param options
  * @returns The installed shared libraries as a TSharedLibs
