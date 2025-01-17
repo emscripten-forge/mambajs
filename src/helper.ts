@@ -85,7 +85,8 @@ export async function installCondaPackage(
   url: string,
   FS: any,
   untarjs: IUnpackJSAPI,
-  verbose: boolean
+  verbose = false,
+  generateCondaMeta = false
 ): Promise<TSharedLibs> {
   if (!url) {
     throw new Error(`There is no file in ${url}`);
@@ -121,11 +122,12 @@ export async function installCondaPackage(
       const condaFiles: FilesData = await untarjs.extractData(condaPackage);
       const packageInfoFiles: FilesData =
         await untarjs.extractData(packageInfo);
-      saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
+      generateCondaMeta &&
+        saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
       saveFiles(FS, { ...condaFiles, ...packageInfoFiles }, newPrefix);
       installedFiles = condaFiles;
     } else {
-      saveCondaMetaFile(files, newPrefix, FS, verbose);
+      generateCondaMeta && saveCondaMetaFile(files, newPrefix, FS, verbose);
       saveFiles(FS, files, newPrefix);
       installedFiles = files;
     }

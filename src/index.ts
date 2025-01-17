@@ -47,6 +47,11 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
   verbose?: boolean;
 
   /**
+   * Whether to install conda-meta for packages, default to False
+   */
+  generateCondaMeta?: boolean;
+
+  /**
    * The untarjs API. If not provided, one will be initialized.
    */
   untarjs?: IUnpackJSAPI;
@@ -61,7 +66,8 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
 export const bootstrapEmpackPackedEnvironment = async (
   options: IBootstrapEmpackPackedEnvironmentOptions
 ): Promise<TSharedLibsMap> => {
-  const { empackEnvMeta, pkgRootUrl, Module, verbose } = options;
+  const { empackEnvMeta, pkgRootUrl, Module, verbose, generateCondaMeta } =
+    options;
 
   let untarjs: IUnpackJSAPI;
   if (options.untarjs) {
@@ -86,7 +92,8 @@ export const bootstrapEmpackPackedEnvironment = async (
           packageUrl,
           Module.FS,
           untarjs,
-          !!verbose
+          !!verbose,
+          !!generateCondaMeta
         );
       })
     );
@@ -171,7 +178,7 @@ export async function loadShareLibs(
     }
   }
 
-  return Promise.all(sharedLibsLoad);
+  return await Promise.all(sharedLibsLoad);
 }
 
 const waitRunDependencies = (Module: any): Promise<void> => {

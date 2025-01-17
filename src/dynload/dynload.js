@@ -82,10 +82,10 @@ export async function loadDynlibsFromPackage(
             await loadDynlib(prefix, path, global, [auditWheelLibDir], readFileMemoized, Module);
         } catch(e) {
             // Not preventing the loop to continue
-            console.error(e);
+            console.error(`Failed to load dynlib ${path}`, e);
         }
     }
-  }
+}
 
 function createDynlibFS(
     prefix,
