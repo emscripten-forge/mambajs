@@ -181,7 +181,7 @@ export async function loadShareLibs(
   return await Promise.all(sharedLibsLoad);
 }
 
-const waitRunDependencies = (Module: any): Promise<void> => {
+export async function waitRunDependencies(Module: any): Promise<void> {
   const promise = new Promise<void>(r => {
     Module.monitorRunDependencies = n => {
       if (n === 0) {
