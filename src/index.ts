@@ -1,12 +1,14 @@
 import { FilesData, initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
-  fetchJson,
-  getPythonVersion,
-  IEmpackEnvMetaPkg,
   IEmpackEnvMeta,
   installCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
+
+/**
+ * Shared libraries. A map package name -> list of .so files
+ */
+export type TSharedLibs = { [pkgName:string]: string[] };
 
 
 export interface IBootstrapEmpackPackedEnvironmentOptions {
@@ -40,8 +42,9 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  * Bootstrap a filesystem from an empack lock file
  *
  * @param options
+ * @returns The installed shared libraries as a TSharedLibs
  */
-export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpackPackedEnvironmentOptions): Promise<void> => {
+export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpackPackedEnvironmentOptions): Promise<TSharedLibs> => {
   const { empackEnvMeta, pkgRootUrl, Module, verbose } = options;
 
   let untarjs: IUnpackJSAPI;
@@ -60,6 +63,7 @@ export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpack
           console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
         }
 
+        // TODO Modify insallcondapackage so it returns the right type and use checkWasmMagicNumber for each .so file
         return installCondaPackage(
           empackEnvMeta.prefix,
           packageUrl,
@@ -70,8 +74,9 @@ export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpack
       })
     );
     await waitRunDependencies(Module);
-    await loadShareLibs(empackEnvMeta.packages, sharedLibs, empackEnvMeta.prefix, Module);
   }
+
+  return ;
 };
 
 export interface IBootstrapPythonOptions {
@@ -108,38 +113,38 @@ export async function bootstrapPython(options: IBootstrapPythonOptions) {
 }
 
 export interface ILoadSharedLibsOptions {
+  /**
+   * Shared libs to load
+   */
+  sharedLibs: TSharedLibs;
 
+  /**
+   * The environment prefix
+   */
+  prefix: string;
+
+  /**
+   * The Emscripten Module
+   */
+  Module: any;
 }
-
 
 export async function loadShareLibs(
   options: ILoadSharedLibsOptions,
-
-  packages: IEmpackEnvMetaPkg[],
-  sharedLibs: FilesData[],
-  prefix: string,
-  Module: any
 ): Promise<void[]> {
+  const { sharedLibs, prefix, Module } = options;
+
   return Promise.all(
-    packages.map(async (pkg, i) => {
-      let packageShareLibs = sharedLibs[i];
-      if (Object.keys(packageShareLibs).length) {
-        let verifiedWasmSharedLibs: FilesData = {};
-        Object.keys(packageShareLibs).map(path => {
-          const isValidWasm = checkWasmMagicNumber(packageShareLibs[path]);
-          if (isValidWasm) {
-            verifiedWasmSharedLibs[path] = packageShareLibs[path];
-          }
-        });
-        if (Object.keys(verifiedWasmSharedLibs).length) {
-          return await loadDynlibsFromPackage(
-            prefix,
-            pkg.name,
-            false,
-            verifiedWasmSharedLibs,
-            Module
-          );
-        }
+    sharedLibs.keys.map(async (pkg, i) => {
+      const packageShareLibs = sharedLibs[pkg];
+
+      if (packageShareLibs) {
+        return await loadDynlibsFromPackage(
+          prefix,
+          pkg,
+          packageShareLibs,
+          Module
+        );
       }
     })
   );
