@@ -1,29 +1,11 @@
 import { FilesData, initUntarJS } from '@emscripten-forge/untarjs';
 import {
-  bootstrapPythonPackage,
   fetchJson,
+  getPythonVersion,
   IEmpackEnvMetaPkg,
-  installCondaPackage,
-  IPackagesInfo
+  installCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
-
-const splitPackages = (packages: IEmpackEnvMetaPkg[]): IPackagesInfo => {
-  let pythonPackage: IEmpackEnvMetaPkg | undefined = undefined;
-  for (let i = 0; i < packages.length; i++) {
-    if (packages[i].name == 'python') {
-      pythonPackage = packages[i];
-      packages.splice(i, 1);
-      break;
-    }
-  }
-  if (pythonPackage) {
-    let pythonVersion = pythonPackage.version.split('.').map(x => parseInt(x));
-    return { pythonPackage, pythonVersion, packages };
-  } else {
-    return { packages };
-  }
-};
 
 export const bootstrapFromEmpackPackedEnvironment = async (
   packagesJsonUrl: string,
@@ -32,7 +14,7 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   Module: any,
   pkgRootUrl: string,
   bootstrapPython = false
-): Promise<IPackagesInfo> => {
+): Promise<void> => {
   if (verbose) {
     console.log('fetching packages.json from', packagesJsonUrl);
   }
@@ -40,27 +22,13 @@ export const bootstrapFromEmpackPackedEnvironment = async (
   let empackEnvMeta = await fetchJson(packagesJsonUrl);
   let allPackages: IEmpackEnvMetaPkg[] = empackEnvMeta.packages;
   let prefix = empackEnvMeta.prefix;
-  let { pythonPackage, pythonVersion, packages } = splitPackages(allPackages);
-  let packagesData = { prefix, pythonVersion };
 
   const untarjsReady = initUntarJS();
   const untarjs = await untarjsReady;
 
-  if (bootstrapPython && pythonPackage && pythonVersion) {
-    await bootstrapPythonPackage(
-      pythonPackage,
-      pythonVersion,
-      verbose,
-      untarjs,
-      Module,
-      pkgRootUrl,
-      prefix
-    );
-  }
-
-  if (packages?.length) {
+  if (allPackages?.length) {
     let sharedLibs = await Promise.all(
-      packages.map(pkg => {
+      allPackages.map(pkg => {
         const packageUrl = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
         if (verbose) {
           console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
@@ -76,16 +44,16 @@ export const bootstrapFromEmpackPackedEnvironment = async (
     );
     await waitRunDependencies(Module);
     if (!skipLoadingSharedLibs) {
-      await loadShareLibs(packages, sharedLibs, prefix, Module);
+      await loadShareLibs(allPackages, sharedLibs, prefix, Module);
     }
   }
 
-  if (bootstrapPython && pythonPackage && pythonVersion) {
-    // eslint-disable-next-line no-undef
-    globalThis.Module.init_phase_2(prefix, pythonVersion, verbose);
+  if (bootstrapPython) {
+    // Assuming these are defined by pyjs
+    const pythonVersion = getPythonVersion(allPackages);
+    await Module.init_phase_1(prefix, pythonVersion, verbose);
+    Module.init_phase_2(prefix, pythonVersion, verbose);
   }
-
-  return packagesData;
 };
 
 const loadShareLibs = (

@@ -9,13 +9,6 @@ export interface IEmpackEnvMetaPkg {
   url: string;
 }
 
-export interface IPackagesInfo {
-  pythonPackage?: IEmpackEnvMetaPkg;
-  pythonVersion?: number[];
-  prefix?: string;
-  packages?: IEmpackEnvMetaPkg[];
-}
-
 export async function fetchJson(url: string): Promise<any> {
   let response = await fetch(url);
   if (!response.ok) {
@@ -50,6 +43,22 @@ export function isCondaMeta(files: FilesData): boolean {
     }
   });
   return isCondaMetaFile;
+}
+
+export function getPythonVersion(
+  packages: IEmpackEnvMetaPkg[]
+): number[] | undefined {
+  let pythonPackage: IEmpackEnvMetaPkg | undefined = undefined;
+  for (let i = 0; i < packages.length; i++) {
+    if (packages[i].name == 'python') {
+      pythonPackage = packages[i];
+      break;
+    }
+  }
+
+  if (pythonPackage) {
+    return pythonPackage.version.split('.').map(x => parseInt(x));
+  }
 }
 
 export function saveFiles(FS: any, files: FilesData, prefix: string): void {
