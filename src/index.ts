@@ -7,6 +7,8 @@ import {
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 
+export * from './helper';
+
 export function getPythonVersion(
   packages: IEmpackEnvMetaPkg[]
 ): number[] | undefined {
