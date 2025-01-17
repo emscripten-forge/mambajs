@@ -1,15 +1,11 @@
-import { FilesData, initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
+import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
+  TSharedLibs,
+  TSharedLibsMap,
   IEmpackEnvMeta,
   installCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
-
-/**
- * Shared libraries. A map package name -> list of .so files
- */
-export type TSharedLibs = { [pkgName:string]: string[] };
-
 
 export interface IBootstrapEmpackPackedEnvironmentOptions {
   /**
@@ -44,7 +40,7 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  * @param options
  * @returns The installed shared libraries as a TSharedLibs
  */
-export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpackPackedEnvironmentOptions): Promise<TSharedLibs> => {
+export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpackPackedEnvironmentOptions): Promise<TSharedLibsMap> => {
   const { empackEnvMeta, pkgRootUrl, Module, verbose } = options;
 
   let untarjs: IUnpackJSAPI;
@@ -55,16 +51,17 @@ export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpack
     untarjs = await untarjsReady;
   }
 
+  const sharedLibsMap: TSharedLibsMap = {};
+
   if (empackEnvMeta.packages.length) {
-    let sharedLibs = await Promise.all(
-      empackEnvMeta.packages.map(pkg => {
+    await Promise.all(
+      empackEnvMeta.packages.map(async pkg => {
         const packageUrl = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
         if (verbose) {
           console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
         }
 
-        // TODO Modify insallcondapackage so it returns the right type and use checkWasmMagicNumber for each .so file
-        return installCondaPackage(
+        sharedLibsMap[pkg.name] = await installCondaPackage(
           empackEnvMeta.prefix,
           packageUrl,
           Module.FS,
@@ -76,7 +73,7 @@ export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpack
     await waitRunDependencies(Module);
   }
 
-  return ;
+  return sharedLibsMap;
 };
 
 export interface IBootstrapPythonOptions {
@@ -116,7 +113,7 @@ export interface ILoadSharedLibsOptions {
   /**
    * Shared libs to load
    */
-  sharedLibs: TSharedLibs;
+  sharedLibs: TSharedLibsMap;
 
   /**
    * The environment prefix
@@ -163,18 +160,3 @@ const waitRunDependencies = (Module: any): Promise<void> => {
   return promise;
 };
 
-const checkWasmMagicNumber = (uint8Array: Uint8Array): boolean => {
-  const WASM_MAGIC_NUMBER = [0x00, 0x61, 0x73, 0x6d];
-
-  return (
-    uint8Array[0] === WASM_MAGIC_NUMBER[0] &&
-    uint8Array[1] === WASM_MAGIC_NUMBER[1] &&
-    uint8Array[2] === WASM_MAGIC_NUMBER[2] &&
-    uint8Array[3] === WASM_MAGIC_NUMBER[3]
-  );
-};
-
-export default {
-  installCondaPackage,
-  bootstrapEmpackPackedEnvironment
-};
