@@ -22,7 +22,7 @@ export type TSharedLibs = string[];
 /**
  * Shared libraries. A map package name -> list of .so files
  */
-export type TSharedLibsMap = { [pkgName:string]: TSharedLibs };
+export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
 
 // export async function fetchJson(url: string): Promise<any> {
 //   let response = await fetch(url);
@@ -41,7 +41,10 @@ export function getSharedLibs(files: FilesData, prefix: string): TSharedLibs {
   let sharedLibs: TSharedLibs = [];
 
   Object.keys(files).map(file => {
-    if ((file.endsWith('.so') || file.includes('.so.')) && checkWasmMagicNumber(files[file])) {
+    if (
+      (file.endsWith('.so') || file.includes('.so.')) &&
+      checkWasmMagicNumber(files[file])
+    ) {
       sharedLibs.push(`${prefix}/${file}`);
     }
   });
@@ -58,7 +61,7 @@ export function checkWasmMagicNumber(uint8Array: Uint8Array): boolean {
     uint8Array[2] === WASM_MAGIC_NUMBER[2] &&
     uint8Array[3] === WASM_MAGIC_NUMBER[3]
   );
-};
+}
 
 export function isCondaMeta(files: FilesData): boolean {
   let isCondaMetaFile = false;

@@ -1,9 +1,8 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
-  TSharedLibs,
-  TSharedLibsMap,
   IEmpackEnvMeta,
-  installCondaPackage
+  installCondaPackage,
+  TSharedLibsMap
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 
@@ -40,7 +39,9 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  * @param options
  * @returns The installed shared libraries as a TSharedLibs
  */
-export const bootstrapEmpackPackedEnvironment = async (options: IBootstrapEmpackPackedEnvironmentOptions): Promise<TSharedLibsMap> => {
+export const bootstrapEmpackPackedEnvironment = async (
+  options: IBootstrapEmpackPackedEnvironmentOptions
+): Promise<TSharedLibsMap> => {
   const { empackEnvMeta, pkgRootUrl, Module, verbose } = options;
 
   let untarjs: IUnpackJSAPI;
@@ -105,8 +106,16 @@ export interface IBootstrapPythonOptions {
  */
 export async function bootstrapPython(options: IBootstrapPythonOptions) {
   // Assuming these are defined by pyjs
-  await options.Module.init_phase_1(options.prefix, options.pythonVersion, options.verbose);
-  options.Module.init_phase_2(options.prefix, options.pythonVersion, options.verbose);
+  await options.Module.init_phase_1(
+    options.prefix,
+    options.pythonVersion,
+    options.verbose
+  );
+  options.Module.init_phase_2(
+    options.prefix,
+    options.pythonVersion,
+    options.verbose
+  );
 }
 
 export interface ILoadSharedLibsOptions {
@@ -127,7 +136,7 @@ export interface ILoadSharedLibsOptions {
 }
 
 export async function loadShareLibs(
-  options: ILoadSharedLibsOptions,
+  options: ILoadSharedLibsOptions
 ): Promise<void[]> {
   const { sharedLibs, prefix, Module } = options;
 
@@ -145,7 +154,7 @@ export async function loadShareLibs(
       }
     })
   );
-};
+}
 
 const waitRunDependencies = (Module: any): Promise<void> => {
   const promise = new Promise<void>(r => {
@@ -159,4 +168,3 @@ const waitRunDependencies = (Module: any): Promise<void> => {
   Module.removeRunDependency('dummy');
   return promise;
 };
-
