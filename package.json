@@ -35,7 +35,7 @@
   "author": "Anastasiia Sliusar",
   "license": "MIT",
   "dependencies": {
-    "@emscripten-forge/untarjs": "^5.0.0"
+    "@emscripten-forge/untarjs": "^5.1.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
