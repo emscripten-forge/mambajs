@@ -120,16 +120,14 @@ export async function untarCondaPackage(
         throw new Error(`Invalid .conda package ${url}`);
       }
       const condaFiles: FilesData = await untarjs.extractData(condaPackage);
-      const packageInfoFiles: FilesData =
-        await untarjs.extractData(packageInfo);
+
       if (generateCondaMeta) {
         return {
           ...condaFiles,
-          ...packageInfoFiles,
           ...getCondaMetaFile(extractedFiles, verbose)
         };
       } else {
-        return { ...condaFiles, ...packageInfoFiles };
+        return condaFiles;
       }
     } else {
       // This will happen for empacked packages, there are already
