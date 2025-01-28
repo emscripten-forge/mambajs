@@ -1,9 +1,11 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
+  getSharedLibs,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
-  installCondaPackage,
-  TSharedLibsMap
+  saveFilesIntoEmscriptenFS,
+  TSharedLibsMap,
+  untarCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 
@@ -87,14 +89,16 @@ export const bootstrapEmpackPackedEnvironment = async (
           console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
         }
 
-        sharedLibsMap[pkg.name] = await installCondaPackage(
-          empackEnvMeta.prefix,
+        const extractedPackage = await untarCondaPackage(
           packageUrl,
-          Module.FS,
           untarjs,
-          !!verbose,
-          !!generateCondaMeta
+          verbose,
+          generateCondaMeta
         );
+
+        sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
+
+        saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
       })
     );
     await waitRunDependencies(Module);
@@ -192,4 +196,4 @@ export async function waitRunDependencies(Module: any): Promise<void> {
   Module.addRunDependency('dummy');
   Module.removeRunDependency('dummy');
   return promise;
-};
+}

@@ -65,7 +65,11 @@ export function isCondaMeta(files: FilesData): boolean {
   return isCondaMetaFile;
 }
 
-export function saveFiles(FS: any, files: FilesData, prefix: string): void {
+export function saveFilesIntoEmscriptenFS(
+  FS: any,
+  files: FilesData,
+  prefix: string
+): void {
   try {
     Object.keys(files).forEach(filename => {
       const dir = getParentDirectory(filename);
@@ -80,36 +84,32 @@ export function saveFiles(FS: any, files: FilesData, prefix: string): void {
   }
 }
 
-export async function installCondaPackage(
-  prefix: string,
+/**
+ * Untar conda or empacked package, given a URL to it. This will also do prefix relocation.
+ * @param url The URL to the package
+ * @param untarjs The current untarjs instance
+ * @param verbose Whether it's verbose or not
+ * @param generateCondaMeta Whether or not to generate conda meta files
+ * @returns the files to install
+ */
+export async function untarCondaPackage(
   url: string,
-  FS: any,
   untarjs: IUnpackJSAPI,
   verbose = false,
   generateCondaMeta = false
-): Promise<TSharedLibs> {
-  if (!url) {
-    throw new Error(`There is no file in ${url}`);
-  }
+): Promise<FilesData> {
+  const extractedFiles = await untarjs.extract(url);
 
-  let files = await untarjs.extract(url);
-  let installedFiles: FilesData | undefined = undefined;
-  let newPrefix = prefix;
-
-  if (Object.keys(files).length !== 0) {
-    if (prefix === '/') {
-      newPrefix = '';
-    }
-
+  if (Object.keys(extractedFiles).length !== 0) {
     if (url.toLowerCase().endsWith('.conda')) {
       let condaPackage: Uint8Array = new Uint8Array();
       let packageInfo: Uint8Array = new Uint8Array();
 
-      Object.keys(files).map(file => {
+      Object.keys(extractedFiles).map(file => {
         if (file.startsWith('pkg-')) {
-          condaPackage = files[file];
+          condaPackage = extractedFiles[file];
         } else if (file.startsWith('info-')) {
-          packageInfo = files[file];
+          packageInfo = extractedFiles[file];
         }
       });
 
@@ -122,44 +122,42 @@ export async function installCondaPackage(
       const condaFiles: FilesData = await untarjs.extractData(condaPackage);
       const packageInfoFiles: FilesData =
         await untarjs.extractData(packageInfo);
-      generateCondaMeta &&
-        saveCondaMetaFile(packageInfoFiles, newPrefix, FS, verbose);
-      saveFiles(FS, { ...condaFiles, ...packageInfoFiles }, newPrefix);
-      installedFiles = condaFiles;
+      if (generateCondaMeta) {
+        return {
+          ...condaFiles,
+          ...packageInfoFiles,
+          ...getCondaMetaFile(extractedFiles, verbose)
+        };
+      } else {
+        return { ...condaFiles, ...packageInfoFiles };
+      }
     } else {
-      generateCondaMeta && saveCondaMetaFile(files, newPrefix, FS, verbose);
-      saveFiles(FS, files, newPrefix);
-      installedFiles = files;
+      // This will happen for empacked packages, there are already
+      // properly relocated and can be installed directly without further processing
+      return extractedFiles;
     }
   }
 
-  if (!installedFiles) {
-    throw new Error(`There is no file in ${url}`);
-  }
-
-  if (prefix === '/') {
-    newPrefix = '';
-  }
-
-  if (Object.keys(installedFiles).length !== 0) {
-    return getSharedLibs(installedFiles, newPrefix);
-  }
-
-  return [];
+  return {};
 }
 
-export function saveCondaMetaFile(
+/**
+ * Given a conda package, get the generated conda meta files
+ * @param files The conda package files
+ * @param verbose Whether to be verbose or not
+ * @returns The generated conda-meta files
+ */
+export function getCondaMetaFile(
   files: FilesData,
-  prefix: string,
-  FS: any,
   verbose: boolean
-): void {
+): FilesData {
   let infoData: Uint8Array = new Uint8Array();
   let isCondaMetaFile = isCondaMeta(files);
   if (!isCondaMetaFile) {
     if (verbose) {
-      console.log(`Creating and saving conda-meta json`);
+      console.log(`Creating conda-meta json`);
     }
+
     Object.keys(files).map(filename => {
       let regexp = 'index.json';
 
@@ -171,8 +169,7 @@ export function saveCondaMetaFile(
       let info = new TextDecoder('utf-8').decode(infoData);
       try {
         let condaPackageInfo = JSON.parse(info);
-        const condaMetaDir = `${prefix}/conda-meta`;
-        const path = `${condaMetaDir}/${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build}.json`;
+        const path = `conda-meta/${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build}.json`;
 
         const pkgCondaMeta = {
           name: condaPackageInfo.name,
@@ -181,16 +178,16 @@ export function saveCondaMetaFile(
           build_number: condaPackageInfo.build_number
         };
 
-        if (!FS.analyzePath(`${condaMetaDir}`).exists) {
-          FS.mkdirTree(`${condaMetaDir}`);
-        }
-
         if (verbose) {
           console.log(
             `Creating conda-meta file for ${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build} package`
           );
         }
-        FS.writeFile(path, JSON.stringify(pkgCondaMeta));
+
+        const json = JSON.stringify(pkgCondaMeta);
+        const condaMetaFile = new TextEncoder().encode(json);
+
+        return { [path]: condaMetaFile };
       } catch (error: any) {
         throw new Error(error?.message);
       }
@@ -198,6 +195,7 @@ export function saveCondaMetaFile(
       console.log(
         'There is no info folder, imposibly to create a conda meta json file'
       );
+      return {};
     }
   } else {
     let condaMetaFileData: Uint8Array = new Uint8Array();
@@ -209,10 +207,10 @@ export function saveCondaMetaFile(
         path = filename;
       }
     });
-    let condaMetaDir = `${prefix}/conda-meta`;
-    if (!FS.analyzePath(`${condaMetaDir}`).exists) {
-      FS.mkdirTree(`${condaMetaDir}`);
-    }
+    // let condaMetaDir = `${prefix}/conda-meta`;
+    // if (!FS.analyzePath(`${condaMetaDir}`).exists) {
+    //   FS.mkdirTree(`${condaMetaDir}`);
+    // }
 
     if (verbose) {
       console.log(`Saving conda-meta file ${path}`);
@@ -220,6 +218,8 @@ export function saveCondaMetaFile(
 
     const json = JSON.stringify(condaMetaFileData);
     const condaMetaFile = new TextEncoder().encode(json);
-    FS.writeFile(`${prefix}/${path}`, condaMetaFile);
+    return { [path]: condaMetaFile };
   }
+
+  return {};
 }
