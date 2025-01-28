@@ -100,43 +100,63 @@ export async function untarCondaPackage(
 ): Promise<FilesData> {
   const extractedFiles = await untarjs.extract(url);
 
-  if (Object.keys(extractedFiles).length !== 0) {
-    if (url.toLowerCase().endsWith('.conda')) {
-      let condaPackage: Uint8Array = new Uint8Array();
-      let packageInfo: Uint8Array = new Uint8Array();
+  const { info, pkg } = await splitPackageInfo(url, extractedFiles, untarjs);
 
-      Object.keys(extractedFiles).map(file => {
-        if (file.startsWith('pkg-')) {
-          condaPackage = extractedFiles[file];
-        } else if (file.startsWith('info-')) {
-          packageInfo = extractedFiles[file];
-        }
-      });
-
-      if (
-        (condaPackage && condaPackage.byteLength === 0) ||
-        (packageInfo && packageInfo.byteLength === 0)
-      ) {
-        throw new Error(`Invalid .conda package ${url}`);
-      }
-      const condaFiles: FilesData = await untarjs.extractData(condaPackage);
-
-      if (generateCondaMeta) {
-        return {
-          ...condaFiles,
-          ...getCondaMetaFile(extractedFiles, verbose)
-        };
-      } else {
-        return condaFiles;
-      }
-    } else {
-      // This will happen for empacked packages, there are already
-      // properly relocated and can be installed directly without further processing
-      return extractedFiles;
-    }
+  if (generateCondaMeta) {
+    return {
+      ...pkg,
+      ...getCondaMetaFile(info, verbose)
+    };
   }
 
-  return {};
+  return pkg;
+}
+
+/**
+ * Split package info from actual package files
+ * @param filename The original filename
+ * @param files The package files
+ * @param untarjs The current untarjs instance
+ * @returns Splitted files between info and actual package files
+ */
+export async function splitPackageInfo(filename: string, files: FilesData, untarjs: IUnpackJSAPI): Promise<{info: FilesData, pkg: FilesData}> {
+  let info: FilesData = {};
+  let pkg: FilesData = {};
+
+  // For .conda files, extract info and pkg separately
+  if (filename.toLowerCase().endsWith('.conda')) {
+    let condaPackage: Uint8Array = new Uint8Array();
+    let packageInfo: Uint8Array = new Uint8Array();
+
+    Object.keys(files).map(file => {
+      if (file.startsWith('pkg-')) {
+        condaPackage = files[file];
+      } else if (file.startsWith('info-')) {
+        packageInfo = files[file];
+      }
+    });
+
+    if (
+      (condaPackage && condaPackage.byteLength === 0) ||
+      (packageInfo && packageInfo.byteLength === 0)
+    ) {
+      throw new Error(`Invalid .conda package ${filename}`);
+    }
+
+    pkg = await untarjs.extractData(condaPackage);
+    info = await untarjs.extractData(packageInfo);
+  } else {
+    // For tar.gz packages, extract everything from the info directory
+    Object.keys(files).map(file => {
+      if (file.startsWith('info/')) {
+        info[file.slice(5)] = files[file];
+      } else {
+        pkg[file] = files[file];
+      }
+    });
+  }
+
+  return { info, pkg };
 }
 
 /**
@@ -205,10 +225,6 @@ export function getCondaMetaFile(
         path = filename;
       }
     });
-    // let condaMetaDir = `${prefix}/conda-meta`;
-    // if (!FS.analyzePath(`${condaMetaDir}`).exists) {
-    //   FS.mkdirTree(`${condaMetaDir}`);
-    // }
 
     if (verbose) {
       console.log(`Saving conda-meta file ${path}`);
