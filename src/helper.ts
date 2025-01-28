@@ -154,8 +154,6 @@ export async function untarCondaPackage(
 
   const { info, pkg } = await splitPackageInfo(url, extractedFiles, untarjs);
 
-  console.log('trying to do relocation');
-
   // Prefix relocation
   if (info['info/paths.json']) {
     const paths = JSON.parse(
@@ -172,7 +170,7 @@ export async function untarCondaPackage(
       pkg[filedesc['_path']] = replaceString(
         pkg[filedesc['_path']],
         prefixPlaceholder,
-        ''
+        relocatePrefix
       );
     }
   }
