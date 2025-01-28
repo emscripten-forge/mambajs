@@ -135,21 +135,55 @@ export function saveFilesIntoEmscriptenFS(
   }
 }
 
+export interface IUntarCondaPackageOptions {
+  /**
+   * The URL to the package
+   */
+  url: string;
+
+  /**
+   * The current untarjs instance
+   */
+  untarjs: IUnpackJSAPI;
+
+  /**
+   * Whether the functino will be verbose or not
+   */
+  verbose?: boolean;
+
+  /**
+   * Whether or not to generate conda-meta files
+   */
+  generateCondaMeta?: boolean;
+
+  /**
+   * The prefix for relocation
+   */
+  relocatePrefix?: string;
+
+  /**
+   * The environment Python version, if it is there
+   */
+  pythonVersion: number[] | undefined;
+}
+
 /**
  * Untar conda or empacked package, given a URL to it. This will also do prefix relocation.
- * @param url The URL to the package
- * @param untarjs The current untarjs instance
- * @param verbose Whether it's verbose or not
- * @param generateCondaMeta Whether or not to generate conda meta files
+ * @param options The functino options
  * @returns the files to install
  */
 export async function untarCondaPackage(
-  url: string,
-  untarjs: IUnpackJSAPI,
-  verbose = false,
-  generateCondaMeta = false,
-  relocatePrefix = ''
+  options: IUntarCondaPackageOptions
 ): Promise<FilesData> {
+  const {
+    url,
+    untarjs,
+    verbose,
+    generateCondaMeta,
+    relocatePrefix,
+    pythonVersion
+  } = options;
+
   const extractedFiles = await untarjs.extract(url);
 
   const { info, pkg } = await splitPackageInfo(url, extractedFiles, untarjs);
@@ -170,15 +204,26 @@ export async function untarCondaPackage(
       pkg[filedesc['_path']] = replaceString(
         pkg[filedesc['_path']],
         prefixPlaceholder,
-        relocatePrefix
+        relocatePrefix || ''
       );
+    }
+  }
+
+  // Fix site-packages prefix
+  if (pythonVersion) {
+    for (const file of Object.keys(pkg)) {
+      if (file.startsWith('site-packages')) {
+        pkg[`/lib/python${pythonVersion[0]}.${pythonVersion[1]}/${file}`] =
+          pkg[file];
+        delete pkg[file];
+      }
     }
   }
 
   if (generateCondaMeta) {
     return {
       ...pkg,
-      ...getCondaMetaFile(info, verbose)
+      ...getCondaMetaFile(info, !!verbose)
     };
   }
 

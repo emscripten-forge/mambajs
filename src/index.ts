@@ -11,6 +11,11 @@ import { loadDynlibsFromPackage } from './dynload/dynload';
 
 export * from './helper';
 
+/**
+ * Given a list of packages from a lock file, get the Python version
+ * @param packages
+ * @returns The Python version as a list of numbers if it is there
+ */
 export function getPythonVersion(
   packages: IEmpackEnvMetaPkg[]
 ): number[] | undefined {
@@ -80,21 +85,23 @@ export const bootstrapEmpackPackedEnvironment = async (
   }
 
   const sharedLibsMap: TSharedLibsMap = {};
+  const pythonVersion = getPythonVersion(empackEnvMeta.packages);
 
   if (empackEnvMeta.packages.length) {
     await Promise.all(
       empackEnvMeta.packages.map(async pkg => {
-        const packageUrl = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
+        const url = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
         if (verbose) {
-          console.log(`Install ${pkg.filename} taken from ${packageUrl}`);
+          console.log(`Install ${pkg.filename} taken from ${url}`);
         }
 
-        const extractedPackage = await untarCondaPackage(
-          packageUrl,
+        const extractedPackage = await untarCondaPackage({
+          url,
           untarjs,
           verbose,
-          generateCondaMeta
-        );
+          generateCondaMeta,
+          pythonVersion
+        });
 
         sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
 
