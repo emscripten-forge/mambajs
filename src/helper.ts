@@ -43,6 +43,57 @@ export function getSharedLibs(files: FilesData, prefix: string): TSharedLibs {
   return sharedLibs;
 }
 
+function replaceString(
+  data: Uint8Array,
+  search: string,
+  replacement: string
+): Uint8Array {
+  const searchBytes = new TextEncoder().encode(search);
+  const replacementBytes = new TextEncoder().encode(replacement);
+
+  const maxOutputSize =
+    data.length +
+    (replacementBytes.length - searchBytes.length) *
+      countOccurrences(data, searchBytes);
+  const output = new Uint8Array(maxOutputSize);
+
+  let i = 0,
+    j = 0;
+  while (i < data.length) {
+    if (matchesAt(data, searchBytes, i)) {
+      output.set(replacementBytes, j);
+      j += replacementBytes.length;
+      i += searchBytes.length;
+    } else {
+      output[j++] = data[i++];
+    }
+  }
+
+  return output.subarray(0, j);
+}
+
+function countOccurrences(data: Uint8Array, searchBytes: Uint8Array): number {
+  let count = 0;
+  for (let i = 0; i <= data.length - searchBytes.length; i++) {
+    if (matchesAt(data, searchBytes, i)) {
+      count++;
+      i += searchBytes.length - 1;
+    }
+  }
+  return count;
+}
+
+function matchesAt(
+  data: Uint8Array,
+  searchBytes: Uint8Array,
+  pos: number
+): boolean {
+  if (pos + searchBytes.length > data.length) return false;
+  return data
+    .subarray(pos, pos + searchBytes.length)
+    .every((byte, idx) => byte === searchBytes[idx]);
+}
+
 export function checkWasmMagicNumber(uint8Array: Uint8Array): boolean {
   const WASM_MAGIC_NUMBER = [0x00, 0x61, 0x73, 0x6d];
 
@@ -96,11 +147,35 @@ export async function untarCondaPackage(
   url: string,
   untarjs: IUnpackJSAPI,
   verbose = false,
-  generateCondaMeta = false
+  generateCondaMeta = false,
+  relocatePrefix = ''
 ): Promise<FilesData> {
   const extractedFiles = await untarjs.extract(url);
 
   const { info, pkg } = await splitPackageInfo(url, extractedFiles, untarjs);
+
+  console.log('trying to do relocation');
+
+  // Prefix relocation
+  if (info['info/paths.json']) {
+    const paths = JSON.parse(
+      new TextDecoder('utf-8').decode(info['info/paths.json'])
+    );
+    for (const filedesc of paths['paths']) {
+      if (!filedesc['prefix_placeholder']) {
+        continue;
+      }
+
+      const prefixPlaceholder = filedesc['prefix_placeholder'].endsWith('/')
+        ? filedesc['prefix_placeholder']
+        : `${filedesc['prefix_placeholder']}/`;
+      pkg[filedesc['_path']] = replaceString(
+        pkg[filedesc['_path']],
+        prefixPlaceholder,
+        ''
+      );
+    }
+  }
 
   if (generateCondaMeta) {
     return {
@@ -119,7 +194,11 @@ export async function untarCondaPackage(
  * @param untarjs The current untarjs instance
  * @returns Splitted files between info and actual package files
  */
-export async function splitPackageInfo(filename: string, files: FilesData, untarjs: IUnpackJSAPI): Promise<{info: FilesData, pkg: FilesData}> {
+export async function splitPackageInfo(
+  filename: string,
+  files: FilesData,
+  untarjs: IUnpackJSAPI
+): Promise<{ info: FilesData; pkg: FilesData }> {
   let info: FilesData = {};
   let pkg: FilesData = {};
 
@@ -149,7 +228,7 @@ export async function splitPackageInfo(filename: string, files: FilesData, untar
     // For tar.gz packages, extract everything from the info directory
     Object.keys(files).map(file => {
       if (file.startsWith('info/')) {
-        info[file.slice(5)] = files[file];
+        info[file] = files[file];
       } else {
         pkg[file] = files[file];
       }
