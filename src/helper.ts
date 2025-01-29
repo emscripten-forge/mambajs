@@ -194,7 +194,9 @@ export async function untarCondaPackage(
       new TextDecoder('utf-8').decode(info['info/paths.json'])
     );
     for (const filedesc of paths['paths']) {
-      if (!filedesc['prefix_placeholder']) {
+      // If it doesn't need to be relocated, or if the file has
+      // been filtered out from the package, bail early
+      if (!filedesc['prefix_placeholder'] || !pkg[filedesc['_path']]) {
         continue;
       }
 
