@@ -164,7 +164,7 @@ export interface IUntarCondaPackageOptions {
   /**
    * The environment Python version, if it is there
    */
-  pythonVersion: number[] | undefined;
+  pythonVersion?: number[];
 }
 
 /**
