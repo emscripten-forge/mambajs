@@ -6,14 +6,16 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
-    "build": "yarn run clean && yarn run build:esbuild && yarn run build:types",
+    "build": "yarn run clean && yarn run build:picomamba && yarn run build:esbuild && yarn run build:types",
     "build:types": "tsc --declaration src/index.ts --emitDeclarationOnly --outDir ./lib",
     "prettier": "prettier --list-different --write \"src/**/*.ts\"",
     "prettier:check": "prettier --check \"src/**/*.ts\"",
     "eslint": "eslint --ext .ts --fix .",
     "eslint:check": "eslint --ext .ts.",
     "test": "jest",
-    "build:esbuild": "node esbuild.config.js"
+    "build:esbuild": "node esbuild.config.js",
+    "build:picomamba": "cd picomamba && node ./build_wasm.js || cd .. && yarn run cp:picomamba",
+    "cp:picomamba": "copyfiles -f picomamba/lib/* src/conda-packages-solver"
   },
   "files": [
     "lib/*"
@@ -35,7 +37,8 @@
   "author": "Anastasiia Sliusar",
   "license": "MIT",
   "dependencies": {
-    "@emscripten-forge/untarjs": "^5.2.1"
+    "@emscripten-forge/untarjs": "^5.2.1",
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
@@ -46,6 +49,7 @@
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
     "assert": "^2.1.0",
+    "copyfiles": "^2.4.1",
     "esbuild": "^0.24.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "~9.1.0",

@@ -1,4 +1,5 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
+import { initEnv, ISolvedPackages } from './conda-packages-solver';
 import {
   getSharedLibs,
   IEmpackEnvMeta,
@@ -203,4 +204,10 @@ export async function waitRunDependencies(Module: any): Promise<void> {
   Module.addRunDependency('dummy');
   Module.removeRunDependency('dummy');
   return promise;
+}
+
+export async function solve(yml: string): Promise<ISolvedPackages> {
+  const picomamba = await initEnv();
+
+  return picomamba.solve(yml);
 }
