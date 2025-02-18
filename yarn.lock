@@ -388,7 +388,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs@workspace:."
   dependencies:
-    "@emscripten-forge/untarjs": ^5.2.1
+    "@emscripten-forge/untarjs": ^5.3.0
     "@esbuild-plugins/node-globals-polyfill": ^0.2.3
     "@esbuild-plugins/node-modules-polyfill": ^0.2.2
     "@eslint/js": ^9.13.0
@@ -414,14 +414,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@emscripten-forge/untarjs@npm:^5.2.1":
-  version: 5.2.1
-  resolution: "@emscripten-forge/untarjs@npm:5.2.1"
+"@emscripten-forge/untarjs@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@emscripten-forge/untarjs@npm:5.3.0"
   dependencies:
     assert: ^2.1.0
     process: ^0.11.10
     url: ^0.11.4
-  checksum: 982c28aa6bc40d39ce23aa01a70461eba974f117466e7f59fe05652b3144fe825e8e5bbfcecdee69269e33c179dd69e529603ae904a2155967ab17398435ccde
+  checksum: ba2c9ba878f26b267f334bc941ca508efc227fac4f91cf3babfb02fdb42c77d94ef13926087b075de23d57c030bfa237c68e955ec80f2aa68aec84f10b368f65
   languageName: node
   linkType: hard
 
