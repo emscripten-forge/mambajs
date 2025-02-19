@@ -3,6 +3,6 @@ npm-debug.log/
 
 .yarn
 
-
-picomamba/libs
-picomamba/lib
+picomamba/libs/
+picomamba/lib/
+picomamba/wasm-picomamba/

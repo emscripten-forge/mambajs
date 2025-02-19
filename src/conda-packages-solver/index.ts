@@ -1,6 +1,5 @@
 import initializeWasm from './core-wasm';
 import { parse } from 'yaml';
-import { ILogger } from './types';
 
 interface IRepoDataLink {
   [key: string]: string;
@@ -32,9 +31,20 @@ export interface ISolvedPackages {
   [key: string]: ISolvedPackage;
 }
 
-export const initEnv = async (logger: ILogger, locateWasm?: (file: string) => string) => {
-  logger.log('Loading solver ...');
+export interface ILogger {
+  readonly element: HTMLDivElement;
+  log(...msg: any[]): void;
+  warn(...msg: any[]): void;
+  error(...msg: any[]): void;
+}
 
+export const initEnv = async (
+  logger?: ILogger,
+  locateWasm?: (file: string) => string
+) => {
+  if (logger) {
+    logger.log('Loading solver ...');
+  }
   const wasmModule = await initializeWasm(locateWasm);
   const instance = new wasmModule.PicoMambaCore();
 
@@ -74,9 +84,11 @@ export const initEnv = async (logger: ILogger, locateWasm?: (file: string) => st
       result = getSolvedPackages(specs, prefix, repodata);
     }
     const endSolveTime = performance.now();
-    logger.log(
-      `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
-    );
+    if (logger) {
+      logger.log(
+        `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
+      );
+    }
 
     return result;
   };
@@ -88,9 +100,9 @@ export const initEnv = async (logger: ILogger, locateWasm?: (file: string) => st
     await Promise.all(
       repodataUrls.map(async item => {
         const repoName = Object.keys(item)[0];
-
-        logger.log('Downloading repodata', repoName, '...');
-
+        if (logger) {
+          logger.log('Downloading repodata', repoName, '...');
+        }
         const url = item[repoName];
         if (url) {
           const data = await fetchRepodata(url);
@@ -117,8 +129,9 @@ export const initEnv = async (logger: ILogger, locateWasm?: (file: string) => st
 
   const loadRepodata = (repodata: Repodata): void => {
     Object.keys(repodata).map(repoName => {
-      logger.log(`Load repodata ${repoName} ...`);
-
+      if (logger) {
+        logger.log(`Load repodata ${repoName} ...`);
+      }
       const tmpPath = `tmp/${repoName}_repodata_tmp.json`;
       const repodataItem = repodata[repoName];
 
@@ -133,8 +146,9 @@ export const initEnv = async (logger: ILogger, locateWasm?: (file: string) => st
     prefix: string,
     repodata: any
   ) => {
-    logger.log('Solving environment ...');
-
+    if (logger) {
+      logger.log('Solving environment ...');
+    }
     if (!wasmModule.FS.analyzePath(prefix).exists) {
       wasmModule.FS.mkdir(prefix);
       wasmModule.FS.mkdir(`${prefix}/conda-meta`);
