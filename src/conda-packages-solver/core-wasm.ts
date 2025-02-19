@@ -5,7 +5,7 @@ const initializeWasm = async (): Promise<ICorePicomamba> => {
   const wasmModule: ICorePicomamba = await core({
     locateFile(path: string) {
       if (path.endsWith('.wasm')) {
-          return coreWasm;
+        return (new URL(coreWasm, import.meta.url)).href;
       }
 
       return path;
