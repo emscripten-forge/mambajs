@@ -206,8 +206,8 @@ export async function waitRunDependencies(Module: any): Promise<void> {
   return promise;
 }
 
-export async function solve(yml: string): Promise<ISolvedPackages> {
-  const picomamba = await initEnv();
+export async function solve(yml: string, locateWasm?: (file: string) => string): Promise<ISolvedPackages> {
+  const picomamba = await initEnv(locateWasm);
 
   return picomamba.solve(yml);
 }

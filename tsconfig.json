@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     "incremental": true,
     "jsx": "react",
-    "module": "esnext",
+    "module": "es2020",
     "moduleResolution": "node",
     "noEmitOnError": false,
     "noImplicitAny": false,
@@ -16,14 +16,14 @@
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
-    "target": "es2017",
+    "target": "ES2020",
     "types": [
       "node", 
       "jest"
     ],
     "skipLibCheck": true,
     "lib": [
-      "ES2019",
+      "ES2020",
       "WebWorker",
       "DOM"
     ],

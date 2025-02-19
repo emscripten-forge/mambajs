@@ -26,8 +26,8 @@ export interface ISolvedPackages {
   };
 }
 
-export const initEnv = async () => {
-  const wasmModule = await initializeWasm();
+export const initEnv = async (locateWasm?: (file: string) => string) => {
+  const wasmModule = await initializeWasm(locateWasm);
   const instance = new wasmModule.PicoMambaCore();
 
   const links: Array<IRepoDataLink> = [

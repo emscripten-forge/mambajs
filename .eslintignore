@@ -1,4 +1,8 @@
 lib/
-.yarn
 node_modules/
 npm-debug.log
+
+picomamba/libs
+picomamba/lib
+
+.yarn
