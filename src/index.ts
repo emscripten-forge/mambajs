@@ -9,6 +9,7 @@ import {
   untarCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
+import { ILogger } from 'conda-packages-solver/types';
 
 export * from './helper';
 
@@ -206,8 +207,8 @@ export async function waitRunDependencies(Module: any): Promise<void> {
   return promise;
 }
 
-export async function solve(yml: string, locateWasm?: (file: string) => string): Promise<ISolvedPackages> {
-  const picomamba = await initEnv(locateWasm);
+export async function solve(yml: string, logger: ILogger, locateWasm?: (file: string) => string): Promise<ISolvedPackages> {
+  const picomamba = await initEnv(logger, locateWasm);
 
   return picomamba.solve(yml);
 }

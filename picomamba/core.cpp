@@ -29,7 +29,8 @@ emscripten::val transaction_to_js(Transaction* transaction)
         const char* name = pool_id2str(pool, s->name);
         const char* evr = pool_id2str(pool, s->evr);
         const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
-         const char* build_version = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
+        const char* build_version = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
+        const char* filename = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
 
         int build_number = 0;
         try {
@@ -44,6 +45,7 @@ emscripten::val transaction_to_js(Transaction* transaction)
         pkg.set("build_string", build_string ? build_string : "");
         pkg.set("build_number", build_number);
         pkg.set("repo_name", (s->repo && s->repo->name) ? s->repo->name : "");
+        pkg.set("filename", filename ? filename : "");
 
         return pkg;
     };
