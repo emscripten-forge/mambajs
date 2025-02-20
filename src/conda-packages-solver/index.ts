@@ -48,20 +48,28 @@ export const initEnv = async (
   const wasmModule = await initializeWasm(locateWasm);
   const instance = new wasmModule.PicoMambaCore();
 
-  const links: Array<IRepoDataLink> = [
-    {
-      'noarch-conda-forge':
-        'https://repo.prefix.dev/conda-forge/noarch/repodata.json'
-    },
-    {
-      'noarch-emscripten-forge':
-        'https://repo.prefix.dev/emscripten-forge-dev/noarch/repodata.json'
-    },
-    {
-      'arch-emscripten-forge':
-        'https://repo.prefix.dev/emscripten-forge-dev/emscripten-wasm32/repodata.json'
+  const getLinks = (channels: Array<string>) =>{
+    const defaultUrl = {
+      'conda-forge': "https://conda.anaconda.org/conda-forge"
     }
-  ];
+    const platforms = {'noarch': 'noarch', 'emscripten-wasm32': 'arch'};
+    let links:Array<IRepoDataLink> = [];
+    channels.forEach((channel) =>{
+      let link = '';
+      let channelUrl = channel;
+      if (defaultUrl[channel]) {
+        channelUrl = defaultUrl[channel];
+      }
+      Object.keys(platforms).forEach((platform)=>{
+        link = `${channelUrl}/${platform}/repodata.json`;
+        let repo = platforms[platform];
+        let tmp:IRepoDataLink = {};
+        tmp[repo] = link;
+        links.push(tmp);
+      });
+    });
+    return links;
+  }
 
   const solve = async (envYml: string) => {
     const startSolveTime = performance.now();
@@ -69,6 +77,9 @@ export const initEnv = async (
     const data = parse(envYml);
     const prefix = data.name ? data.name : '/';
     const packages = data?.dependencies ? data.dependencies : [];
+    const channels = data?.channels ? data.channels : [];
+    let links = getLinks(channels);
+    console.log('links', links);
     const repodata = await getRepodata(links);
 
     const specs: string[] = [];
@@ -104,9 +115,12 @@ export const initEnv = async (
           logger.log('Downloading repodata', repoName, '...');
         }
         const url = item[repoName];
+        console.log('url', url);
         if (url) {
           const data = await fetchRepodata(url);
-          repodataTotal[repoName] = data;
+          if (data) {
+            repodataTotal[repoName] = data;
+          }
         }
       })
     );
@@ -114,14 +128,15 @@ export const initEnv = async (
     return repodataTotal;
   };
 
-  const fetchRepodata = async (url: string): Promise<Uint8Array> => {
+  const fetchRepodata = async (url: string): Promise<Uint8Array| null> => {
     const options = {
-      headers: { 'Accept-Encoding': 'gzip' }
+      headers: { 'Accept-Encoding': 'zstd' }
     };
 
     const response = await fetch(url, options);
+    console.log('response', response);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      return null;
     }
 
     return new Uint8Array(await response.arrayBuffer());
