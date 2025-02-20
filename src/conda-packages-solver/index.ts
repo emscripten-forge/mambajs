@@ -116,7 +116,7 @@ export const initEnv = async (
 
   const fetchRepodata = async (url: string): Promise<Uint8Array> => {
     const options = {
-      headers: { 'Accept-Encoding': 'gzip' }
+      headers: { 'Accept-Encoding': 'zstd' }
     };
 
     const response = await fetch(url, options);
