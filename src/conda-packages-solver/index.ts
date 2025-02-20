@@ -48,28 +48,34 @@ export const initEnv = async (
   const wasmModule = await initializeWasm(locateWasm);
   const instance = new wasmModule.PicoMambaCore();
 
-  const getLinks = (channels: Array<string>) =>{
+  const getLinks = (channels: Array<string>) => {
     const defaultUrl = {
-      'conda-forge': "https://conda.anaconda.org/conda-forge"
-    }
-    const platforms = {'noarch': 'noarch', 'emscripten-wasm32': 'arch'};
-    let links:Array<IRepoDataLink> = [];
-    channels.forEach((channel) =>{
+      'conda-forge': 'https://conda.anaconda.org/conda-forge'
+    };
+    const platforms = { noarch: 'noarch', 'emscripten-wasm32': 'arch' };
+    let links: Array<IRepoDataLink> = [];
+    let repoLinks: IRepoDataLink = {};
+    let repoIndex = 0;
+    channels.forEach(channel => {
       let link = '';
       let channelUrl = channel;
       if (defaultUrl[channel]) {
         channelUrl = defaultUrl[channel];
       }
-      Object.keys(platforms).forEach((platform)=>{
-        link = `${channelUrl}/${platform}/repodata.json`;
-        let repo = platforms[platform];
-        let tmp:IRepoDataLink = {};
-        tmp[repo] = link;
-        links.push(tmp);
-      });
+      if (channelUrl.includes('https') || channelUrl.includes('http')) {
+        Object.keys(platforms).forEach(platform => {
+          link = `${channelUrl}/${platform}/repodata.json`;
+          let repo = `${platforms[platform]}-${repoIndex}`;
+          repoLinks[repo] = `${channelUrl}/${platform}/`;
+          let tmp: IRepoDataLink = {};
+          tmp[repo] = link;
+          links.push(tmp);
+        });
+        repoIndex += 1;
+      }
     });
-    return links;
-  }
+    return { links, repoLinks };
+  };
 
   const solve = async (envYml: string) => {
     const startSolveTime = performance.now();
@@ -78,10 +84,8 @@ export const initEnv = async (
     const prefix = data.name ? data.name : '/';
     const packages = data?.dependencies ? data.dependencies : [];
     const channels = data?.channels ? data.channels : [];
-    let links = getLinks(channels);
-    console.log('links', links);
+    let { links, repoLinks } = getLinks(channels);
     const repodata = await getRepodata(links);
-
     const specs: string[] = [];
     // Remove pip dependencies which do not impact solving
     for (const pkg of packages) {
@@ -92,7 +96,7 @@ export const initEnv = async (
 
     if (Object.keys(repodata)) {
       loadRepodata(repodata);
-      result = getSolvedPackages(specs, prefix, repodata);
+      result = getSolvedPackages(specs, prefix, repoLinks);
     }
     const endSolveTime = performance.now();
     if (logger) {
@@ -115,7 +119,6 @@ export const initEnv = async (
           logger.log('Downloading repodata', repoName, '...');
         }
         const url = item[repoName];
-        console.log('url', url);
         if (url) {
           const data = await fetchRepodata(url);
           if (data) {
@@ -128,13 +131,12 @@ export const initEnv = async (
     return repodataTotal;
   };
 
-  const fetchRepodata = async (url: string): Promise<Uint8Array| null> => {
+  const fetchRepodata = async (url: string): Promise<Uint8Array | null> => {
     const options = {
       headers: { 'Accept-Encoding': 'zstd' }
     };
 
     const response = await fetch(url, options);
-    console.log('response', response);
     if (!response.ok) {
       return null;
     }
@@ -159,7 +161,7 @@ export const initEnv = async (
   const getSolvedPackages = (
     packages: Array<string>,
     prefix: string,
-    repodata: any
+    repoLinks: IRepoDataLink
   ) => {
     if (logger) {
       logger.log('Solving environment ...');
@@ -180,21 +182,12 @@ export const initEnv = async (
 
     const rawTransaction = instance.solve(packageListVector, config);
     packageListVector.delete();
-
-    return transform(rawTransaction, repodata);
+    return transform(rawTransaction, repoLinks);
   };
 
-  const transform = (rawTransaction: any, repodata: Repodata) => {
+  const transform = (rawTransaction: any, repoLinks:IRepoDataLink) => {
     const rawInstall = rawTransaction.install;
     const solvedPackages: ISolvedPackages = {};
-
-    const repoLinks = {
-      'noarch-conda-forge': 'https://repo.prefix.dev/conda-forge/noarch/',
-      'noarch-emscripten-forge':
-        'https://repo.prefix.dev/emscripten-forge-dev/noarch/',
-      'arch-emscripten-forge':
-        'https://repo.prefix.dev/emscripten-forge-dev/emscripten-wasm32/'
-    };
 
     rawInstall.forEach((item: ITransactionItem) => {
       solvedPackages[item.filename] = {
