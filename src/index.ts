@@ -1,5 +1,9 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
-import { initEnv, ISolvedPackages } from './conda-packages-solver';
+import {
+  initEnv,
+  ISolvedPackage,
+  ISolvedPackages
+} from './conda-packages-solver';
 import {
   getSharedLibs,
   IEmpackEnvMeta,
@@ -20,9 +24,9 @@ export * from './helper';
  * @returns The Python version as a list of numbers if it is there
  */
 export function getPythonVersion(
-  packages: IEmpackEnvMetaPkg[]
+  packages: IEmpackEnvMetaPkg[] | ISolvedPackage[]
 ): number[] | undefined {
-  let pythonPackage: IEmpackEnvMetaPkg | undefined = undefined;
+  let pythonPackage: IEmpackEnvMetaPkg | ISolvedPackage | undefined = undefined;
   for (let i = 0; i < packages.length; i++) {
     if (packages[i].name == 'python') {
       pythonPackage = packages[i];
@@ -219,10 +223,7 @@ export async function solve(
   let pipPackages: ISolvedPackages = {};
 
   if (hasPipDependencies(yml)) {
-    // TODO fix typing
-    if (
-      !getPythonVersion(Object.values(condaPackages) as IEmpackEnvMetaPkg[])
-    ) {
+    if (!getPythonVersion(Object.values(condaPackages))) {
       const msg =
         'Cannot install pip dependencies without Python installed in the environment!';
       logger?.error(msg);
