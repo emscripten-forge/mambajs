@@ -1,3 +1,4 @@
+import { ILogger, ISolvedPackages } from '../helper';
 import initializeWasm from './core-wasm';
 import { parse } from 'yaml';
 
@@ -19,23 +20,6 @@ export interface ITransactionItem {
   build_number: number;
   repo_name: RepoName;
   filename: string;
-}
-
-export interface ISolvedPackage {
-  name: string;
-  version: string;
-  url: string;
-}
-
-export interface ISolvedPackages {
-  [key: string]: ISolvedPackage;
-}
-
-export interface ILogger {
-  readonly element: HTMLDivElement;
-  log(...msg: any[]): void;
-  warn(...msg: any[]): void;
-  error(...msg: any[]): void;
 }
 
 export const initEnv = async (
@@ -219,6 +203,7 @@ export const initEnv = async (
       solvedPackages[item.filename] = {
         name: item.name,
         version: item.evr,
+        build_string: item.build_string,
         url: `${repoLinks[item.repo_name]}${item.filename}`
       };
     });

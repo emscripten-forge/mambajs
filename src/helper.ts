@@ -1,5 +1,23 @@
 import { FilesData, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 
+export interface ILogger {
+  readonly element: HTMLDivElement;
+  log(...msg: any[]): void;
+  warn(...msg: any[]): void;
+  error(...msg: any[]): void;
+}
+
+export interface ISolvedPackage {
+  name: string;
+  version: string;
+  build_string?: string;
+  url: string;
+}
+
+export interface ISolvedPackages {
+  [key: string]: ISolvedPackage;
+}
+
 export interface IEmpackEnvMetaPkg {
   name: string;
   version: string;
