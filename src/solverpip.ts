@@ -1,8 +1,7 @@
 // A dumb pip "solver" which does a tiny bit of version matching
 
 import { parse } from 'yaml';
-import { ISolvedPackage, ISolvedPackages } from './conda-packages-solver';
-import { ILogger } from './helper';
+import { ILogger, ISolvedPackage, ISolvedPackages } from './helper';
 
 interface ISpec {
   package: string;

@@ -7,6 +7,17 @@ export interface ILogger {
   error(...msg: any[]): void;
 }
 
+export interface ISolvedPackage {
+  name: string;
+  version: string;
+  build_string?: string;
+  url: string;
+}
+
+export interface ISolvedPackages {
+  [key: string]: ISolvedPackage;
+}
+
 export interface IEmpackEnvMetaPkg {
   name: string;
   version: string;

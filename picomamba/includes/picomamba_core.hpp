@@ -77,8 +77,8 @@ namespace picomamba {
 
     template<class SPECS_ITER, class FUNCTOR>
     bool PicoMambaCore::solve(
-        SPECS_ITER specs_begin, 
-        SPECS_ITER specs_end, 
+        SPECS_ITER specs_begin,
+        SPECS_ITER specs_end,
         const PicoMambaCore::SolveConfig & config,
         FUNCTOR && functor
     )
@@ -144,14 +144,14 @@ namespace picomamba {
 
     //     s->name = pool_str2id(m_pool, name.c_str(), 1);
     //     s->evr = pool_str2id(m_pool, version.c_str(), 1);
-        
+
     //     s->provides = repo_addid_dep(m_repo, s->provides, pool_rel2id(m_pool, s->name, s->evr, REL_EQ, 1), 0);
     //     repodata_internalize(data);
     //     // pool_set_installed(m_repo->pool, m_repo);
     // }
 
     int PicoMambaCore::load_installed(const std::string & pkg_prefix)
-    {   
+    {
         if(m_repo != nullptr)
         {
             repo_free(m_repo, true);
@@ -161,7 +161,7 @@ namespace picomamba {
         m_repo->appdata = this;
         int flags = REPO_REUSE_REPODATA;
         Repodata* data = repo_add_repodata(m_repo, flags);
-        
+
         // static Id real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
         // static Id noarch_repo_key = pool_str2id(m_pool, "solvable:noarch_type", 1);
 
@@ -185,7 +185,7 @@ namespace picomamba {
 
             s->name = pool_str2id(m_pool, name.c_str(), 1);
             s->evr = pool_str2id(m_pool, version.c_str(), 1);
-            
+
             s->provides = repo_addid_dep(m_repo, s->provides, pool_rel2id(m_pool, s->name, s->evr, REL_EQ, 1), 0);
 
         });

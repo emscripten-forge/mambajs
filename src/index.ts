@@ -1,14 +1,12 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
-import {
-  initEnv,
-  ISolvedPackage,
-  ISolvedPackages
-} from './conda-packages-solver';
+import { initEnv } from './conda-packages-solver';
 import {
   getSharedLibs,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
   ILogger,
+  ISolvedPackage,
+  ISolvedPackages,
   saveFilesIntoEmscriptenFS,
   TSharedLibsMap,
   untarCondaPackage
