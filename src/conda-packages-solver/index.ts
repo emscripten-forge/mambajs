@@ -48,20 +48,40 @@ export const initEnv = async (
   const wasmModule = await initializeWasm(locateWasm);
   const instance = new wasmModule.PicoMambaCore();
 
+  const getDefaultChannels = () => {
+    let channels = [
+      'https://repo.prefix.dev/conda-forge',
+      'https://repo.prefix.dev/emscripten-forge-dev'
+    ];
+    return channels;
+  };
   const getLinks = (channels: Array<string>) => {
-    const defaultUrl = {
+    const channelsAlias = {
       'conda-forge': 'https://conda.anaconda.org/conda-forge'
     };
     const platforms = { noarch: 'noarch', 'emscripten-wasm32': 'arch' };
     let links: Array<IRepoDataLink> = [];
     let repoLinks: IRepoDataLink = {};
     let repoIndex = 0;
+    if (!channels.length) {
+      channels = [...getDefaultChannels()];
+    }
+    if (channels.includes('defaults')) {
+      let filteredChannels = channels.filter(channel => {
+        if (channel !== 'defaults') {
+          return channel;
+        }
+      });
+      channels = [...filteredChannels, ...getDefaultChannels()];
+    }
+
     channels.forEach(channel => {
       let link = '';
       let channelUrl = channel;
-      if (defaultUrl[channel]) {
-        channelUrl = defaultUrl[channel];
+      if (channelsAlias[channel]) {
+        channelUrl = channelsAlias[channel];
       }
+
       if (channelUrl.includes('https') || channelUrl.includes('http')) {
         Object.keys(platforms).forEach(platform => {
           link = `${channelUrl}/${platform}/repodata.json`;
@@ -82,8 +102,8 @@ export const initEnv = async (
     let result: any = undefined;
     const data = parse(envYml);
     const prefix = data.name ? data.name : '/';
-    const packages = data?.dependencies ? data.dependencies : [];
-    const channels = data?.channels ? data.channels : [];
+    const packages = data.dependencies ? data.dependencies : [];
+    const channels = data.channels ? data.channels : [];
     let { links, repoLinks } = getLinks(channels);
     const repodata = await getRepodata(links);
     const specs: string[] = [];
@@ -120,7 +140,7 @@ export const initEnv = async (
         }
         const url = item[repoName];
         if (url) {
-          const data = await fetchRepodata(url);
+          const data = await fetchRepodata(url, logger);
           if (data) {
             repodataTotal[repoName] = data;
           }
@@ -131,13 +151,19 @@ export const initEnv = async (
     return repodataTotal;
   };
 
-  const fetchRepodata = async (url: string): Promise<Uint8Array | null> => {
+  const fetchRepodata = async (
+    url: string,
+    logger?: ILogger
+  ): Promise<Uint8Array | null> => {
     const options = {
       headers: { 'Accept-Encoding': 'zstd' }
     };
 
     const response = await fetch(url, options);
     if (!response.ok) {
+      if (logger) {
+        logger.warn(`Failed to fetch ${url}`);
+      }
       return null;
     }
 
@@ -185,7 +211,7 @@ export const initEnv = async (
     return transform(rawTransaction, repoLinks);
   };
 
-  const transform = (rawTransaction: any, repoLinks:IRepoDataLink) => {
+  const transform = (rawTransaction: any, repoLinks: IRepoDataLink) => {
     const rawInstall = rawTransaction.install;
     const solvedPackages: ISolvedPackages = {};
 
