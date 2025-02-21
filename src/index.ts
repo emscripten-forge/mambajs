@@ -1,14 +1,16 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
-import { ILogger, initEnv, ISolvedPackages } from './conda-packages-solver';
+import { initEnv, ISolvedPackages } from './conda-packages-solver';
 import {
   getSharedLibs,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
+  ILogger,
   saveFilesIntoEmscriptenFS,
   TSharedLibsMap,
   untarCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
+import { hasPipDependencies, solvePip } from './solverpip';
 
 export * from './helper';
 
@@ -210,8 +212,31 @@ export async function solve(
   yml: string,
   logger?: ILogger,
   locateWasm?: (file: string) => string
-): Promise<ISolvedPackages> {
+): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
   const picomamba = await initEnv(logger, locateWasm);
 
-  return picomamba.solve(yml);
+  const condaPackages = await picomamba.solve(yml);
+  let pipPackages: ISolvedPackages = {};
+
+  if (hasPipDependencies(yml)) {
+    // TODO fix typing
+    if (
+      !getPythonVersion(Object.values(condaPackages) as IEmpackEnvMetaPkg[])
+    ) {
+      const msg =
+        'Cannot install pip dependencies without Python installed in the environment!';
+      logger?.error(msg);
+      throw msg;
+    }
+
+    logger?.log('');
+    logger?.log('Process pip dependencies ...');
+
+    pipPackages = await solvePip(yml, condaPackages, logger);
+  }
+
+  return {
+    condaPackages,
+    pipPackages
+  };
 }

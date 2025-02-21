@@ -1,3 +1,4 @@
+import { ILogger } from '../helper';
 import initializeWasm from './core-wasm';
 import { parse } from 'yaml';
 
@@ -29,13 +30,6 @@ export interface ISolvedPackage {
 
 export interface ISolvedPackages {
   [key: string]: ISolvedPackage;
-}
-
-export interface ILogger {
-  readonly element: HTMLDivElement;
-  log(...msg: any[]): void;
-  warn(...msg: any[]): void;
-  error(...msg: any[]): void;
 }
 
 export const initEnv = async (
