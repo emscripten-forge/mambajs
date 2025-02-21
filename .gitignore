@@ -10,3 +10,7 @@ picomamba/lib/
 picomamba/wasm-picomamba/
 
 tsconfig.tsbuildinfo
+
+# Generated code
+src/conda-packages-solver/core.js
+src/conda-packages-solver/core.wasm
