@@ -239,3 +239,15 @@ export async function solve(
     pipPackages
   };
 }
+
+export async function install(
+  specs: string[],
+  prefix: string,
+  channels?: string[],
+  logger?: ILogger,
+  locateWasm?: (file: string) => string
+): Promise<{ condaPackages: ISolvedPackages }> {
+  const picomamba = await initEnv(logger, locateWasm);
+  const condaPackages = await picomamba.install(specs, prefix, channels);
+  return { condaPackages };
+}
