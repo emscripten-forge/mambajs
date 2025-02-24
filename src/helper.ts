@@ -11,8 +11,8 @@ export interface ISolvedPackage {
   name: string;
   version: string;
   build_string?: string;
-  repo_name?: string,
-  repo_url?: string,
+  repo_name?: string;
+  repo_url?: string;
   url: string;
 }
 

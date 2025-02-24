@@ -1,5 +1,5 @@
 import { ILogger, ISolvedPackages } from '../helper';
-import initializeWasm from './core-wasm';
+import { initializeWasm } from './core-wasm';
 import { parse } from 'yaml';
 
 interface IRepoDataLink {
@@ -39,6 +39,7 @@ export const initEnv = async (
     ];
     return channels;
   };
+
   const getLinks = (channels: Array<string>) => {
     const channelsAlias = {
       'conda-forge': 'https://conda.anaconda.org/conda-forge'
@@ -88,7 +89,7 @@ export const initEnv = async (
     const prefix = data.name ? data.name : '/';
     const packages = data.dependencies ? data.dependencies : [];
     const channels = data.channels ? data.channels : [];
-    let { links, repoLinks } = getLinks(channels);
+    const { links, repoLinks } = getLinks(channels);
     const repodata = await getRepodata(links);
     const specs: string[] = [];
     // Remove pip dependencies which do not impact solving
@@ -119,12 +120,12 @@ export const initEnv = async (
     await Promise.all(
       repodataUrls.map(async item => {
         const repoName = Object.keys(item)[0];
-        if (logger) {
-          logger.log('Downloading repodata', repoName, '...');
-        }
         const url = item[repoName];
+        if (logger) {
+          logger.log('Downloading repodata', url, '...');
+        }
         if (url) {
-          const data = await fetchRepodata(url, logger);
+          const data = await fetchRepodata(url);
           if (data) {
             repodataTotal[repoName] = data;
           }
@@ -135,10 +136,7 @@ export const initEnv = async (
     return repodataTotal;
   };
 
-  const fetchRepodata = async (
-    url: string,
-    logger?: ILogger
-  ): Promise<Uint8Array | null> => {
+  const fetchRepodata = async (url: string): Promise<Uint8Array | null> => {
     const options = {
       headers: { 'Accept-Encoding': 'zstd' }
     };
@@ -156,9 +154,6 @@ export const initEnv = async (
 
   const loadRepodata = (repodata: Repodata): void => {
     Object.keys(repodata).map(repoName => {
-      if (logger) {
-        logger.log(`Load repodata ${repoName} ...`);
-      }
       const tmpPath = `tmp/${repoName}_repodata_tmp.json`;
       const repodataItem = repodata[repoName];
 

@@ -16,6 +16,9 @@ import { hasPipDependencies, solvePip } from './solverpip';
 
 export * from './helper';
 
+import coreWasm from './conda-packages-solver/core.wasm';
+export const mambaWasm = coreWasm;
+
 /**
  * Given a list of packages from a lock file, get the Python version
  * @param packages
