@@ -1,5 +1,5 @@
 import { ILogger, ISolvedPackages } from '../helper';
-import initializeWasm from './core-wasm';
+import { initializeWasm } from './core-wasm';
 import { parse } from 'yaml';
 
 interface IRepoDataLink {
@@ -119,12 +119,12 @@ export const initEnv = async (
     await Promise.all(
       repodataUrls.map(async item => {
         const repoName = Object.keys(item)[0];
-        if (logger) {
-          logger.log('Downloading repodata', repoName, '...');
-        }
         const url = item[repoName];
+        if (logger) {
+          logger.log('Downloading repodata', url, '...');
+        }
         if (url) {
-          const data = await fetchRepodata(url, logger);
+          const data = await fetchRepodata(url);
           if (data) {
             repodataTotal[repoName] = data;
           }
@@ -135,10 +135,7 @@ export const initEnv = async (
     return repodataTotal;
   };
 
-  const fetchRepodata = async (
-    url: string,
-    logger?: ILogger
-  ): Promise<Uint8Array | null> => {
+  const fetchRepodata = async (url: string): Promise<Uint8Array | null> => {
     const options = {
       headers: { 'Accept-Encoding': 'zstd' }
     };
@@ -156,9 +153,6 @@ export const initEnv = async (
 
   const loadRepodata = (repodata: Repodata): void => {
     Object.keys(repodata).map(repoName => {
-      if (logger) {
-        logger.log(`Load repodata ${repoName} ...`);
-      }
       const tmpPath = `tmp/${repoName}_repodata_tmp.json`;
       const repodataItem = repodata[repoName];
 

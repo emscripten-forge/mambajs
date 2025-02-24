@@ -1,9 +1,11 @@
 import core, { ICorePicomamba } from './core';
 import coreWasm from './core.wasm';
 
-const initializeWasm = async (
+export * as coreWasm from './core.wasm';
+
+export async function initializeWasm(
   locateWasm?: (file: string) => string
-): Promise<ICorePicomamba> => {
+): Promise<ICorePicomamba> {
   const wasmModule: ICorePicomamba = await core({
     locateFile(path: string) {
       if (path.endsWith('.wasm')) {
@@ -18,6 +20,4 @@ const initializeWasm = async (
   });
 
   return wasmModule;
-};
-
-export default initializeWasm;
+}

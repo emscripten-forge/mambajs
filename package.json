@@ -1,6 +1,6 @@
 {
   "name": "@emscripten-forge/mambajs",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A simple project for downloading conda packages and saving them into browser memory",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
