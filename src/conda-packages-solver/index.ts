@@ -31,6 +31,9 @@ export const initEnv = async (
   }
   const wasmModule = await initializeWasm(locateWasm);
   const instance = new wasmModule.PicoMambaCore();
+  let repodata: Repodata = {}; 
+  let envData = {};
+  let currentPrefix = '';
 
   const getDefaultChannels = () => {
     let channels = [
@@ -39,6 +42,7 @@ export const initEnv = async (
     ];
     return channels;
   };
+
   const getLinks = (channels: Array<string>) => {
     const channelsAlias = {
       'conda-forge': 'https://conda.anaconda.org/conda-forge'
@@ -84,20 +88,16 @@ export const initEnv = async (
   const solve = async (envYml: string) => {
     const startSolveTime = performance.now();
     let result: any = undefined;
-    const data = parse(envYml);
-    const prefix = data.name ? data.name : '/';
-    const packages = data.dependencies ? data.dependencies : [];
-    const channels = data.channels ? data.channels : [];
-    let { links, repoLinks } = getLinks(channels);
-    const repodata = await getRepodata(links);
-    const specs: string[] = [];
-    // Remove pip dependencies which do not impact solving
-    for (const pkg of packages) {
-      if (typeof pkg === 'string') {
-        specs.push(pkg);
-      }
-    }
+    parseEnvYml(envYml);
+    const {prefix, specs, channels} = envData[currentPrefix];
 
+    console.log('prefix', prefix);
+    console.log('specs', specs);
+    console.log('channels',channels);
+
+    let { links, repoLinks } = getLinks(channels);
+    repodata = await getRepodata(links);
+    
     if (Object.keys(repodata)) {
       loadRepodata(repodata);
       result = getSolvedPackages(specs, prefix, repoLinks);
@@ -213,7 +213,57 @@ export const initEnv = async (
     return solvedPackages;
   };
 
+  const install = async (packageName: string, prefix: string)=>{
+    const {links, repoLinks} = getLinks(envData[prefix].channels);
+    if (!Object.keys(repodata)) {
+      repodata = await getRepodata(links);
+      loadRepodata(repodata);
+    }
+    envData[prefix].specs.push(packageName);
+    registerInstalledPackages(prefix);
+    let solvedPackages = getSolvedPackages(envData[prefix].specs, prefix, repoLinks);
+    return solvedPackages;
+  }
+
+  const parseEnvYml = (envYml: string) =>{
+    const data = parse(envYml);
+    const packages = data.dependencies ? data.dependencies : [];
+    currentPrefix = data.name ? data.name : '/';
+    envData[currentPrefix].prefix = data.name ? data.name : '/';
+    envData[currentPrefix].channels = data.channels ? data.channels : [];
+
+    const specs: string[] = [];
+    // Remove pip dependencies which do not impact solving
+    for (const pkg of packages) {
+      if (typeof pkg === 'string') {
+        specs.push(pkg);
+      }
+    }
+    envData[currentPrefix].specs = specs;
+  }
+
+  const registerInstalledPackages = (prefix: string, verbose?: boolean) => {
+    const isCondaEnv = ensureIsCondaEnv(prefix);
+    console.log('isCondaEnv',isCondaEnv);
+    if (isCondaEnv) {
+      if (verbose) {
+        console.log(`load installed packages, prefix: ${prefix}`);
+      }
+      instance.loadInstalled(prefix);
+    }
+  };
+
+  const ensureIsCondaEnv = (prefix: string): boolean => {
+    let isCondaEnv = false;
+    if (wasmModule.FS.analyzePath(`${prefix}`).exists) {
+      isCondaEnv = true;
+    }
+    return isCondaEnv;
+  };
+
+
   return {
-    solve
+    solve,
+    install
   };
 };
