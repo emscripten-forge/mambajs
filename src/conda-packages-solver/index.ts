@@ -204,6 +204,8 @@ export const initEnv = async (
         name: item.name,
         version: item.evr,
         build_string: item.build_string,
+        repo_name: item.repo_name,
+        repo_url: repoLinks[item.repo_name],
         url: `${repoLinks[item.repo_name]}${item.filename}`
       };
     });
