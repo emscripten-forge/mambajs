@@ -24,6 +24,13 @@ extern "C"
 #include "solv/repo_write.h"
 }
 
+struct SolvablePackage {
+    std::string name;
+    std::string version;
+    std::string build_string;
+    int build_number;
+};
+
 namespace picomamba {
 
 
@@ -42,7 +49,7 @@ namespace picomamba {
         void load_repodata_from_file(const std::string& fname, const std::string& url);
 
         // make pool aware of already installed packages
-        int load_installed(const std::string & pkg_prefix);
+        int load_installed(const std::string & pkg_prefix, const std::vector<SolvablePackage>& installed_packages);
 
         void add_to_installed(const std::string name, const std::string version, const std::string build, const int build_number);
 
@@ -150,7 +157,7 @@ namespace picomamba {
     //     // pool_set_installed(m_repo->pool, m_repo);
     // }
 
-    int PicoMambaCore::load_installed(const std::string & pkg_prefix)
+    int PicoMambaCore::load_installed(const std::string & pkg_prefix, const std::vector<SolvablePackage>& installed_packages)
     {
         if(m_repo != nullptr)
         {
@@ -166,15 +173,15 @@ namespace picomamba {
         // static Id noarch_repo_key = pool_str2id(m_pool, "solvable:noarch_type", 1);
 
         auto n_packages = 0;
-        for_each_pkg_meta(pkg_prefix,[&](auto && pkg_meta){
+       for(const SolvablePackage& pkg_meta : installed_packages){
             n_packages += 1;
 
 
             // basic info of the pkg
-            const auto name = pkg_meta["name"]. template get<std::string>();
-            const auto version = pkg_meta["version"]. template get<std::string>();
-            const auto build = pkg_meta["build"]. template get<std::string>();
-            const auto build_number = pkg_meta["build_number"]. template get<int>();
+            const auto name = pkg_meta.name;
+            const auto version = pkg_meta.version;
+            const auto build = pkg_meta.build_string;
+            const auto build_number = pkg_meta.build_number;
 
             // libsolv handle for that pkg instance
             Id handle = repo_add_solvable(m_repo);
@@ -188,7 +195,7 @@ namespace picomamba {
 
             s->provides = repo_addid_dep(m_repo, s->provides, pool_rel2id(m_pool, s->name, s->evr, REL_EQ, 1), 0);
 
-        });
+        };
 
         repodata_internalize(data);
         pool_set_installed(m_repo->pool, m_repo);

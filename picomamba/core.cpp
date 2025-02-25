@@ -13,6 +13,7 @@ namespace picomamba {
         int build_number;
     };
 
+
 emscripten::val transaction_to_js(Transaction* transaction)
 {
     Pool* pool = transaction->pool;
@@ -106,17 +107,35 @@ emscripten::val solveWrapper(
     return res;
 }
 
+void loadedTest(
+    PicoMambaCore& self,
+    const std:: string prefix,
+    const std::vector<SolvablePackage>& installed_packages)
+{
+
+    self.load_installed(
+        prefix,
+        installed_packages
+    );
+}
+
 EMSCRIPTEN_BINDINGS(picomamba_bindings) {
     using namespace emscripten;
+    value_object<SolvablePackage>("SolvablePackage")
+        .field("name", &SolvablePackage::name)
+        .field("version", &SolvablePackage::version)
+        .field("build_string", &SolvablePackage::build_string)
+        .field("build_number", &SolvablePackage::build_number);
+
     register_vector<std::string>("PackageList");
+    register_vector<SolvablePackage>("InstalledPackages");
     class_<PicoMambaCore::SolveConfig>("PicoMambaCoreSolveConfig")
         .constructor<>();
 
     class_<PicoMambaCore>("PicoMambaCore")
         .constructor<>()
         .function("loadRepodata", &PicoMambaCore::load_repodata_from_file)
-        .function("loadInstalled", &PicoMambaCore::load_installed)
+        .function("loadInstalled", &loadedTest)
         .function("solve", &solveWrapper);
-
     }
 }

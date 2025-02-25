@@ -22,6 +22,13 @@ export interface ITransactionItem {
   filename: string;
 }
 
+interface SolvablePackage  {
+  name: string;
+  version: string;
+  build_string: string;
+  build_number: number;
+};
+
 export const initEnv = async (
   logger?: ILogger,
   locateWasm?: (file: string) => string
@@ -165,7 +172,8 @@ export const initEnv = async (
   const getSolvedPackages = (
     packages: Array<string>,
     prefix: string,
-    repoLinks: IRepoDataLink
+    repoLinks: IRepoDataLink,
+    installedPackages?:ISolvedPackages
   ) => {
     if (logger) {
       logger.log('Solving environment ...');
@@ -176,7 +184,9 @@ export const initEnv = async (
       wasmModule.FS.mkdir(`${prefix}/arch`);
       wasmModule.FS.mkdir(`${prefix}/noarch`);
     } else {
-      registerInstalledPackages(prefix);
+      if (installedPackages) {
+        registerInstalledPackages(prefix, installedPackages, logger);
+      }
     }
 
     const config = new wasmModule.PicoMambaCoreSolveConfig();
@@ -233,11 +243,30 @@ export const initEnv = async (
     return { prefix, specs, channels };
   };
 
-  const registerInstalledPackages = (prefix: string, logger?: ILogger) => {
+  const registerInstalledPackages = (prefix: string, installedPackages: ISolvedPackages, logger?: ILogger) => {
     if (logger) {
       logger.log(`Loading installed packages, prefix: ${prefix}`);
     }
-    instance.loadInstalled(prefix);
+    const installedPackagesVector = new wasmModule.InstalledPackages();
+
+    Object.keys(installedPackages).forEach((key)=>{
+
+      let packageInstance:SolvablePackage;
+      const pattern = /_(\d+)$/;
+      const match = installedPackages[key].build_string?.match(pattern);
+      let buildNumber = match ? parseInt(match[1]): 0;
+      let tmp = {
+        name: installedPackages[key].name,
+        version: installedPackages[key].version,
+        build_string: installedPackages[key].build_string ? installedPackages[key].build_string: '',
+        build_number: buildNumber
+      };
+
+      packageInstance = {...tmp};
+      installedPackagesVector.push_back(packageInstance);
+    })
+
+    instance.loadInstalled(prefix, installedPackagesVector);
   };
 
   return {
