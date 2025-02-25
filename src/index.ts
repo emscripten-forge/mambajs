@@ -226,7 +226,7 @@ export async function solve(
   logger?.log('');
   logger?.log('Solved environment!');
   for (const solvedPackage of Object.values(condaPackages)) {
-    logger?.log(solvedPackage.name, solvedPackage.version);
+    logger?.log(solvedPackage.name, solvedPackage.version, solvedPackage.build_string);
   }
 
   if (hasPipDependencies(yml)) {
