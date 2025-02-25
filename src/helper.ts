@@ -1,7 +1,6 @@
 import { FilesData, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 
 export interface ILogger {
-  readonly element: HTMLDivElement;
   log(...msg: any[]): void;
   warn(...msg: any[]): void;
   error(...msg: any[]): void;
