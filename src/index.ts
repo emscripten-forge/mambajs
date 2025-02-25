@@ -220,8 +220,14 @@ export async function solve(
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
   const picomamba = await initEnv(logger, locateWasm);
 
-  const condaPackages = await picomamba.solve(yml);
+  const condaPackages = await picomamba.solve(yml) as ISolvedPackages;
   let pipPackages: ISolvedPackages = {};
+
+  logger?.log('');
+  logger?.log('Solved environment!');
+  for (const solvedPackage of Object.values(condaPackages)) {
+    logger?.log(solvedPackage.name, solvedPackage.version);
+  }
 
   if (hasPipDependencies(yml)) {
     if (!getPythonVersion(Object.values(condaPackages))) {
