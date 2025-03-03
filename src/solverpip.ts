@@ -60,9 +60,8 @@ function resolveVersion(availableVersions: string[], constraint: string) {
   const validVersions = availableVersions
     .filter(v => satisfies(v, constraint))
     .sort(rcompare)
-    .reverse(); // Get highest version
-
   // Prioritize stable versions
+
   const stableVersions = validVersions.filter(isStable);
 
   return stableVersions.length
@@ -90,7 +89,7 @@ function getSuitableVersion(
   constraints: string | null
 ): ISolvedPackage | undefined {
   const availableVersions = Object.keys(pkgInfo.releases);
-
+  
   let version: string | undefined = undefined;
   try {
     if (constraints) {
