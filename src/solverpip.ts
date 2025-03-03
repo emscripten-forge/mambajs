@@ -9,10 +9,22 @@ interface ISpec {
   constraints: string | null;
 }
 
+function formatConstraintVersion(constraintVersion: string, version: string ){
+  const constraintVersionArr = constraintVersion.split('.');
+  const versionArr = version.split('.');
+
+  while (constraintVersionArr.length < versionArr.length) {
+    constraintVersionArr.push("0");
+  }
+
+  let result = constraintVersionArr.join('.');
+  return result;
+}
+
 function parseVersion(version: string) {
   return version
-    .replace(/(\d+)/g, m => m.padStart(10, '0')) // Pad numbers for proper comparison
-    .replace(/([a-z]+)/g, '.$1.'); // Ensure pre-release parts are separated
+  .replace(/(\d+)/g, m => m.padStart(10, '0')) // Pad numbers for proper comparison
+  .replace(/([a-z]+)/g, '.$1.'); // Ensure pre-release parts are separated
 }
 
 function compareVersions(a: string, b: string) {
@@ -32,7 +44,8 @@ function satisfies(version: string, constraint: string) {
       return false;
     }
 
-    const [, operator, constraintVersion] = match;
+    let [, operator, constraintVersion] = match;
+    constraintVersion = formatConstraintVersion(constraintVersion, version);
     const cmp = compareVersions(version, constraintVersion);
 
     switch (operator) {
@@ -60,10 +73,10 @@ function resolveVersion(availableVersions: string[], constraint: string) {
   const validVersions = availableVersions
     .filter(v => satisfies(v, constraint))
     .sort(rcompare)
+    .reverse();
+
   // Prioritize stable versions
-
   const stableVersions = validVersions.filter(isStable);
-
   return stableVersions.length
     ? stableVersions[0]
     : validVersions[0] || undefined;
