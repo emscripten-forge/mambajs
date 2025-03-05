@@ -9,8 +9,7 @@ export interface ILogger {
 export interface ISolvedPackage {
   name: string;
   version: string;
-  build_string?: string;
-  repo_name?: string;
+  build_number?: string;
   repo_url?: string;
   url: string;
 }
