@@ -2,7 +2,3 @@ node_modules/
 npm-debug.log/
 
 .yarn
-
-picomamba/libs/
-picomamba/lib/
-picomamba/wasm-picomamba/

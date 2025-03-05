@@ -6,16 +6,14 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
-    "build": "yarn run clean && yarn run build:picomamba && yarn run build:esbuild && yarn run build:types",
+    "build": "npm run clean && npm run build:esbuild && npm run build:types",
     "build:types": "tsc --declaration src/index.ts --emitDeclarationOnly --outDir ./lib",
     "prettier": "prettier --list-different --write \"src/**/*.ts\"",
     "prettier:check": "prettier --check \"src/**/*.ts\"",
     "eslint": "eslint --ext .ts --fix .",
     "eslint:check": "eslint --ext .ts.",
     "test": "jest",
-    "build:esbuild": "node esbuild.config.js",
-    "build:picomamba": "cd picomamba && node ./build_wasm.js || cd .. && yarn run cp:picomamba",
-    "cp:picomamba": "copyfiles -f picomamba/lib/* src/conda-packages-solver"
+    "build:esbuild": "node esbuild.config.js"
   },
   "files": [
     "lib/*"

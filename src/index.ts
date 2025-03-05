@@ -12,7 +12,7 @@ import {
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 import { hasPipDependencies, solvePip } from './solverpip';
-import { getSolvedPackages } from 'solver';
+import { getSolvedPackages } from './solver';
 
 export * from './helper';
 
