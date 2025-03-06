@@ -44,9 +44,8 @@ function satisfies(version: string, constraint: string) {
       return false;
     }
 
-    let [, operator, constraintVersion] = match;
-    constraintVersion = formatConstraintVersion(constraintVersion, version);
-    const cmp = compareVersions(version, constraintVersion);
+    const [, operator, constraintVersion] = match;
+    const cmp = compareVersions(version, formatConstraintVersion(constraintVersion, version));
 
     switch (operator) {
       case '>':
@@ -213,7 +212,7 @@ export async function solvePip(
 
   const installedPackages = new Set<string>();
   for (const installedPackage of Object.values(installed)) {
-    let pipPackageName = await getPipPackageName(installedPackage.name);
+    const pipPackageName = await getPipPackageName(installedPackage.name);
     installedPackages.add(pipPackageName);
   }
 
@@ -236,7 +235,7 @@ async function getPipPackageName(
   installedPackage: string,
   logger?: ILogger
 ): Promise<string> {
-  let result = '';
+  let result = installedPackage;
   try {
     const url =
       'https://raw.githubusercontent.com/prefix-dev/parselmouth/main/files/compressed_mapping.json';
@@ -248,7 +247,7 @@ async function getPipPackageName(
     const packageMapping = await response.json();
 
     if (packageMapping.hasOwnProperty(installedPackage)) {
-      result = packageMapping[installedPackage] || installedPackage;
+      result = packageMapping[installedPackage];
     }
   } catch (error) {
     logger?.error('Cannot get pip package names', error);
