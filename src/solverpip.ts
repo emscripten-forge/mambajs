@@ -17,8 +17,7 @@ function formatConstraintVersion(constraintVersion: string, version: string) {
     constraintVersionArr.push('0');
   }
 
-  let result = constraintVersionArr.join('.');
-  return result;
+  return constraintVersionArr.join('.');
 }
 
 function parseVersion(version: string) {
