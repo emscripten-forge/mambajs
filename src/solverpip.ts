@@ -9,6 +9,17 @@ interface ISpec {
   constraints: string | null;
 }
 
+function formatConstraintVersion(constraintVersion: string, version: string) {
+  const constraintVersionArr = constraintVersion.split('.');
+  const versionArr = version.split('.');
+
+  while (constraintVersionArr.length < versionArr.length) {
+    constraintVersionArr.push('0');
+  }
+
+  return constraintVersionArr.join('.');
+}
+
 function parseVersion(version: string) {
   return version
     .replace(/(\d+)/g, m => m.padStart(10, '0')) // Pad numbers for proper comparison
@@ -33,7 +44,7 @@ function satisfies(version: string, constraint: string) {
     }
 
     const [, operator, constraintVersion] = match;
-    const cmp = compareVersions(version, constraintVersion);
+    const cmp = compareVersions(version, formatConstraintVersion(constraintVersion, version));
 
     switch (operator) {
       case '>':
@@ -60,11 +71,10 @@ function resolveVersion(availableVersions: string[], constraint: string) {
   const validVersions = availableVersions
     .filter(v => satisfies(v, constraint))
     .sort(rcompare)
-    .reverse(); // Get highest version
+    .reverse();
 
   // Prioritize stable versions
   const stableVersions = validVersions.filter(isStable);
-
   return stableVersions.length
     ? stableVersions[0]
     : validVersions[0] || undefined;
@@ -201,7 +211,8 @@ export async function solvePip(
 
   const installedPackages = new Set<string>();
   for (const installedPackage of Object.values(installed)) {
-    installedPackages.add(installedPackage.name);
+    const pipPackageName = await getPipPackageName(installedPackage.name);
+    installedPackages.add(pipPackageName);
   }
 
   const pipSolvedPackages: ISolvedPackages = {};
@@ -217,6 +228,30 @@ export async function solvePip(
   }
 
   return pipSolvedPackages;
+}
+
+async function getPipPackageName(
+  installedPackage: string,
+  logger?: ILogger
+): Promise<string> {
+  let result = installedPackage;
+  try {
+    const url =
+      'https://raw.githubusercontent.com/prefix-dev/parselmouth/main/files/compressed_mapping.json';
+    const response = await fetch(url);
+    if (!response.ok && logger) {
+      logger.error('Cannot parse pip package mapping json');
+    }
+
+    const packageMapping = await response.json();
+
+    if (packageMapping.hasOwnProperty(installedPackage)) {
+      result = packageMapping[installedPackage];
+    }
+  } catch (error) {
+    logger?.error('Cannot get pip package names', error);
+  }
+  return result;
 }
 
 export function hasPipDependencies(yml: string): boolean {
