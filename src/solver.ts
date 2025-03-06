@@ -7,7 +7,7 @@ import { simple_solve } from "@baszalmstra/rattler";
       logger.log('Loading solver ...');
     }
   
-    const startSolveTime = performance.now();
+    
     let result: any = undefined;
     let solvedPackages:ISolvedPackages = {};
     const data = parse(envYml);
@@ -23,17 +23,29 @@ import { simple_solve } from "@baszalmstra/rattler";
     const channels = data.channels ? data.channels : [];
     const platforms = [ "noarch","emscripten-wasm32"];
     try {
+      const startSolveTime = performance.now();
       result = await simple_solve(
         specs,
         channels,
         platforms
       );
+      const endSolveTime = performance.now();
+    
+      if (logger) {
+        logger.log(
+          `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
+        );
+      }
+
       result.map((item: any)=>{
-      const { package_name, repo_name, ...rest } = item; 
-      solvedPackages[item.filename] = {
+      const { build_number, filename, package_name, repo_name, url, version } = item; 
+      solvedPackages[filename] = {
         name: package_name,
         repo_url: repo_name,
-        ...rest
+        build_number: build_number,
+        url: url, 
+        version: version,
+        repo_name: repo_name
     };
     });
 
@@ -41,12 +53,7 @@ import { simple_solve } from "@baszalmstra/rattler";
       logger?.error(error);
     }
     
-    const endSolveTime = performance.now();
-    if (logger) {
-      logger.log(
-        `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
-      );
-    }
+    
 
     return solvedPackages;
   };
