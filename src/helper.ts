@@ -12,7 +12,7 @@ export interface ISolvedPackage {
   build_number?: string;
   repo_url?: string;
   url: string;
-  repo_name?: string
+  repo_name?: string;
 }
 
 export interface ISolvedPackages {

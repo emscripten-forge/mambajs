@@ -214,8 +214,10 @@ export async function solve(
   yml: string,
   logger?: ILogger
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
-
-  const condaPackages = await getSolvedPackages(yml, logger) as ISolvedPackages;
+  const condaPackages = (await getSolvedPackages(
+    yml,
+    logger
+  )) as ISolvedPackages;
 
   let pipPackages: ISolvedPackages = {};
 

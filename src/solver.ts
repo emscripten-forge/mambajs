@@ -1,59 +1,52 @@
 import { ILogger, ISolvedPackages } from './helper';
 import { parse } from 'yaml';
-import { simple_solve } from "@baszalmstra/rattler";
+import { simple_solve } from '@baszalmstra/rattler';
 
-  export const getSolvedPackages = async (envYml: string, logger?: ILogger) => {
+export const getSolvedPackages = async (envYml: string, logger?: ILogger) => {
+  if (logger) {
+    logger.log('Loading solver ...');
+  }
+
+  let result: any = undefined;
+  let solvedPackages: ISolvedPackages = {};
+  const data = parse(envYml);
+  const packages = data.dependencies ? data.dependencies : [];
+  const specs: string[] = [];
+  // Remove pip dependencies which do not impact solving
+  for (const pkg of packages) {
+    if (typeof pkg === 'string') {
+      specs.push(pkg);
+    }
+  }
+
+  const channels = data.channels ? data.channels : [];
+  const platforms = ['noarch', 'emscripten-wasm32'];
+  try {
+    const startSolveTime = performance.now();
+    result = await simple_solve(specs, channels, platforms);
+    const endSolveTime = performance.now();
+
     if (logger) {
-      logger.log('Loading solver ...');
-    }
-  
-    
-    let result: any = undefined;
-    let solvedPackages:ISolvedPackages = {};
-    const data = parse(envYml);
-    const packages = data.dependencies ? data.dependencies : [];
-    const specs: string[] = [];
-    // Remove pip dependencies which do not impact solving
-    for (const pkg of packages) {
-      if (typeof pkg === 'string') {
-        specs.push(pkg);
-      }
-    }
-
-    const channels = data.channels ? data.channels : [];
-    const platforms = [ "noarch","emscripten-wasm32"];
-    try {
-      const startSolveTime = performance.now();
-      result = await simple_solve(
-        specs,
-        channels,
-        platforms
+      logger.log(
+        `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
       );
-      const endSolveTime = performance.now();
-    
-      if (logger) {
-        logger.log(
-          `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
-        );
-      }
+    }
 
-      result.map((item: any)=>{
-      const { build_number, filename, package_name, repo_name, url, version } = item; 
+    result.map((item: any) => {
+      const { build_number, filename, package_name, repo_name, url, version } =
+        item;
       solvedPackages[filename] = {
         name: package_name,
         repo_url: repo_name,
         build_number: build_number,
-        url: url, 
+        url: url,
         version: version,
         repo_name: repo_name
-    };
+      };
     });
+  } catch (error) {
+    logger?.error(error);
+  }
 
-    }catch(error){
-      logger?.error(error);
-    }
-    
-    
-
-    return solvedPackages;
-  };
+  return solvedPackages;
+};
