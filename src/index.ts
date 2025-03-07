@@ -247,16 +247,14 @@ export async function solve(
 
 export async function install(
   installedPackages: ISolvedPackages,
-  packageName: string,
-  channelName: string,
-  packageVersion?: string,
+  packageNames: Array<any>,
+  channelNames?: Array<string>,
   logger?: ILogger
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages?: ISolvedPackages }> {
   const condaPackages: ISolvedPackages = await solvePackage(
     installedPackages,
-    packageName,
-    channelName,
-    packageVersion,
+    packageNames,
+    channelNames,
     logger
   );
 

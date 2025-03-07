@@ -77,9 +77,8 @@ export const getSolvedPackages = async (envYml: string, logger?: ILogger) => {
 
 export const solvePackage = async (
   installedPackages: ISolvedPackages,
-  packageName: string,
-  channelName: string,
-  packageVersion?: string,
+  packageNames: Array<any>,
+  channelNames: Array<string> = [],
   logger?: ILogger
 ) => {
   let channelsDict = {};
@@ -95,16 +94,21 @@ export const solvePackage = async (
     if (!channels.length) {
       logger?.error('There is no any channels of installed packages');
     }
-    if (!channelName) {
+    if (!channelNames || !channelNames.length) {
       logger?.error('There is no channel for a new package');
     }
-    if (!channels.length && !channelName) {
+    if (!channels.length && (!channelNames || !channelNames.length)) {
       logger?.log('Using default channels');
       channels = getDefaultChannels();
     }
+
     specs.push(`${installedPackage.name}=${installedPackage.version}`);
   });
-  specs.push(`${packageName}${packageVersion}`);
+  packageNames.forEach((newPackage: any) => {
+    specs.push(newPackage);
+  });
+
+  channels = [...channels, ...channelNames];
   logger?.log('Solving a new package with previous installed ones');
   solvedPackages = await solve(specs, channels, platforms, logger);
   return solvedPackages;
