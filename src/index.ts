@@ -1,5 +1,4 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
-import { initEnv } from './conda-packages-solver';
 import {
   getSharedLibs,
   IEmpackEnvMeta,
@@ -13,11 +12,9 @@ import {
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 import { hasPipDependencies, solvePip } from './solverpip';
+import { getSolvedPackages, solvePackage } from './solver';
 
 export * from './helper';
-
-import coreWasm from './conda-packages-solver/core.wasm';
-export const mambaWasm = coreWasm;
 
 /**
  * Given a list of packages from a lock file, get the Python version
@@ -215,22 +212,18 @@ export async function waitRunDependencies(Module: any): Promise<void> {
 
 export async function solve(
   yml: string,
-  logger?: ILogger,
-  locateWasm?: (file: string) => string
+  logger?: ILogger
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
-  const picomamba = await initEnv(logger, locateWasm);
+  const condaPackages = (await getSolvedPackages(
+    yml,
+    logger
+  )) as ISolvedPackages;
 
-  const condaPackages = (await picomamba.solve(yml)) as ISolvedPackages;
   let pipPackages: ISolvedPackages = {};
 
-  logger?.log('');
   logger?.log('Solved environment!');
   for (const solvedPackage of Object.values(condaPackages)) {
-    logger?.log(
-      solvedPackage.name,
-      solvedPackage.version,
-      solvedPackage.build_string
-    );
+    logger?.log(solvedPackage.name, solvedPackage.version);
   }
 
   if (hasPipDependencies(yml)) {
@@ -241,12 +234,31 @@ export async function solve(
       throw msg;
     }
 
-    logger?.log('');
     logger?.log('Process pip dependencies ...');
 
     pipPackages = await solvePip(yml, condaPackages, logger);
   }
 
+  return {
+    condaPackages,
+    pipPackages
+  };
+}
+
+export async function install(
+  installedPackages: ISolvedPackages,
+  packageNames: Array<any>,
+  channelNames?: Array<string>,
+  logger?: ILogger
+): Promise<{ condaPackages: ISolvedPackages; pipPackages?: ISolvedPackages }> {
+  const condaPackages: ISolvedPackages = await solvePackage(
+    installedPackages,
+    packageNames,
+    channelNames,
+    logger
+  );
+
+  let pipPackages: ISolvedPackages = {};
   return {
     condaPackages,
     pipPackages
