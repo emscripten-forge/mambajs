@@ -9,17 +9,8 @@ export const getSolvedPackages = async (envYml: string, logger?: ILogger) => {
 
   let result: any = undefined;
   let solvedPackages: ISolvedPackages = {};
-  const data = parse(envYml);
-  const packages = data.dependencies ? data.dependencies : [];
-  const specs: string[] = [];
-  // Remove pip dependencies which do not impact solving
-  for (const pkg of packages) {
-    if (typeof pkg === 'string') {
-      specs.push(pkg);
-    }
-  }
 
-  const channels = data.channels ? data.channels : [];
+  const { specs, channels } = parseEnvYml(envYml);
   const platforms = ['noarch', 'emscripten-wasm32'];
   try {
     const startSolveTime = performance.now();
@@ -49,4 +40,19 @@ export const getSolvedPackages = async (envYml: string, logger?: ILogger) => {
   }
 
   return solvedPackages;
+};
+
+const parseEnvYml = (envYml: string) => {
+  const data = parse(envYml);
+  const packages = data.dependencies ? data.dependencies : [];
+  const prefix = data.name ? data.name : '/';
+  const channels = data.channels ? data.channels : [];
+
+  const specs: string[] = [];
+  for (const pkg of packages) {
+    if (typeof pkg === 'string') {
+      specs.push(pkg);
+    }
+  }
+  return { prefix, specs, channels };
 };
