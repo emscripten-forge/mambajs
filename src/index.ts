@@ -12,7 +12,7 @@ import {
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 import { hasPipDependencies, solvePip } from './solverpip';
-import { getSolvedPackages } from './solver';
+import { getSolvedPackages, solvePackage } from './solver';
 
 export * from './helper';
 
@@ -239,6 +239,28 @@ export async function solve(
     pipPackages = await solvePip(yml, condaPackages, logger);
   }
 
+  return {
+    condaPackages,
+    pipPackages
+  };
+}
+
+export async function install(
+  installedPackages: ISolvedPackages,
+  packageName: string,
+  channelName: string,
+  packageVersion?: string,
+  logger?: ILogger
+): Promise<{ condaPackages: ISolvedPackages; pipPackages?: ISolvedPackages }> {
+  const condaPackages: ISolvedPackages = await solvePackage(
+    installedPackages,
+    packageName,
+    channelName,
+    packageVersion,
+    logger
+  );
+
+  let pipPackages: ISolvedPackages = {};
   return {
     condaPackages,
     pipPackages
