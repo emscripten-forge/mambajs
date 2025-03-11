@@ -197,23 +197,22 @@ export async function solvePip(
   specs: ISpec[] = [],
   logger?: ILogger
 ): Promise<ISolvedPackages> {
-
   if (yml) {
-  const data = parse(yml);
-  const packages = data?.dependencies ? data.dependencies : [];
+    const data = parse(yml);
+    const packages = data?.dependencies ? data.dependencies : [];
 
-  // Get pip dependencies
-  for (const pkg of packages) {
-    if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
-      for (const pipPkg of pkg.pip) {
-        const parsedSpec = parsePyPiRequirement(pipPkg);
-        if (parsedSpec) {
-          specs.push(parsedSpec);
+    // Get pip dependencies
+    for (const pkg of packages) {
+      if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
+        for (const pipPkg of pkg.pip) {
+          const parsedSpec = parsePyPiRequirement(pipPkg);
+          if (parsedSpec) {
+            specs.push(parsedSpec);
+          }
         }
       }
     }
   }
-}
 
   const installedPackages = new Set<string>();
   for (const installedPackage of Object.values(installed)) {
