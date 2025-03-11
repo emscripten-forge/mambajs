@@ -194,12 +194,14 @@ async function processRequirement(
 export async function solvePip(
   yml: string,
   installed: ISolvedPackages,
+  specs: ISpec[] = [],
   logger?: ILogger
 ): Promise<ISolvedPackages> {
+
+  if (yml) {
   const data = parse(yml);
   const packages = data?.dependencies ? data.dependencies : [];
 
-  const specs: ISpec[] = [];
   // Get pip dependencies
   for (const pkg of packages) {
     if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
@@ -211,6 +213,7 @@ export async function solvePip(
       }
     }
   }
+}
 
   const installedPackages = new Set<string>();
   for (const installedPackage of Object.values(installed)) {

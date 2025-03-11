@@ -236,7 +236,7 @@ export async function solve(
 
     logger?.log('Process pip dependencies ...');
 
-    pipPackages = await solvePip(yml, condaPackages, logger);
+    pipPackages = await solvePip(yml, condaPackages, [], logger);
   }
 
   return {
@@ -248,17 +248,30 @@ export async function solve(
 export async function install(
   installedPackages: ISolvedPackages,
   packageNames: Array<any>,
+  isPipInstallation: boolean,
   channelNames?: Array<string>,
   logger?: ILogger
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages?: ISolvedPackages }> {
-  const condaPackages: ISolvedPackages = await solvePackage(
+  let condaPackages: ISolvedPackages = {};
+  
+  if (!isPipInstallation) {
+  condaPackages = await solvePackage(
     installedPackages,
     packageNames,
     channelNames,
     logger
-  );
-
+  );}
   let pipPackages: ISolvedPackages = {};
+  if (isPipInstallation) {
+    if (!getPythonVersion(Object.values(installedPackages))) {
+      const msg =
+        'Cannot install pip dependencies without Python installed in the environment!';
+      logger?.error(msg);
+      throw msg;
+    }
+    pipPackages = await solvePip('', installedPackages, packageNames, logger);
+  }
+  
   return {
     condaPackages,
     pipPackages
