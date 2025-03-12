@@ -272,6 +272,7 @@ export async function install(
       logger?.error(msg);
       throw msg;
     }
+    condaPackages = installedPackages;
     pipPackages = await solvePip('', installedPackages, packageNames, logger);
   }
 
