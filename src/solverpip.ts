@@ -44,7 +44,10 @@ function satisfies(version: string, constraint: string) {
     }
 
     const [, operator, constraintVersion] = match;
-    const cmp = compareVersions(version, formatConstraintVersion(constraintVersion, version));
+    const cmp = compareVersions(
+      version,
+      formatConstraintVersion(constraintVersion, version)
+    );
 
     switch (operator) {
       case '>':

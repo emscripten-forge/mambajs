@@ -13,6 +13,7 @@ export interface ISolvedPackage {
   repo_url?: string;
   url: string;
   repo_name?: string;
+  build_string?: string;
 }
 
 export interface ISolvedPackages {
