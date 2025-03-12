@@ -57,11 +57,6 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
   Module: any;
 
   /**
-   * Whether to build in verbose mode, default to silent
-   */
-  verbose?: boolean;
-
-  /**
    * Whether to install conda-meta for packages, default to False
    */
   generateCondaMeta?: boolean;
@@ -70,6 +65,11 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
    * The untarjs API. If not provided, one will be initialized.
    */
   untarjs?: IUnpackJSAPI;
+
+  /**
+   * The logger to use during the bootstrap.
+   */
+  logger?: ILogger;
 }
 
 /**
@@ -81,7 +81,7 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
 export const bootstrapEmpackPackedEnvironment = async (
   options: IBootstrapEmpackPackedEnvironmentOptions
 ): Promise<TSharedLibsMap> => {
-  const { empackEnvMeta, pkgRootUrl, Module, verbose, generateCondaMeta } =
+  const { empackEnvMeta, pkgRootUrl, Module, generateCondaMeta, logger } =
     options;
 
   let untarjs: IUnpackJSAPI;
@@ -99,14 +99,12 @@ export const bootstrapEmpackPackedEnvironment = async (
     await Promise.all(
       empackEnvMeta.packages.map(async pkg => {
         const url = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
-        if (verbose) {
-          console.log(`Install ${pkg.filename} taken from ${url}`);
-        }
+        logger?.log(`Installing ${pkg.filename}`);
 
         const extractedPackage = await untarCondaPackage({
           url,
           untarjs,
-          verbose,
+          verbose: false,
           generateCondaMeta,
           pythonVersion
         });
@@ -178,12 +176,17 @@ export interface ILoadSharedLibsOptions {
    * The Emscripten Module
    */
   Module: any;
+
+  /**
+   * The logger to use.
+   */
+  logger?: ILogger;
 }
 
 export async function loadShareLibs(
   options: ILoadSharedLibsOptions
 ): Promise<void[]> {
-  const { sharedLibs, prefix, Module } = options;
+  const { sharedLibs, prefix, Module, logger } = options;
 
   const sharedLibsLoad: Promise<void>[] = [];
 
@@ -191,6 +194,7 @@ export async function loadShareLibs(
     const packageShareLibs = sharedLibs[pkgName];
 
     if (packageShareLibs) {
+      logger?.log(`Loading shared libraries from ${pkgName}`);
       sharedLibsLoad.push(
         loadDynlibsFromPackage(prefix, pkgName, packageShareLibs, Module)
       );
