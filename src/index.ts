@@ -193,7 +193,7 @@ export async function loadShareLibs(
   for (const pkgName of Object.keys(sharedLibs)) {
     const packageShareLibs = sharedLibs[pkgName];
 
-    if (packageShareLibs) {
+    if (packageShareLibs.length > 0) {
       logger?.log(`Loading shared libraries from ${pkgName}`);
       sharedLibsLoad.push(
         loadDynlibsFromPackage(prefix, pkgName, packageShareLibs, Module)
