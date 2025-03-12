@@ -1,8 +1,8 @@
 import { ILogger, ISolvedPackages } from './helper';
 import { parse } from 'yaml';
-import { simple_solve } from '@baszalmstra/rattler';
+import { simpleSolve, Platform } from '@baszalmstra/rattler';
 
-const platforms = ['noarch', 'emscripten-wasm32'];
+const platforms:Platform[] = ['noarch', 'emscripten-wasm32'];
 
 const parseEnvYml = (envYml: string) => {
   const data = parse(envYml);
@@ -22,14 +22,14 @@ const parseEnvYml = (envYml: string) => {
 const solve = async (
   specs: Array<string>,
   channels: Array<string>,
-  platforms: Array<string>,
+  platforms: Platform[],
   logger?: ILogger
 ) => {
   let result: any = undefined;
   let solvedPackages: ISolvedPackages = {};
   try {
     const startSolveTime = performance.now();
-    result = await simple_solve(specs, channels, platforms);
+    result = await simpleSolve(specs, channels, platforms);
     const endSolveTime = performance.now();
 
     if (logger) {
@@ -39,15 +39,23 @@ const solve = async (
     }
 
     result.map((item: any) => {
-      const { build_number, filename, package_name, repo_name, url, version } =
-        item;
+      const {
+        buildNumber,
+        filename,
+        packageName,
+        repoName,
+        url,
+        version,
+        build
+      } = item;
       solvedPackages[filename] = {
-        name: package_name,
-        repo_url: repo_name,
-        build_number: build_number,
+        name: packageName,
+        repo_url: repoName,
+        build_number: buildNumber,
+        build_string: build,
         url: url,
         version: version,
-        repo_name: repo_name
+        repo_name: repoName
       };
     });
   } catch (error) {

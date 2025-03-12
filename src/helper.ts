@@ -13,6 +13,7 @@ export interface ISolvedPackage {
   repo_url?: string;
   url: string;
   repo_name?: string;
+  build_string?: string;
 }
 
 export interface ISolvedPackages {
@@ -60,6 +61,39 @@ export function getSharedLibs(files: FilesData, prefix: string): TSharedLibs {
   });
 
   return sharedLibs;
+}
+
+function hasNullBytes(data: Uint8Array): boolean {
+  return data.some(byte => byte === 0);
+}
+
+function replaceStringWithZeroPadding(
+  input: Uint8Array,
+  search: string,
+  replacement: string
+): Uint8Array {
+  const searchBytes = new TextEncoder().encode(search);
+  const replacementBytes = new TextEncoder().encode(replacement);
+
+  const searchLength = searchBytes.length;
+
+  for (let i = 0; i <= input.length - searchLength; i++) {
+    if (
+      input
+        .slice(i, i + searchLength)
+        .every((byte, index) => byte === searchBytes[index])
+    ) {
+      // Replace with replacement bytes
+      input.set(replacementBytes, i);
+
+      // Zero-pad the rest of the replaced section
+      for (let j = i + replacementBytes.length; j < i + searchLength; j++) {
+        input[j] = 0;
+      }
+    }
+  }
+
+  return input;
 }
 
 function replaceString(
@@ -222,11 +256,23 @@ export async function untarCondaPackage(
       const prefixPlaceholder = filedesc['prefix_placeholder'].endsWith('/')
         ? filedesc['prefix_placeholder']
         : `${filedesc['prefix_placeholder']}/`;
-      pkg[filedesc['_path']] = replaceString(
-        pkg[filedesc['_path']],
-        prefixPlaceholder,
-        relocatePrefix || ''
-      );
+
+      // TextDecoder cannot decode the null bytes (zero-padding), so we cannot do the zero-padding
+      // for any file that will be text decoded (.json, .py etc)
+      // We only do the zero-padding on detected binary files. Is there a better way to detect them?
+      if (hasNullBytes(pkg[filedesc['_path']])) {
+        pkg[filedesc['_path']] = replaceStringWithZeroPadding(
+          pkg[filedesc['_path']],
+          prefixPlaceholder,
+          relocatePrefix || ''
+        );
+      } else {
+        pkg[filedesc['_path']] = replaceString(
+          pkg[filedesc['_path']],
+          prefixPlaceholder,
+          relocatePrefix || ''
+        );
+      }
     }
   }
 
