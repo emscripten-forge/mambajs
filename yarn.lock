@@ -377,6 +377,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@baszalmstra/rattler@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "@baszalmstra/rattler@npm:0.2.0"
+  checksum: 9afc62422a50eea851b6eedf257731ee553b7d149e21faa6f7a8bd319c5f2eea7d8559746e8057e16a6dd0a3f957ccf7c244088c724dcfc93f2aa36d4d1ad737
+  languageName: node
+  linkType: hard
+
 "@bcoe/v8-coverage@npm:^0.2.3":
   version: 0.2.3
   resolution: "@bcoe/v8-coverage@npm:0.2.3"
@@ -388,6 +395,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs@workspace:."
   dependencies:
+    "@baszalmstra/rattler": ^0.2.0
     "@emscripten-forge/untarjs": ^5.3.0
     "@esbuild-plugins/node-globals-polyfill": ^0.2.3
     "@esbuild-plugins/node-modules-polyfill": ^0.2.2
