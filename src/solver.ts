@@ -2,7 +2,7 @@ import { ILogger, ISolvedPackages } from './helper';
 import { parse } from 'yaml';
 import { simpleSolve, Platform } from '@baszalmstra/rattler';
 
-const platforms:Platform[] = ['noarch', 'emscripten-wasm32'];
+const platforms: Platform[] = ['noarch', 'emscripten-wasm32'];
 
 const parseEnvYml = (envYml: string) => {
   const data = parse(envYml);

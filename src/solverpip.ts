@@ -194,9 +194,10 @@ async function processRequirement(
 export async function solvePip(
   yml: string,
   installed: ISolvedPackages,
-  specs: ISpec[] = [],
+  packageNames: Array<string> = [],
   logger?: ILogger
 ): Promise<ISolvedPackages> {
+  let specs: ISpec[] = [];
   if (yml) {
     const data = parse(yml);
     const packages = data?.dependencies ? data.dependencies : [];
@@ -204,14 +205,11 @@ export async function solvePip(
     // Get pip dependencies
     for (const pkg of packages) {
       if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
-        for (const pipPkg of pkg.pip) {
-          const parsedSpec = parsePyPiRequirement(pipPkg);
-          if (parsedSpec) {
-            specs.push(parsedSpec);
-          }
-        }
+        specs = parsePipPackage(pkg.pip);
       }
     }
+  } else if (packageNames.length) {
+    specs = parsePipPackage(packageNames);
   }
 
   const installedPackages = new Set<string>();
@@ -233,6 +231,17 @@ export async function solvePip(
   }
 
   return pipSolvedPackages;
+}
+
+function parsePipPackage(pipPackages: Array<string>): ISpec[] {
+  let specs: ISpec[] = [];
+  for (const pipPkg of pipPackages) {
+    const parsedSpec = parsePyPiRequirement(pipPkg);
+    if (parsedSpec) {
+      specs.push(parsedSpec);
+    }
+  }
+  return specs;
 }
 
 async function getPipPackageName(
