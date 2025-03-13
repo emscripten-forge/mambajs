@@ -268,13 +268,16 @@ async function getPipPackageName(
   return result;
 }
 
-export function hasPipDependencies(yml: string): boolean {
-  const data = parse(yml);
-  const packages = data?.dependencies ? data.dependencies : [];
-  for (const pkg of packages) {
-    if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
-      return true;
+export function hasPipDependencies(yml?: string): boolean {
+  if (yml) {
+    const data = parse(yml);
+    const packages = data?.dependencies ? data.dependencies : [];
+    for (const pkg of packages) {
+      if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
+        return true;
+      }
     }
+    return false;
   }
 
   return false;

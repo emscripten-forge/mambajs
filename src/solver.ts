@@ -1,4 +1,10 @@
-import { ILogger, ISolvedPackages } from './helper';
+import {
+  filterPackages,
+  hasYml,
+  ILogger,
+  ISolvedPackages,
+  ISolveOptions
+} from './helper';
 import { parse } from 'yaml';
 import { simpleSolve, Platform } from '@baszalmstra/rattler';
 
@@ -8,7 +14,7 @@ const parseEnvYml = (envYml: string) => {
   const data = parse(envYml);
   const packages = data.dependencies ? data.dependencies : [];
   const prefix = data.name ? data.name : '/';
-  const channels = data.channels ? data.channels : [];
+  const channels: Array<string> = data.channels ? data.channels : [];
 
   const specs: string[] = [];
   for (const pkg of packages) {
@@ -73,51 +79,85 @@ const getDefaultChannels = () => {
   return channels;
 };
 
-export const getSolvedPackages = async (envYml: string, logger?: ILogger) => {
+export const getSolvedPackages = async (options: ISolveOptions) => {
+  let { ymlOrSpecs, installedPackages, channels, logger } = options;
   if (logger) {
     logger.log('Loading solver ...');
   }
   let solvedPackages: ISolvedPackages = {};
-  const { specs, channels } = parseEnvYml(envYml);
-  solvedPackages = await solve(specs, channels, platforms, logger);
+
+  let specs: string[] = [],
+    newChannels: string[] = [];
+  const isYml = hasYml(ymlOrSpecs);
+  if (isYml) {
+    if (logger) {
+      logger.log('Solving initial packages...');
+    }
+    const ymlData = parseEnvYml(ymlOrSpecs as string);
+    specs = ymlData.specs;
+    newChannels = ymlData.channels;
+  } else {
+    if (logger) {
+      logger.log('Solving packages for installing them...');
+    }
+    let { installedCondaPackages } = filterPackages(installedPackages);
+    const data = prepareForInstalling(
+      installedCondaPackages,
+      ymlOrSpecs as string[],
+      channels,
+      logger
+    );
+    specs = data.specs;
+    newChannels = data.channels;
+  }
+  solvedPackages = await solve(specs, newChannels, platforms, logger);
   return solvedPackages;
 };
 
-export const solvePackage = async (
-  installedPackages: ISolvedPackages,
-  packageNames: Array<any>,
+export const prepareForInstalling = (
+  condaPackages: ISolvedPackages,
+  specs: Array<string>,
   channelNames: Array<string> = [],
   logger?: ILogger
 ) => {
   let channelsDict = {};
   let channels: Array<string> = [];
-  let specs: Array<string> = [];
-  let solvedPackages: ISolvedPackages = {};
-  Object.keys(installedPackages).map((filename: string) => {
-    let installedPackage = installedPackages[filename];
+
+  Object.keys(condaPackages).map((filename: string) => {
+    let installedPackage = condaPackages[filename];
     if (installedPackage.repo_url) {
       channelsDict[installedPackage.repo_url] = installedPackage.repo_url;
-      channels = Object.keys(channelsDict);
     }
-    if (!channels.length) {
-      logger?.error('There is no any channels of installed packages');
-    }
-    if (!channelNames || !channelNames.length) {
-      logger?.error('There is no channel for a new package');
-    }
-    if (!channels.length && (!channelNames || !channelNames.length)) {
-      logger?.log('Using default channels');
-      channels = getDefaultChannels();
-    }
-
     specs.push(`${installedPackage.name}=${installedPackage.version}`);
   });
-  packageNames.forEach((newPackage: any) => {
-    specs.push(newPackage);
-  });
 
-  channels = [...channels, ...channelNames];
-  logger?.log('Solving a new package with previous installed ones');
-  solvedPackages = await solve(specs, channels, platforms, logger);
-  return solvedPackages;
+  channels = Object.keys(channelsDict);
+  if (!channels.length) {
+    logger?.error('There is no any channels of installed packages');
+  }
+  if (!channelNames || !channelNames.length) {
+    logger?.error('There is no channel for a new package');
+  }
+  if (!channels.length && (!channelNames || !channelNames.length)) {
+    logger?.log('Using default channels');
+    channels = getDefaultChannels();
+  }
+
+  let channelAlias = {
+    'conda-forge': 'https://repo.prefix.dev/conda-forge',
+    'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev'
+  };
+
+  let newChannels = channelNames.map((channel: string) => {
+    if (channelAlias[channel]) {
+      channel = channelAlias[channel];
+    }
+    return channel;
+  });
+  console.log('channels', channels);
+  console.log('newChannels', newChannels);
+  console.log('specs', specs);
+
+  channels = [...channels, ...newChannels];
+  return { specs, channels };
 };

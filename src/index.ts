@@ -1,18 +1,21 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
+  filterPackages,
   getSharedLibs,
+  hasYml,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
   ILogger,
   ISolvedPackage,
   ISolvedPackages,
+  ISolveOptions,
   saveFilesIntoEmscriptenFS,
   TSharedLibsMap,
   untarCondaPackage
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 import { hasPipDependencies, solvePip } from './solverpip';
-import { getSolvedPackages, solvePackage } from './solver';
+import { getSolvedPackages } from './solver';
 
 export * from './helper';
 
@@ -215,22 +218,42 @@ export async function waitRunDependencies(Module: any): Promise<void> {
 }
 
 export async function solve(
-  yml: string,
-  logger?: ILogger
+  options: ISolveOptions
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
-  const condaPackages = (await getSolvedPackages(
-    yml,
-    logger
-  )) as ISolvedPackages;
+  let { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
+  let { installedPipPackages } = filterPackages(installedPackages);
+  const isYml = hasYml(ymlOrSpecs);
+  const condaPackages = (await getSolvedPackages(options)) as ISolvedPackages;
 
   let pipPackages: ISolvedPackages = {};
 
   logger?.log('Solved environment!');
   for (const solvedPackage of Object.values(condaPackages)) {
-    logger?.log(solvedPackage.name, solvedPackage.version, solvedPackage.build_string);
+    logger?.log(
+      solvedPackage.name,
+      solvedPackage.version,
+      solvedPackage.build_string
+    );
   }
 
-  if (hasPipDependencies(yml)) {
+  if (isYml) {
+    if (hasPipDependencies(ymlOrSpecs as string)) {
+      if (!getPythonVersion(Object.values(condaPackages))) {
+        const msg =
+          'Cannot install pip dependencies without Python installed in the environment!';
+        logger?.error(msg);
+        throw msg;
+      }
+      logger?.log('');
+      logger?.log('Process pip dependencies ...');
+      pipPackages = await solvePip(
+        ymlOrSpecs as string,
+        condaPackages,
+        [],
+        logger
+      );
+    }
+  } else if (pipSpecs) {
     if (!getPythonVersion(Object.values(condaPackages))) {
       const msg =
         'Cannot install pip dependencies without Python installed in the environment!';
@@ -238,42 +261,13 @@ export async function solve(
       throw msg;
     }
     logger?.log('');
-    logger?.log('Process pip dependencies ...');
-
-    pipPackages = await solvePip(yml, condaPackages, [], logger);
-  }
-
-  return {
-    condaPackages,
-    pipPackages
-  };
-}
-
-export async function install(
-  installedPackages: ISolvedPackages,
-  packageNames: Array<string>,
-  isPipInstallation: boolean = false,
-  channelNames?: Array<string>,
-  logger?: ILogger
-): Promise<{ condaPackages: ISolvedPackages; pipPackages?: ISolvedPackages }> {
-  let condaPackages: ISolvedPackages = {};
-  let pipPackages: ISolvedPackages = {};
-  if (!isPipInstallation) {
-    condaPackages = await solvePackage(
-      installedPackages,
-      packageNames,
-      channelNames,
-      logger
-    );
-  } else {
-    if (!getPythonVersion(Object.values(installedPackages))) {
-      const msg =
-        'Cannot install pip dependencies without Python installed in the environment!';
-      logger?.error(msg);
-      throw msg;
-    }
-    condaPackages = installedPackages;
-    pipPackages = await solvePip('', installedPackages, packageNames, logger);
+    logger?.log('Process solving pip packages ...');
+    Object.keys(installedPipPackages).map(filename => {
+      let pipPackage = installedPipPackages?.[filename];
+      let version = pipPackage.version ? `=${pipPackage.version}` : '';
+      pipSpecs?.push(`${pipPackage.name}${version}`);
+    });
+    pipPackages = await solvePip('', condaPackages, pipSpecs, logger);
   }
 
   return {

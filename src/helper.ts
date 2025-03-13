@@ -34,6 +34,14 @@ export interface IEmpackEnvMeta {
   packages: IEmpackEnvMetaPkg[];
 }
 
+export interface ISolveOptions {
+  ymlOrSpecs: string | string[];
+  installedPackages?: ISolvedPackages;
+  pipSpecs?: string[];
+  channels?: string[];
+  logger?: ILogger;
+}
+
 /**
  * Shared libraries. list of .so files
  */
@@ -425,4 +433,30 @@ export function getCondaMetaFile(
   }
 
   return {};
+}
+
+export function hasYml(ymlOrSpecs: string | string[]) {
+  let result = false;
+  if (!Array.isArray(ymlOrSpecs)) {
+    result = true;
+  }
+  return result;
+}
+
+export function filterPackages(installed?: ISolvedPackages) {
+  let installedCondaPackages: ISolvedPackages = {};
+  let installedPipPackages: ISolvedPackages = {};
+  if (installed) {
+    Object.keys(installed).filter((filename: string) => {
+      let pkg = installed[filename];
+      if (pkg.repo_name !== 'PyPi') {
+        installedCondaPackages[filename] = pkg;
+      } else {
+        installedPipPackages[filename] = pkg;
+      }
+    });
+  }
+  console.log('installedCondaPackages', installedCondaPackages);
+  console.log('installedPipPackages', installedPipPackages);
+  return { installedCondaPackages, installedPipPackages };
 }
