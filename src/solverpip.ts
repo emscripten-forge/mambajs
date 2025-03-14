@@ -156,7 +156,8 @@ async function processRequirement(
   pipSolvedPackages[solved.name] = {
     name: requirement.package,
     version: solved.version,
-    url: solved.url
+    url: solved.url,
+    repo_name: 'PyPi'
   };
 
   if (!pkgMetadata.info.requires_dist) {
@@ -194,22 +195,22 @@ async function processRequirement(
 export async function solvePip(
   yml: string,
   installed: ISolvedPackages,
+  packageNames: Array<string> = [],
   logger?: ILogger
 ): Promise<ISolvedPackages> {
-  const data = parse(yml);
-  const packages = data?.dependencies ? data.dependencies : [];
+  let specs: ISpec[] = [];
+  if (yml) {
+    const data = parse(yml);
+    const packages = data?.dependencies ? data.dependencies : [];
 
-  const specs: ISpec[] = [];
-  // Get pip dependencies
-  for (const pkg of packages) {
-    if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
-      for (const pipPkg of pkg.pip) {
-        const parsedSpec = parsePyPiRequirement(pipPkg);
-        if (parsedSpec) {
-          specs.push(parsedSpec);
-        }
+    // Get pip dependencies
+    for (const pkg of packages) {
+      if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
+        specs = parsePipPackage(pkg.pip);
       }
     }
+  } else if (packageNames.length) {
+    specs = parsePipPackage(packageNames);
   }
 
   const installedPackages = new Set<string>();
@@ -231,6 +232,17 @@ export async function solvePip(
   }
 
   return pipSolvedPackages;
+}
+
+function parsePipPackage(pipPackages: Array<string>): ISpec[] {
+  let specs: ISpec[] = [];
+  for (const pipPkg of pipPackages) {
+    const parsedSpec = parsePyPiRequirement(pipPkg);
+    if (parsedSpec) {
+      specs.push(parsedSpec);
+    }
+  }
+  return specs;
 }
 
 async function getPipPackageName(
@@ -257,13 +269,16 @@ async function getPipPackageName(
   return result;
 }
 
-export function hasPipDependencies(yml: string): boolean {
-  const data = parse(yml);
-  const packages = data?.dependencies ? data.dependencies : [];
-  for (const pkg of packages) {
-    if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
-      return true;
+export function hasPipDependencies(yml?: string): boolean {
+  if (yml) {
+    const data = parse(yml);
+    const packages = data?.dependencies ? data.dependencies : [];
+    for (const pkg of packages) {
+      if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
+        return true;
+      }
     }
+    return false;
   }
 
   return false;
