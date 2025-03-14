@@ -156,7 +156,8 @@ async function processRequirement(
   pipSolvedPackages[solved.name] = {
     name: requirement.package,
     version: solved.version,
-    url: solved.url
+    url: solved.url,
+    repo_name: 'PyPi'
   };
 
   if (!pkgMetadata.info.requires_dist) {

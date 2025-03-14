@@ -221,10 +221,19 @@ export async function solve(
   options: ISolveOptions
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
   let { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
-  let { installedPipPackages } = filterPackages(installedPackages);
-  const isYml = hasYml(ymlOrSpecs);
-  const condaPackages = (await getSolvedPackages(options)) as ISolvedPackages;
-
+  let { installedPipPackages, installedCondaPackages } =
+    filterPackages(installedPackages);
+  console.log('solve installedPipPackages', installedPipPackages);
+  console.log('solve installedCondaPackages', installedCondaPackages);
+  let condaPackages: ISolvedPackages = {};
+  let isYml = true;
+  if (!ymlOrSpecs && installedCondaPackages) {
+    condaPackages = installedCondaPackages;
+  } else {
+    condaPackages = (await getSolvedPackages(options)) as ISolvedPackages;
+  }
+  isYml = hasYml(ymlOrSpecs);
+  console.log('solved condaPackages', condaPackages);
   let pipPackages: ISolvedPackages = {};
 
   logger?.log('Solved environment!');
@@ -253,21 +262,27 @@ export async function solve(
         logger
       );
     }
-  } else if (pipSpecs) {
+  } else if (installedPipPackages || pipSpecs) {
+    let pkgs = pipSpecs ? [...pipSpecs] : [];
+    console.log('solving pipSpcs');
     if (!getPythonVersion(Object.values(condaPackages))) {
       const msg =
         'Cannot install pip dependencies without Python installed in the environment!';
       logger?.error(msg);
       throw msg;
     }
-    logger?.log('');
-    logger?.log('Process solving pip packages ...');
-    Object.keys(installedPipPackages).map(filename => {
-      let pipPackage = installedPipPackages?.[filename];
-      let version = pipPackage.version ? `=${pipPackage.version}` : '';
-      pipSpecs?.push(`${pipPackage.name}${version}`);
-    });
-    pipPackages = await solvePip('', condaPackages, pipSpecs, logger);
+    if ((!pipSpecs || !pipSpecs.length) && installedPipPackages) {
+      pipPackages = installedPipPackages;
+    } else {
+      logger?.log('');
+      logger?.log('Process solving pip packages ...');
+      Object.keys(installedPipPackages).map(filename => {
+        let pipPackage = installedPipPackages?.[filename];
+        let version = pipPackage.version ? `=${pipPackage.version}` : '';
+        pkgs?.push(`${pipPackage.name}${version}`);
+      });
+      pipPackages = await solvePip('', condaPackages, pkgs, logger);
+    }
   }
 
   return {

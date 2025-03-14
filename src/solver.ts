@@ -93,14 +93,17 @@ export const getSolvedPackages = async (options: ISolveOptions) => {
     if (logger) {
       logger.log('Solving initial packages...');
     }
+    console.log('ymlOrSpecs', ymlOrSpecs);
     const ymlData = parseEnvYml(ymlOrSpecs as string);
     specs = ymlData.specs;
-    newChannels = ymlData.channels;
+    newChannels = formatChannels(ymlData.channels, logger);
   } else {
     if (logger) {
       logger.log('Solving packages for installing them...');
     }
     let { installedCondaPackages } = filterPackages(installedPackages);
+    console.log('installedCondaPackages', installedCondaPackages);
+    console.log('prepareForInstalling');
     const data = prepareForInstalling(
       installedCondaPackages,
       ymlOrSpecs as string[],
@@ -110,6 +113,10 @@ export const getSolvedPackages = async (options: ISolveOptions) => {
     specs = data.specs;
     newChannels = data.channels;
   }
+  console.log('Installing');
+  console.log('newChannels', newChannels);
+  console.log('specs', specs);
+  console.log('platforms', platforms);
   solvedPackages = await solve(specs, newChannels, platforms, logger);
   return solvedPackages;
 };
@@ -132,32 +139,86 @@ export const prepareForInstalling = (
   });
 
   channels = Object.keys(channelsDict);
+
   if (!channels.length) {
     logger?.error('There is no any channels of installed packages');
   }
+
   if (!channelNames || !channelNames.length) {
     logger?.error('There is no channel for a new package');
   }
-  if (!channels.length && (!channelNames || !channelNames.length)) {
-    logger?.log('Using default channels');
-    channels = getDefaultChannels();
-  }
 
+  channels = Array.from(new Set([...channels, ...channelNames]));
+  channels = formatChannels(channels, logger);
+  console.log('channels', channels);
+  console.log('specs', specs);
+  return { specs, channels };
+};
+
+const getChannelsAlias = (channelNames: string[]) => {
   let channelAlias = {
     'conda-forge': 'https://repo.prefix.dev/conda-forge',
     'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev'
   };
 
-  let newChannels = channelNames.map((channel: string) => {
+  let channels = channelNames.map((channel: string) => {
     if (channelAlias[channel]) {
       channel = channelAlias[channel];
     }
     return channel;
   });
-  console.log('channels', channels);
-  console.log('newChannels', newChannels);
-  console.log('specs', specs);
+  return channels;
+};
 
-  channels = [...channels, ...newChannels];
-  return { specs, channels };
+const formatChannels = (channels?: string[], logger?: ILogger) => {
+  let alias = ['conda-forge', 'emscripten-forge-dev'];
+  if (!channels || !channels.length) {
+    logger?.log('There is no channels, default channels will be taken');
+    channels = [...getDefaultChannels()];
+  }
+  let hasAlias = false;
+  let hasDefault = false;
+  let aliasChannelsNames: string[] = [];
+
+  let filteredChannels = channels.filter(channel => {
+    if (alias.includes(channel)) {
+      hasAlias = true;
+      aliasChannelsNames.push(channel);
+    }
+
+    if (channel === 'defaults') {
+      hasDefault = true;
+    }
+
+    if (channel !== 'defaults' && !alias.includes(channel)) {
+      return channel;
+    }
+  });
+  console.log('filteredChannels', filteredChannels);
+  if (hasDefault) {
+    console.log('There is a default channel from the channel list');
+    logger?.log('There is a default channel from the channel list');
+    channels = Array.from(
+      new Set([
+        ...filteredChannels.map(normalizeUrl),
+        ...getDefaultChannels().map(normalizeUrl)
+      ])
+    );
+  }
+  if (hasAlias) {
+    console.log('There are channel alias');
+    logger?.log('There are channel alias');
+    channels = Array.from(
+      new Set([
+        ...getChannelsAlias(aliasChannelsNames).map(normalizeUrl),
+        ...filteredChannels.map(normalizeUrl)
+      ])
+    );
+  }
+  console.log('Result channels', channels);
+  return channels;
+};
+
+const normalizeUrl = (url: string) => {
+  return url.replace(/\/$/, '');
 };

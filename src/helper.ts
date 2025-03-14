@@ -35,7 +35,7 @@ export interface IEmpackEnvMeta {
 }
 
 export interface ISolveOptions {
-  ymlOrSpecs: string | string[];
+  ymlOrSpecs?: string | string[];
   installedPackages?: ISolvedPackages;
   pipSpecs?: string[];
   channels?: string[];
@@ -435,9 +435,9 @@ export function getCondaMetaFile(
   return {};
 }
 
-export function hasYml(ymlOrSpecs: string | string[]) {
+export function hasYml(ymlOrSpecs?: string | string[]) {
   let result = false;
-  if (!Array.isArray(ymlOrSpecs)) {
+  if (!Array.isArray(ymlOrSpecs) && ymlOrSpecs) {
     result = true;
   }
   return result;
