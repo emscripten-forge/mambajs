@@ -456,7 +456,5 @@ export function filterPackages(installed?: ISolvedPackages) {
       }
     });
   }
-  console.log('installedCondaPackages', installedCondaPackages);
-  console.log('installedPipPackages', installedPipPackages);
   return { installedCondaPackages, installedPipPackages };
 }

@@ -93,7 +93,6 @@ export const getSolvedPackages = async (options: ISolveOptions) => {
     if (logger) {
       logger.log('Solving initial packages...');
     }
-    console.log('ymlOrSpecs', ymlOrSpecs);
     const ymlData = parseEnvYml(ymlOrSpecs as string);
     specs = ymlData.specs;
     newChannels = formatChannels(ymlData.channels, logger);
@@ -102,8 +101,6 @@ export const getSolvedPackages = async (options: ISolveOptions) => {
       logger.log('Solving packages for installing them...');
     }
     let { installedCondaPackages } = filterPackages(installedPackages);
-    console.log('installedCondaPackages', installedCondaPackages);
-    console.log('prepareForInstalling');
     const data = prepareForInstalling(
       installedCondaPackages,
       ymlOrSpecs as string[],
@@ -113,10 +110,6 @@ export const getSolvedPackages = async (options: ISolveOptions) => {
     specs = data.specs;
     newChannels = data.channels;
   }
-  console.log('Installing');
-  console.log('newChannels', newChannels);
-  console.log('specs', specs);
-  console.log('platforms', platforms);
   solvedPackages = await solve(specs, newChannels, platforms, logger);
   return solvedPackages;
 };
@@ -150,15 +143,13 @@ export const prepareForInstalling = (
 
   channels = Array.from(new Set([...channels, ...channelNames]));
   channels = formatChannels(channels, logger);
-  console.log('channels', channels);
-  console.log('specs', specs);
   return { specs, channels };
 };
 
 const getChannelsAlias = (channelNames: string[]) => {
   let channelAlias = {
-    'conda-forge': 'https://repo.prefix.dev/conda-forge',
-    'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev'
+    'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev',
+    'conda-forge': 'https://repo.prefix.dev/conda-forge'
   };
 
   let channels = channelNames.map((channel: string) => {
@@ -190,32 +181,22 @@ const formatChannels = (channels?: string[], logger?: ILogger) => {
       hasDefault = true;
     }
 
-    if (channel !== 'defaults' && !alias.includes(channel)) {
+    if (channel !== 'defaults' && !alias.includes(channel) && channel) {
       return channel;
     }
   });
-  console.log('filteredChannels', filteredChannels);
+  channels = [...filteredChannels.map(normalizeUrl)];
   if (hasDefault) {
-    console.log('There is a default channel from the channel list');
     logger?.log('There is a default channel from the channel list');
-    channels = Array.from(
-      new Set([
-        ...filteredChannels.map(normalizeUrl),
-        ...getDefaultChannels().map(normalizeUrl)
-      ])
-    );
+    channels = Array.from(new Set([...channels, ...getDefaultChannels()]));
   }
   if (hasAlias) {
-    console.log('There are channel alias');
     logger?.log('There are channel alias');
     channels = Array.from(
-      new Set([
-        ...getChannelsAlias(aliasChannelsNames).map(normalizeUrl),
-        ...filteredChannels.map(normalizeUrl)
-      ])
+      new Set([...channels, ...getChannelsAlias(aliasChannelsNames)])
     );
   }
-  console.log('Result channels', channels);
+
   return channels;
 };
 

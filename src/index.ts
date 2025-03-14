@@ -223,8 +223,6 @@ export async function solve(
   let { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
   let { installedPipPackages, installedCondaPackages } =
     filterPackages(installedPackages);
-  console.log('solve installedPipPackages', installedPipPackages);
-  console.log('solve installedCondaPackages', installedCondaPackages);
   let condaPackages: ISolvedPackages = {};
   let isYml = true;
   if (!ymlOrSpecs && installedCondaPackages) {
@@ -233,7 +231,6 @@ export async function solve(
     condaPackages = (await getSolvedPackages(options)) as ISolvedPackages;
   }
   isYml = hasYml(ymlOrSpecs);
-  console.log('solved condaPackages', condaPackages);
   let pipPackages: ISolvedPackages = {};
 
   logger?.log('Solved environment!');
@@ -264,7 +261,6 @@ export async function solve(
     }
   } else if (installedPipPackages || pipSpecs) {
     let pkgs = pipSpecs ? [...pipSpecs] : [];
-    console.log('solving pipSpcs');
     if (!getPythonVersion(Object.values(condaPackages))) {
       const msg =
         'Cannot install pip dependencies without Python installed in the environment!';
