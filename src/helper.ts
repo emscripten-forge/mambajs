@@ -435,15 +435,7 @@ export function getCondaMetaFile(
   return {};
 }
 
-export function hasYml(ymlOrSpecs?: string | string[]) {
-  let result = false;
-  if (!Array.isArray(ymlOrSpecs) && ymlOrSpecs) {
-    result = true;
-  }
-  return result;
-}
-
-export function filterPackages(installed?: ISolvedPackages) {
+export function splitPipPackages(installed?: ISolvedPackages) {
   let installedCondaPackages: ISolvedPackages = {};
   let installedPipPackages: ISolvedPackages = {};
   if (installed) {

@@ -1,6 +1,5 @@
 import {
-  filterPackages,
-  hasYml,
+  splitPipPackages,
   ILogger,
   ISolvedPackages,
   ISolveOptions
@@ -8,7 +7,17 @@ import {
 import { parse } from 'yaml';
 import { simpleSolve, Platform } from '@baszalmstra/rattler';
 
-const platforms: Platform[] = ['noarch', 'emscripten-wasm32'];
+const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
+const DEFAULT_CHANNELS = [
+  'https://repo.prefix.dev/emscripten-forge-dev',
+  'https://repo.prefix.dev/conda-forge'
+];
+const ALIAS = ['conda-forge', 'emscripten-forge-dev'];
+const CHANNEL_ALIASES = {
+  'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev',
+  'conda-forge': 'https://repo.prefix.dev/conda-forge'
+};
+
 
 const parseEnvYml = (envYml: string) => {
   const data = parse(envYml);
@@ -28,14 +37,13 @@ const parseEnvYml = (envYml: string) => {
 const solve = async (
   specs: Array<string>,
   channels: Array<string>,
-  platforms: Platform[],
   logger?: ILogger
 ) => {
   let result: any = undefined;
   let solvedPackages: ISolvedPackages = {};
   try {
     const startSolveTime = performance.now();
-    result = await simpleSolve(specs, channels, platforms);
+    result = await simpleSolve(specs, channels, PLATFORMS);
     const endSolveTime = performance.now();
 
     if (logger) {
@@ -66,21 +74,14 @@ const solve = async (
     });
   } catch (error) {
     logger?.error(error);
+    throw error;
   }
 
   return solvedPackages;
 };
 
-const getDefaultChannels = () => {
-  let channels = [
-    'https://repo.prefix.dev/emscripten-forge-dev',
-    'https://repo.prefix.dev/conda-forge'
-  ];
-  return channels;
-};
-
-export const getSolvedPackages = async (options: ISolveOptions) => {
-  let { ymlOrSpecs, installedPackages, channels, logger } = options;
+export const getSolvedPackages = async (options: ISolveOptions): Promise<ISolvedPackages> => {
+  const { ymlOrSpecs, installedPackages, channels, logger } = options;
   if (logger) {
     logger.log('Loading solver ...');
   }
@@ -88,91 +89,77 @@ export const getSolvedPackages = async (options: ISolveOptions) => {
 
   let specs: string[] = [],
     newChannels: string[] = [];
-  const isYml = hasYml(ymlOrSpecs);
-  if (isYml) {
+  
+  if (typeof ymlOrSpecs === "string") {
     if (logger) {
-      logger.log('Solving initial packages...');
+      logger.log('Solving environment...');
     }
-    const ymlData = parseEnvYml(ymlOrSpecs as string);
+    const ymlData = parseEnvYml(ymlOrSpecs);
     specs = ymlData.specs;
-    newChannels = formatChannels(ymlData.channels, logger);
+    newChannels = formatChannels(ymlData.channels);
   } else {
     if (logger) {
       logger.log('Solving packages for installing them...');
     }
-    let { installedCondaPackages } = filterPackages(installedPackages);
+    let { installedCondaPackages } = splitPipPackages(installedPackages);
     const data = prepareForInstalling(
       installedCondaPackages,
       ymlOrSpecs as string[],
-      channels,
-      logger
+      channels
     );
     specs = data.specs;
     newChannels = data.channels;
   }
-  solvedPackages = await solve(specs, newChannels, platforms, logger);
+  solvedPackages = await solve(specs, newChannels, logger);
   return solvedPackages;
 };
 
 export const prepareForInstalling = (
   condaPackages: ISolvedPackages,
   specs: Array<string>,
-  channelNames: Array<string> = [],
-  logger?: ILogger
+  channelNames: Array<string> = []
 ) => {
-  let channelsDict = {};
-  let channels: Array<string> = [];
+  const channelsUrl: Set<string> = new Set();
+  let channels: string[] = [];
 
   Object.keys(condaPackages).map((filename: string) => {
     let installedPackage = condaPackages[filename];
     if (installedPackage.repo_url) {
-      channelsDict[installedPackage.repo_url] = installedPackage.repo_url;
+      channelsUrl.add(installedPackage.repo_url);
     }
     specs.push(`${installedPackage.name}=${installedPackage.version}`);
   });
 
-  channels = Object.keys(channelsDict);
-
-  if (!channels.length) {
-    logger?.error('There is no any channels of installed packages');
-  }
-
-  if (!channelNames || !channelNames.length) {
-    logger?.error('There is no channel for a new package');
-  }
-
-  channels = Array.from(new Set([...channels, ...channelNames]));
-  channels = formatChannels(channels, logger);
+  channels = Array.from(new Set([...channelsUrl, ...channelNames]));
+  channels = formatChannels(channels);
   return { specs, channels };
 };
 
 const getChannelsAlias = (channelNames: string[]) => {
-  let channelAlias = {
-    'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev',
-    'conda-forge': 'https://repo.prefix.dev/conda-forge'
-  };
-
   let channels = channelNames.map((channel: string) => {
-    if (channelAlias[channel]) {
-      channel = channelAlias[channel];
+    if (CHANNEL_ALIASES[channel]) {
+      channel = CHANNEL_ALIASES[channel];
     }
     return channel;
   });
+
   return channels;
 };
 
-const formatChannels = (channels?: string[], logger?: ILogger) => {
-  let alias = ['conda-forge', 'emscripten-forge-dev'];
+const formatChannels = (channels?: string[]) => {
+  
   if (!channels || !channels.length) {
-    logger?.log('There is no channels, default channels will be taken');
-    channels = [...getDefaultChannels()];
+    channels = [...DEFAULT_CHANNELS];
+  } else {
+    channels = Array.from(new Set([...channels, ...DEFAULT_CHANNELS]));
   }
   let hasAlias = false;
   let hasDefault = false;
   let aliasChannelsNames: string[] = [];
 
-  let filteredChannels = channels.filter(channel => {
-    if (alias.includes(channel)) {
+  let filteredChannels = new Set<string>();
+  channels.forEach((channel: string) => {
+    if (ALIAS.includes(channel)) {
       hasAlias = true;
       aliasChannelsNames.push(channel);
     }
@@ -181,17 +168,16 @@ const formatChannels = (channels?: string[], logger?: ILogger) => {
       hasDefault = true;
     }
 
-    if (channel !== 'defaults' && !alias.includes(channel) && channel) {
-      return channel;
+    if (channel !== 'defaults' && !ALIAS.includes(channel) && channel) {
+      filteredChannels.add(normalizeUrl(channel));
     }
   });
-  channels = [...filteredChannels.map(normalizeUrl)];
+  
+  channels = [...filteredChannels];
   if (hasDefault) {
-    logger?.log('There is a default channel from the channel list');
-    channels = Array.from(new Set([...channels, ...getDefaultChannels()]));
+    channels = Array.from(new Set([...channels, ...DEFAULT_CHANNELS]));
   }
   if (hasAlias) {
-    logger?.log('There are channel alias');
     channels = Array.from(
       new Set([...channels, ...getChannelsAlias(aliasChannelsNames)])
     );
@@ -201,5 +187,5 @@ const formatChannels = (channels?: string[], logger?: ILogger) => {
 };
 
 const normalizeUrl = (url: string) => {
-  return url.replace(/\/$/, '');
+  return url.replace(/[\/\s]+$/, '');
 };

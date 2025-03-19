@@ -7,7 +7,7 @@
   "scripts": {
     "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
     "build": "yarn run clean && yarn run build:esbuild && yarn run build:types",
-    "build:types": "tsc --declaration src/index.ts --emitDeclarationOnly --outDir ./lib",
+    "build:types": "tsc --emitDeclarationOnly",
     "prettier": "prettier --list-different --write \"src/**/*.ts\"",
     "prettier:check": "prettier --check \"src/**/*.ts\"",
     "eslint": "eslint --ext .ts --fix .",
