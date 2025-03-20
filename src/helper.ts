@@ -33,6 +33,14 @@ export interface IEmpackEnvMeta {
   packages: IEmpackEnvMetaPkg[];
 }
 
+export interface ISolveOptions {
+  ymlOrSpecs?: string | string[];
+  installedPackages?: ISolvedPackages;
+  pipSpecs?: string[];
+  channels?: string[];
+  logger?: ILogger;
+}
+
 /**
  * Shared libraries. list of .so files
  */
@@ -48,7 +56,7 @@ export function getParentDirectory(filePath: string): string {
 }
 
 export function getSharedLibs(files: FilesData, prefix: string): TSharedLibs {
-  let sharedLibs: TSharedLibs = [];
+  const sharedLibs: TSharedLibs = [];
 
   Object.keys(files).map(file => {
     if (
@@ -160,7 +168,7 @@ export function checkWasmMagicNumber(uint8Array: Uint8Array): boolean {
 export function isCondaMeta(files: FilesData): boolean {
   let isCondaMetaFile = false;
   Object.keys(files).forEach(filename => {
-    let regexp = 'conda-meta';
+    const regexp = 'conda-meta';
     if (filename.match(regexp)) {
       isCondaMetaFile = true;
     }
@@ -358,23 +366,23 @@ export function getCondaMetaFile(
   verbose: boolean
 ): FilesData {
   let infoData: Uint8Array = new Uint8Array();
-  let isCondaMetaFile = isCondaMeta(files);
+  const isCondaMetaFile = isCondaMeta(files);
   if (!isCondaMetaFile) {
     if (verbose) {
       console.log(`Creating conda-meta json`);
     }
 
     Object.keys(files).map(filename => {
-      let regexp = 'index.json';
+      const regexp = 'index.json';
 
       if (filename.match(regexp)) {
         infoData = files[filename];
       }
     });
     if (infoData.byteLength !== 0) {
-      let info = new TextDecoder('utf-8').decode(infoData);
+      const info = new TextDecoder('utf-8').decode(infoData);
       try {
-        let condaPackageInfo = JSON.parse(info);
+        const condaPackageInfo = JSON.parse(info);
         const path = `conda-meta/${condaPackageInfo.name}-${condaPackageInfo.version}-${condaPackageInfo.build}.json`;
 
         const pkgCondaMeta = {
@@ -406,7 +414,7 @@ export function getCondaMetaFile(
     let condaMetaFileData: Uint8Array = new Uint8Array();
     let path = '';
     Object.keys(files).forEach(filename => {
-      let regexp = 'conda-meta';
+      const regexp = 'conda-meta';
       if (filename.match(regexp)) {
         condaMetaFileData = files[filename];
         path = filename;
@@ -423,4 +431,20 @@ export function getCondaMetaFile(
   }
 
   return {};
+}
+
+export function splitPipPackages(installed?: ISolvedPackages) {
+  const installedCondaPackages: ISolvedPackages = {};
+  const installedPipPackages: ISolvedPackages = {};
+  if (installed) {
+    Object.keys(installed).filter((filename: string) => {
+      const pkg = installed[filename];
+      if (pkg.repo_name !== 'PyPi') {
+        installedCondaPackages[filename] = pkg;
+      } else {
+        installedPipPackages[filename] = pkg;
+      }
+    });
+  }
+  return { installedCondaPackages, installedPipPackages };
 }
