@@ -51,7 +51,7 @@ module.exports = {
       'no-undef': 'warn',
       'no-case-declarations': 'warn',
       'no-useless-escape': 'off',
-      'prefer-const': 'off',
+      'prefer-const': 'warn',
       'sort-imports': [
         'error',
         {

@@ -1,6 +1,5 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
-  splitPipPackages,
   getSharedLibs,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
@@ -9,6 +8,7 @@ import {
   ISolvedPackages,
   ISolveOptions,
   saveFilesIntoEmscriptenFS,
+  splitPipPackages,
   TSharedLibsMap,
   untarCondaPackage
 } from './helper';
@@ -240,7 +240,7 @@ export async function solve(
     );
   }
 
-  if (typeof ymlOrSpecs === "string") {
+  if (typeof ymlOrSpecs === 'string') {
     if (hasPipDependencies(ymlOrSpecs)) {
       if (!getPythonVersion(Object.values(condaPackages))) {
         const msg =
@@ -250,14 +250,12 @@ export async function solve(
       }
       logger?.log('');
       logger?.log('Process pip dependencies ...');
-      pipPackages = await solvePip(
-        ymlOrSpecs,
-        condaPackages,
-        [],
-        logger
-      );
+      pipPackages = await solvePip(ymlOrSpecs, condaPackages, [], logger);
     }
-  } else if ((installedPipPackages && Object.keys(installedPipPackages).length) || (pipSpecs?.length && pipSpecs)) {
+  } else if (
+    (installedPipPackages && Object.keys(installedPipPackages).length) ||
+    (pipSpecs?.length && pipSpecs)
+  ) {
     const pkgs = pipSpecs?.length ? [...pipSpecs] : [];
     if (!getPythonVersion(Object.values(condaPackages))) {
       const msg =
@@ -271,11 +269,11 @@ export async function solve(
       logger?.log('');
       logger?.log('Process solving pip packages ...');
       if (installedPipPackages) {
-      Object.keys(installedPipPackages).map(filename => {
-        const pkg = installedPipPackages[filename];
-        pkgs?.push(`${pkg.name}==${pkg.version}`);
-      });
-    }
+        Object.keys(installedPipPackages).map(filename => {
+          const pkg = installedPipPackages[filename];
+          pkgs?.push(`${pkg.name}==${pkg.version}`);
+        });
+      }
       pipPackages = await solvePip('', condaPackages, pkgs, logger);
     }
   }

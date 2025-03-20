@@ -235,7 +235,7 @@ export async function solvePip(
 }
 
 function parsePipPackage(pipPackages: Array<string>): ISpec[] {
-  let specs: ISpec[] = [];
+  const specs: ISpec[] = [];
   for (const pipPkg of pipPackages) {
     const parsedSpec = parsePyPiRequirement(pipPkg);
     if (parsedSpec) {

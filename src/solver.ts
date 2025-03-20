@@ -1,11 +1,11 @@
 import {
-  splitPipPackages,
   ILogger,
   ISolvedPackages,
-  ISolveOptions
+  ISolveOptions,
+  splitPipPackages
 } from './helper';
 import { parse } from 'yaml';
-import { simpleSolve, Platform } from '@baszalmstra/rattler';
+import { Platform, simpleSolve } from '@baszalmstra/rattler';
 
 const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
 const DEFAULT_CHANNELS = [
@@ -17,7 +17,6 @@ const CHANNEL_ALIASES = {
   'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev',
   'conda-forge': 'https://repo.prefix.dev/conda-forge'
 };
-
 
 const parseEnvYml = (envYml: string) => {
   const data = parse(envYml);
@@ -40,7 +39,7 @@ const solve = async (
   logger?: ILogger
 ) => {
   let result: any = undefined;
-  let solvedPackages: ISolvedPackages = {};
+  const solvedPackages: ISolvedPackages = {};
   try {
     const startSolveTime = performance.now();
     result = await simpleSolve(specs, channels, PLATFORMS);
@@ -80,7 +79,9 @@ const solve = async (
   return solvedPackages;
 };
 
-export const getSolvedPackages = async (options: ISolveOptions): Promise<ISolvedPackages> => {
+export const getSolvedPackages = async (
+  options: ISolveOptions
+): Promise<ISolvedPackages> => {
   const { ymlOrSpecs, installedPackages, channels, logger } = options;
   if (logger) {
     logger.log('Loading solver ...');
@@ -89,8 +90,8 @@ export const getSolvedPackages = async (options: ISolveOptions): Promise<ISolved
 
   let specs: string[] = [],
     newChannels: string[] = [];
-  
-  if (typeof ymlOrSpecs === "string") {
+
+  if (typeof ymlOrSpecs === 'string') {
     if (logger) {
       logger.log('Solving environment...');
     }
@@ -101,7 +102,7 @@ export const getSolvedPackages = async (options: ISolveOptions): Promise<ISolved
     if (logger) {
       logger.log('Solving packages for installing them...');
     }
-    let { installedCondaPackages } = splitPipPackages(installedPackages);
+    const { installedCondaPackages } = splitPipPackages(installedPackages);
     const data = prepareForInstalling(
       installedCondaPackages,
       ymlOrSpecs as string[],
@@ -123,7 +124,7 @@ export const prepareForInstalling = (
   let channels: string[] = [];
 
   Object.keys(condaPackages).map((filename: string) => {
-    let installedPackage = condaPackages[filename];
+    const installedPackage = condaPackages[filename];
     if (installedPackage.repo_url) {
       channelsUrl.add(installedPackage.repo_url);
     }
@@ -136,7 +137,7 @@ export const prepareForInstalling = (
 };
 
 const getChannelsAlias = (channelNames: string[]) => {
-  let channels = channelNames.map((channel: string) => {
+  const channels = channelNames.map((channel: string) => {
     if (CHANNEL_ALIASES[channel]) {
       channel = CHANNEL_ALIASES[channel];
     }
@@ -147,7 +148,6 @@ const getChannelsAlias = (channelNames: string[]) => {
 };
 
 const formatChannels = (channels?: string[]) => {
-  
   if (!channels || !channels.length) {
     channels = [...DEFAULT_CHANNELS];
   } else {
@@ -155,9 +155,9 @@ const formatChannels = (channels?: string[]) => {
   }
   let hasAlias = false;
   let hasDefault = false;
-  let aliasChannelsNames: string[] = [];
+  const aliasChannelsNames: string[] = [];
 
-  let filteredChannels = new Set<string>();
+  const filteredChannels = new Set<string>();
   channels.forEach((channel: string) => {
     if (ALIAS.includes(channel)) {
       hasAlias = true;
@@ -172,7 +172,7 @@ const formatChannels = (channels?: string[]) => {
       filteredChannels.add(normalizeUrl(channel));
     }
   });
-  
+
   channels = [...filteredChannels];
   if (hasDefault) {
     channels = Array.from(new Set([...channels, ...DEFAULT_CHANNELS]));
