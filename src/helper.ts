@@ -9,7 +9,6 @@ export interface ILogger {
 export interface ISolvedPackage {
   name: string;
   version: string;
-  build_number?: string;
   repo_url?: string;
   url: string;
   repo_name?: string;
@@ -381,8 +380,7 @@ export function getCondaMetaFile(
         const pkgCondaMeta = {
           name: condaPackageInfo.name,
           version: condaPackageInfo.version,
-          build: condaPackageInfo.build,
-          build_number: condaPackageInfo.build_number
+          build: condaPackageInfo.build
         };
 
         if (verbose) {
