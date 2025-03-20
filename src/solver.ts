@@ -52,19 +52,10 @@ const solve = async (
     }
 
     result.map((item: any) => {
-      const {
-        buildNumber,
-        filename,
-        packageName,
-        repoName,
-        url,
-        version,
-        build
-      } = item;
+      const { filename, packageName, repoName, url, version, build } = item;
       solvedPackages[filename] = {
         name: packageName,
         repo_url: repoName,
-        build_number: buildNumber,
         build_string: build,
         url: url,
         version: version,
