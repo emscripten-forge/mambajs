@@ -45,6 +45,7 @@ export const getSolvedPackages = async (envYml: string, logger?: ILogger) => {
     });
   } catch (error) {
     logger?.error(error);
+    throw new Error(error as string);
   }
 
   return solvedPackages;
