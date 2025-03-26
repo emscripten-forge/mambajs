@@ -129,6 +129,8 @@ function getSuitableVersion(
   }
 }
 
+const warnedPackages = new Set();
+
 async function processRequirement(
   requirement: ISpec,
   pipSolvedPackages: ISolvedPackages,
@@ -142,9 +144,12 @@ async function processRequirement(
 
   const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
   if (!solved) {
-    logger?.warn(
-      `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge!`
-    );
+    if (!warnedPackages.has(requirement.package)) {
+      logger?.warn(
+        `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge!`
+      );
+      warnedPackages.add(requirement.package);
+    }
 
     return;
   }
