@@ -129,10 +129,10 @@ function getSuitableVersion(
   }
 }
 
-const warnedPackages = new Set();
 
 async function processRequirement(
   requirement: ISpec,
+  warnedPackages: Set<string>,
   pipSolvedPackages: ISolvedPackages,
   pipInstalledPackages: Set<string>,
   installedPackages: Set<string>,
@@ -187,6 +187,7 @@ async function processRequirement(
     ) {
       await processRequirement(
         parsedRequirement,
+        warnedPackages,
         pipSolvedPackages,
         pipInstalledPackages,
         installedPackages,
@@ -223,11 +224,13 @@ export async function solvePip(
     installedPackages.add(pipPackageName);
   }
 
+  const warnedPackages = new Set<string>();
   const pipSolvedPackages: ISolvedPackages = {};
   const pipInstalledPackages = new Set<string>();
   for (const spec of specs) {
     await processRequirement(
       spec,
+      warnedPackages,
       pipSolvedPackages,
       pipInstalledPackages,
       installedPackages,
