@@ -102,7 +102,11 @@ export const getSolvedPackages = async (
     specs = data.specs;
     newChannels = data.channels;
   }
-  solvedPackages = await solve(specs, newChannels, logger);
+  try {
+    solvedPackages = await solve(specs, newChannels, logger);
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
   return solvedPackages;
 };
 
@@ -119,7 +123,7 @@ export const prepareForInstalling = (
     if (installedPackage.repo_url) {
       channelsUrl.add(installedPackage.repo_url);
     }
-    specs.push(`${installedPackage.name}=${installedPackage.version}`);
+    specs.push(`${installedPackage.name}`);
   });
 
   channels = Array.from(new Set([...channelsUrl, ...channelNames]));

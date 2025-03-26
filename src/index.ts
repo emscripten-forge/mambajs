@@ -224,10 +224,14 @@ export async function solve(
     splitPipPackages(installedPackages);
   let condaPackages: ISolvedPackages = {};
 
-  if (!ymlOrSpecs && installedCondaPackages) {
+  if ((!ymlOrSpecs || !ymlOrSpecs.length) && installedCondaPackages) {
     condaPackages = installedCondaPackages;
   } else {
-    condaPackages = await getSolvedPackages(options);
+    try {
+      condaPackages = await getSolvedPackages(options);
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
   }
   let pipPackages: ISolvedPackages = {};
 
