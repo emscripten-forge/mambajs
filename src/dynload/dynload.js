@@ -184,11 +184,18 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
         const fs = createDynlibFS(prefix, lib, searchDirs, readFileFunc, Module);
 
         const libName = Module.PATH.basename(lib);
-        await Module.loadDynamicLibrary(libName, {
+
+        // contains cpython-3 and with wasm32-emscripten
+        const is_cython_lib = libName.includes("cpython-3") && libName.includes("wasm32-emscripten");
+
+        // load cython library from full path
+        const load_name = is_cython_lib ? lib : libName;
+
+        await Module.loadDynamicLibrary(load_name, {
             loadAsync: true,
             nodelete: true,
             allowUndefined: true,
-            global: global,
+            global: global && !is_cython_lib,
             fs: fs
         })
         const dsoOnlyLibName = Module.LDSO.loadedLibsByName[libName];
@@ -197,12 +204,14 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
             console.execption(`Failed to load ${libName} from ${lib} LDSO not found`);
         }
 
-        if (!dsoOnlyLibName) {
-            Module.LDSO.loadedLibsByName[libName] = dsoFullLib
-        }
+        if(!is_cython_lib){
+            if (!dsoOnlyLibName) {
+                Module.LDSO.loadedLibsByName[libName] = dsoFullLib
+            }
 
-        if(!dsoFullLib){
-            Module.LDSO.loadedLibsByName[lib] = dsoOnlyLibName;
+            if(!dsoFullLib){
+                Module.LDSO.loadedLibsByName[lib] = dsoOnlyLibName;
+            }
         }
     } catch(error) {
         throw new Error(error?.message);
