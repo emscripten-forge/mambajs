@@ -64,7 +64,7 @@ const solve = async (
     });
   } catch (error) {
     logger?.error(error);
-    throw error;
+    throw new Error(error as string);
   }
 
   return solvedPackages;
