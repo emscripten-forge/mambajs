@@ -275,7 +275,7 @@ export async function solve(
       if (installedPipPackages) {
         Object.keys(installedPipPackages).map(filename => {
           const pkg = installedPipPackages[filename];
-          pkgs?.push(`${pkg.name}==${pkg.version}`);
+          pkgs?.push(`${pkg.name}`);
         });
       }
       pipPackages = await solvePip('', condaPackages, pkgs, logger);
