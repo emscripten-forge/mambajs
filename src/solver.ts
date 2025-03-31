@@ -184,3 +184,50 @@ const formatChannels = (channels?: string[]) => {
 const normalizeUrl = (url: string) => {
   return url.replace(/[\/\s]+$/, '');
 };
+
+const skipSpecs = (installed: ISolvedPackages | undefined, specs: string[]) => {
+  const skipSpecArray: string[] = [];
+  let filteredSpecs: string[] | undefined = [];
+  if (installed && Object.keys(installed).length && specs.length) {
+    specs.forEach((spec: string) => {
+      Object.keys(installed).forEach((filename: string) => {
+        const pkg = installed[filename];
+
+        if (spec === pkg.name) {
+          skipSpecArray.push(spec);
+        } else if (spec === `${pkg.name}==${pkg.version}`) {
+          skipSpecArray.push(spec);
+        }
+      });
+    });
+  }
+
+  filteredSpecs = specs.filter((spec: string) => {
+    if (!skipSpecArray.includes(spec)) {
+      return spec;
+    }
+  });
+
+  return filteredSpecs;
+};
+
+export const checkSkipPackages = (
+  ymlOrSpecs: string | string[] | undefined,
+  pipPackages: string[] | undefined,
+  installedPackages: ISolvedPackages | undefined
+) => {
+  let skipInstallation = false;
+  if (ymlOrSpecs && typeof ymlOrSpecs !== 'string') {
+  }
+  const specs = ymlOrSpecs
+    ? skipSpecs(installedPackages, ymlOrSpecs as string[])
+    : [];
+  const pipSpecs = pipPackages ? skipSpecs(installedPackages, pipPackages) : [];
+
+  if ((specs && !specs.length) || !specs) {
+    skipInstallation = true;
+  } else if ((pipSpecs && !pipSpecs.length) || !pipSpecs) {
+    skipInstallation = true;
+  }
+  return skipInstallation;
+};

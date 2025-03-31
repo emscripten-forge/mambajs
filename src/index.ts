@@ -14,7 +14,7 @@ import {
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 import { hasPipDependencies, solvePip } from './solverpip';
-import { getSolvedPackages } from './solver';
+import { checkSkipPackages, getSolvedPackages } from './solver';
 
 export * from './helper';
 
@@ -220,66 +220,71 @@ export async function solve(
   options: ISolveOptions
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
   const { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
+  const shouldSkip = checkSkipPackages(ymlOrSpecs, pipSpecs, installedPackages);
   const { installedPipPackages, installedCondaPackages } =
     splitPipPackages(installedPackages);
-  let condaPackages: ISolvedPackages = {};
+  let pipPackages: ISolvedPackages = shouldSkip ? installedPipPackages : {};
+  let condaPackages: ISolvedPackages = shouldSkip ? installedCondaPackages : {};
 
-  if ((!ymlOrSpecs || !ymlOrSpecs.length) && installedCondaPackages) {
-    condaPackages = installedCondaPackages;
-  } else {
-    try {
-      condaPackages = await getSolvedPackages(options);
-    } catch (error: any) {
-      throw new Error(error.message);
+  if (!shouldSkip) {
+    if ((!ymlOrSpecs || !ymlOrSpecs.length) && installedCondaPackages) {
+      condaPackages = installedCondaPackages;
+    } else {
+      try {
+        condaPackages = await getSolvedPackages(options);
+      } catch (error: any) {
+        throw new Error(error.message);
+      }
     }
-  }
-  let pipPackages: ISolvedPackages = {};
 
-  logger?.log('Solved environment!');
-  for (const solvedPackage of Object.values(condaPackages)) {
-    logger?.log(
-      solvedPackage.name,
-      solvedPackage.version,
-      solvedPackage.build_string
-    );
-  }
+    logger?.log('Solved environment!');
+    for (const solvedPackage of Object.values(condaPackages)) {
+      logger?.log(
+        solvedPackage.name,
+        solvedPackage.version,
+        solvedPackage.build_string
+      );
+    }
 
-  if (typeof ymlOrSpecs === 'string') {
-    if (hasPipDependencies(ymlOrSpecs)) {
+    if (typeof ymlOrSpecs === 'string') {
+      if (hasPipDependencies(ymlOrSpecs)) {
+        if (!getPythonVersion(Object.values(condaPackages))) {
+          const msg =
+            'Cannot install pip dependencies without Python installed in the environment!';
+          logger?.error(msg);
+          throw msg;
+        }
+        logger?.log('');
+        logger?.log('Process pip dependencies ...');
+        pipPackages = await solvePip(ymlOrSpecs, condaPackages, [], logger);
+      }
+    } else if (
+      (installedPipPackages && Object.keys(installedPipPackages).length) ||
+      (pipSpecs?.length && pipSpecs)
+    ) {
+      const pkgs = pipSpecs?.length ? [...pipSpecs] : [];
       if (!getPythonVersion(Object.values(condaPackages))) {
         const msg =
           'Cannot install pip dependencies without Python installed in the environment!';
         logger?.error(msg);
         throw msg;
       }
-      logger?.log('');
-      logger?.log('Process pip dependencies ...');
-      pipPackages = await solvePip(ymlOrSpecs, condaPackages, [], logger);
-    }
-  } else if (
-    (installedPipPackages && Object.keys(installedPipPackages).length) ||
-    (pipSpecs?.length && pipSpecs)
-  ) {
-    const pkgs = pipSpecs?.length ? [...pipSpecs] : [];
-    if (!getPythonVersion(Object.values(condaPackages))) {
-      const msg =
-        'Cannot install pip dependencies without Python installed in the environment!';
-      logger?.error(msg);
-      throw msg;
-    }
-    if ((!pipSpecs || !pipSpecs.length) && installedPipPackages) {
-      pipPackages = installedPipPackages;
-    } else {
-      logger?.log('');
-      logger?.log('Process solving pip packages ...');
-      if (installedPipPackages) {
-        Object.keys(installedPipPackages).map(filename => {
-          const pkg = installedPipPackages[filename];
-          pkgs?.push(`${pkg.name}`);
-        });
+      if ((!pipSpecs || !pipSpecs.length) && installedPipPackages) {
+        pipPackages = installedPipPackages;
+      } else {
+        logger?.log('');
+        logger?.log('Process solving pip packages ...');
+        if (installedPipPackages) {
+          Object.keys(installedPipPackages).map(filename => {
+            const pkg = installedPipPackages[filename];
+            pkgs?.push(`${pkg.name}`);
+          });
+        }
+        pipPackages = await solvePip('', condaPackages, pkgs, logger);
       }
-      pipPackages = await solvePip('', condaPackages, pkgs, logger);
     }
+  } else {
+    logger?.log(`Skipping installing packages either ${ymlOrSpecs} or ${pipSpecs}`);
   }
 
   return {
