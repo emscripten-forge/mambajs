@@ -1,6 +1,7 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
   getSharedLibs,
+  IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
   ILogger,
@@ -70,11 +71,6 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
    * The logger to use during the bootstrap.
    */
   logger?: ILogger;
-
-  /**
-   * Action which should be done during bootstraping packages.
-   */
-  action?: 'install' | 'remove';
 }
 
 /**
@@ -85,7 +81,7 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  */
 export const bootstrapEmpackPackedEnvironment = async (
   options: IBootstrapEmpackPackedEnvironmentOptions
-): Promise<TSharedLibsMap> => {
+): Promise<IBootstrapData> => {
   const { empackEnvMeta, pkgRootUrl, Module, generateCondaMeta, logger } =
     options;
 
@@ -121,7 +117,7 @@ export const bootstrapEmpackPackedEnvironment = async (
     await waitRunDependencies(Module);
   }
 
-  return sharedLibsMap;
+  return { sharedLibs: sharedLibsMap, untarjs };
 };
 
 export interface IRemovePackagesFromEnvOptions {
