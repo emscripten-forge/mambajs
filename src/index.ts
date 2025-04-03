@@ -1,12 +1,14 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
   getSharedLibs,
+  IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
   ILogger,
   ISolvedPackage,
   ISolvedPackages,
   ISolveOptions,
+  removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
   splitPipPackages,
   TSharedLibsMap,
@@ -69,6 +71,11 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
    * The logger to use during the bootstrap.
    */
   logger?: ILogger;
+
+  /**
+   * Action which should be done during bootstraping packages.
+   */
+  action?: 'install' | 'remove';
 }
 
 /**
@@ -78,6 +85,68 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  * @returns The installed shared libraries as a TSharedLibs
  */
 export const bootstrapEmpackPackedEnvironment = async (
+  options: IBootstrapEmpackPackedEnvironmentOptions
+): Promise<IBootstrapData> => {
+  const { empackEnvMeta, pkgRootUrl, Module, generateCondaMeta, logger } =
+    options;
+
+  let untarjs: IUnpackJSAPI;
+  if (options.untarjs) {
+    untarjs = options.untarjs;
+  } else {
+    const untarjsReady = initUntarJS();
+    untarjs = await untarjsReady;
+  }
+  if (!options.action) {
+    options.action = 'install';
+  }
+
+  const sharedLibsMap: TSharedLibsMap = {};
+  const pythonVersion = getPythonVersion(empackEnvMeta.packages);
+
+  if (empackEnvMeta.packages.length) {
+    await Promise.all(
+      empackEnvMeta.packages.map(async pkg => {
+        const url = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
+
+        const extractedPackage = await untarCondaPackage({
+          url,
+          untarjs,
+          verbose: false,
+          generateCondaMeta,
+          pythonVersion
+        });
+
+        sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
+        switch (options.action) {
+          case 'install':
+            logger?.log(`Installing ${pkg.filename}`);
+            saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
+            break;
+          case 'remove':
+            removeFilesFromEmscriptenFS(Module.FS, extractedPackage, '');
+            break;
+          default:
+            break;
+        }
+      })
+    );
+    await waitRunDependencies(Module);
+  }
+
+  return {
+    sharedLibs: sharedLibsMap,
+    untarjs
+  };
+};
+
+/**
+ * Bootstrap a filesystem from an empack lock file. And return the installed shared libs.
+ *
+ * @param options
+ * @returns The installed shared libraries as a TSharedLibs
+ */
+export const removingFiles = async (
   options: IBootstrapEmpackPackedEnvironmentOptions
 ): Promise<TSharedLibsMap> => {
   const { empackEnvMeta, pkgRootUrl, Module, generateCondaMeta, logger } =
