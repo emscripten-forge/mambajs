@@ -223,6 +223,37 @@ export function removeFilesFromEmscriptenFS(
   }
 }
 
+export function formPackagesPathes(files: FilesData, prefix: string): any {
+  let pathes = {};
+  Object.keys(files).forEach(filename => {
+    pathes[filename] = `${prefix}/${filename}`;
+  });
+  return pathes;
+}
+
+export function savePackagesPathes(pathes: any, FS: any, logger?: ILogger) {
+  const dir = '/pathes';
+  if (!FS.analyzePath(dir).exists) {
+    FS.mkdirTree(dir);
+  }
+  try {
+    FS.writeFile(`${dir}/pathes.json`, JSON.stringify(pathes));
+  } catch (error) {
+    logger?.error(error);
+  }
+}
+
+export function getPackagesPathes(FS: any, logger?: ILogger) {
+  let pathes = {};
+  try {
+    const file = FS.readFile('/pathes/pathes.json', { encoding: 'utf8' });
+    pathes = JSON.parse(file);
+  } catch (error) {
+    logger?.error(error);
+  }
+  return pathes;
+}
+
 export interface IUntarCondaPackageOptions {
   /**
    * The URL to the package

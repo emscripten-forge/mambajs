@@ -1,5 +1,7 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
+  formPackagesPathes,
+  getPackagesPathes,
   getSharedLibs,
   IBootstrapData,
   IEmpackEnvMeta,
@@ -10,6 +12,7 @@ import {
   ISolveOptions,
   removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
+  savePackagesPathes,
   splitPipPackages,
   TSharedLibsMap,
   untarCondaPackage
@@ -95,7 +98,7 @@ export const bootstrapEmpackPackedEnvironment = async (
 
   const sharedLibsMap: TSharedLibsMap = {};
   const pythonVersion = getPythonVersion(empackEnvMeta.packages);
-
+  let pathes = {};
   if (empackEnvMeta.packages.length) {
     await Promise.all(
       empackEnvMeta.packages.map(async pkg => {
@@ -111,11 +114,14 @@ export const bootstrapEmpackPackedEnvironment = async (
         });
 
         sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
+        pathes[pkg.filename] = formPackagesPathes(extractedPackage, '');
         saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
       })
     );
     await waitRunDependencies(Module);
   }
+
+  savePackagesPathes(pathes, Module.FS, logger);
 
   return { sharedLibs: sharedLibsMap, untarjs };
 };
@@ -127,24 +133,9 @@ export interface IRemovePackagesFromEnvOptions {
   removeList: any;
 
   /**
-   * The URL (CDN or similar) from which to download packages
-   */
-  pkgRootUrl: string;
-
-  /**
    * The Emscripten Module
    */
   Module: any;
-
-  /**
-   * Whether to install conda-meta for packages, default to False
-   */
-  generateCondaMeta?: boolean;
-
-  /**
-   * The untarjs API
-   */
-  untarjs: IUnpackJSAPI;
 
   /**
    * The logger to use during the bootstrap.
@@ -161,29 +152,13 @@ export interface IRemovePackagesFromEnvOptions {
 export const removingFiles = async (
   options: IRemovePackagesFromEnvOptions
 ): Promise<void> => {
-  const { removeList, pkgRootUrl, Module, generateCondaMeta, logger, untarjs } =
-    options;
-
-  const pythonVersion = getPythonVersion(removeList);
-
+  const { removeList, Module, logger } = options;
+  const pathes = getPackagesPathes(Module.FS, logger);
   if (removeList.length) {
-    await Promise.all(
-      removeList.map(async pkg => {
-        const url = pkg?.url ?? `${pkgRootUrl}/${pkg.filename}`;
-        logger?.log(`Removing ${pkg.filename}`);
-
-        const extractedPackage = await untarCondaPackage({
-          url,
-          untarjs,
-          verbose: false,
-          generateCondaMeta,
-          pythonVersion
-        });
-
-        removeFilesFromEmscriptenFS(Module.FS, extractedPackage, '');
-      })
-    );
-    await waitRunDependencies(Module);
+    removeList.map((pkg: any) => {
+      const packages = pathes[pkg.filename];
+      removeFilesFromEmscriptenFS(Module.FS, packages, '');
+    });
   }
 };
 
