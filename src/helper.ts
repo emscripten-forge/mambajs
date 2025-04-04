@@ -50,7 +50,10 @@ export type TSharedLibs = string[];
  * Shared libraries. A map package name -> list of .so files
  */
 export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
-
+export interface IBootstrapData {
+  sharedLibs: TSharedLibsMap;
+  untarjs: IUnpackJSAPI;
+}
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));
 }
@@ -193,6 +196,62 @@ export function saveFilesIntoEmscriptenFS(
   } catch (error: any) {
     throw new Error(error?.message);
   }
+}
+
+export function removeFilesFromEmscriptenFS(
+  FS: any,
+  files: FilesData,
+  prefix: string
+): void {
+  try {
+    const pwd = FS.cwd();
+    FS.chdir('/');
+    Object.keys(files).forEach(filename => {
+      const path = `${prefix}${filename}`;
+      const pathInfo = FS.analyzePath(path);
+      if (pathInfo.exists) {
+        if (pathInfo.isDir) {
+          FS.rmdir(path);
+        } else {
+          FS.unlink(path);
+        }
+      }
+    });
+    FS.chdir(pwd);
+  } catch (error: any) {
+    throw new Error(error?.message);
+  }
+}
+
+export function formPackagesPathes(files: FilesData, prefix: string): any {
+  let pathes = {};
+  Object.keys(files).forEach(filename => {
+    pathes[filename] = `${prefix}/${filename}`;
+  });
+  return pathes;
+}
+
+export function savePackagesPathes(pathes: any, FS: any, logger?: ILogger) {
+  const dir = '/pathes';
+  if (!FS.analyzePath(dir).exists) {
+    FS.mkdirTree(dir);
+  }
+  try {
+    FS.writeFile(`${dir}/pathes.json`, JSON.stringify(pathes));
+  } catch (error) {
+    logger?.error(error);
+  }
+}
+
+export function getPackagesPathes(FS: any, logger?: ILogger) {
+  let pathes = {};
+  try {
+    const file = FS.readFile('/pathes/pathes.json', { encoding: 'utf8' });
+    pathes = JSON.parse(file);
+  } catch (error) {
+    logger?.error(error);
+  }
+  return pathes;
 }
 
 export interface IUntarCondaPackageOptions {

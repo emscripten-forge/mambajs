@@ -1,13 +1,18 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
+  formPackagesPathes,
+  getPackagesPathes,
   getSharedLibs,
+  IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
   ILogger,
   ISolvedPackage,
   ISolvedPackages,
   ISolveOptions,
+  removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
+  savePackagesPathes,
   splitPipPackages,
   TSharedLibsMap,
   untarCondaPackage
@@ -79,7 +84,7 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  */
 export const bootstrapEmpackPackedEnvironment = async (
   options: IBootstrapEmpackPackedEnvironmentOptions
-): Promise<TSharedLibsMap> => {
+): Promise<IBootstrapData> => {
   const { empackEnvMeta, pkgRootUrl, Module, generateCondaMeta, logger } =
     options;
 
@@ -93,7 +98,7 @@ export const bootstrapEmpackPackedEnvironment = async (
 
   const sharedLibsMap: TSharedLibsMap = {};
   const pythonVersion = getPythonVersion(empackEnvMeta.packages);
-
+  let pathes = {};
   if (empackEnvMeta.packages.length) {
     await Promise.all(
       empackEnvMeta.packages.map(async pkg => {
@@ -109,14 +114,52 @@ export const bootstrapEmpackPackedEnvironment = async (
         });
 
         sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
-
+        pathes[pkg.filename] = formPackagesPathes(extractedPackage, '');
         saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
       })
     );
     await waitRunDependencies(Module);
   }
 
-  return sharedLibsMap;
+  savePackagesPathes(pathes, Module.FS, logger);
+
+  return { sharedLibs: sharedLibsMap, untarjs };
+};
+
+export interface IRemovePackagesFromEnvOptions {
+  /**
+   * The list of packages which should be removed
+   */
+  removeList: any;
+
+  /**
+   * The Emscripten Module
+   */
+  Module: any;
+
+  /**
+   * The logger to use during the bootstrap.
+   */
+  logger?: ILogger;
+}
+
+/**
+ * Removing previously installed files
+ *
+ * @param options
+ * @returns void
+ */
+export const removingFiles = async (
+  options: IRemovePackagesFromEnvOptions
+): Promise<void> => {
+  const { removeList, Module, logger } = options;
+  const pathes = getPackagesPathes(Module.FS, logger);
+  if (removeList.length) {
+    removeList.map((pkg: any) => {
+      const packages = pathes[pkg.filename];
+      removeFilesFromEmscriptenFS(Module.FS, packages, '');
+    });
+  }
 };
 
 export interface IBootstrapPythonOptions {
