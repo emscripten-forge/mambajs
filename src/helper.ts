@@ -50,10 +50,6 @@ export type TSharedLibs = string[];
  * Shared libraries. A map package name -> list of .so files
  */
 export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
-export interface IBootstrapData {
-  sharedLibs: TSharedLibsMap;
-  untarjs: IUnpackJSAPI;
-}
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));
 }

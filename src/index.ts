@@ -3,7 +3,6 @@ import {
   formPackagesPathes,
   getPackagesPathes,
   getSharedLibs,
-  IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
   ILogger,
@@ -84,7 +83,7 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  */
 export const bootstrapEmpackPackedEnvironment = async (
   options: IBootstrapEmpackPackedEnvironmentOptions
-): Promise<IBootstrapData> => {
+): Promise<TSharedLibsMap> => {
   const { empackEnvMeta, pkgRootUrl, Module, generateCondaMeta, logger } =
     options;
 
@@ -123,7 +122,7 @@ export const bootstrapEmpackPackedEnvironment = async (
 
   savePackagesPathes(pathes, Module.FS, logger);
 
-  return { sharedLibs: sharedLibsMap, untarjs };
+  return sharedLibsMap;
 };
 
 export interface IRemovePackagesFromEnvOptions {
