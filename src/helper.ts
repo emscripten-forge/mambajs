@@ -194,10 +194,7 @@ export function saveFilesIntoEmscriptenFS(
   }
 }
 
-export function removeFilesFromEmscriptenFS(
-  FS: any,
-  pathes: any,
-): void {
+export function removeFilesFromEmscriptenFS(FS: any, pathes: any): void {
   try {
     const pwd = FS.cwd();
     FS.chdir('/');
