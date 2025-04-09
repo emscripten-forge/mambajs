@@ -156,7 +156,7 @@ export const removingFiles = async (
   if (removeList.length) {
     removeList.map((pkg: any) => {
       const packages = pathes[pkg.filename];
-      removeFilesFromEmscriptenFS(Module.FS, packages, '');
+      removeFilesFromEmscriptenFS(Module.FS, packages);
     });
   }
 };

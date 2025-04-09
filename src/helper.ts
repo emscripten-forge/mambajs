@@ -196,14 +196,13 @@ export function saveFilesIntoEmscriptenFS(
 
 export function removeFilesFromEmscriptenFS(
   FS: any,
-  files: FilesData,
-  prefix: string
+  pathes: any,
 ): void {
   try {
     const pwd = FS.cwd();
     FS.chdir('/');
-    Object.keys(files).forEach(filename => {
-      const path = `${prefix}${filename}`;
+    Object.keys(pathes).forEach(filename => {
+      const path = pathes[filename];
       const pathInfo = FS.analyzePath(path);
       if (pathInfo.exists) {
         if (pathInfo.isDir) {
