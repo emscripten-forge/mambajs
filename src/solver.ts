@@ -123,7 +123,11 @@ export const prepareForInstalling = (
     if (installedPackage.repo_url) {
       channelsUrl.add(installedPackage.repo_url);
     }
-    specs.push(`${installedPackage.name}`);
+    if (installedPackage.name === 'python') {
+      specs.push(`${installedPackage.name}=${installedPackage.version}`);
+    } else {
+      specs.push(`${installedPackage.name}`);
+    }
   });
 
   channels = Array.from(new Set([...channelsUrl, ...channelNames]));

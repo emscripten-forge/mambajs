@@ -129,7 +129,6 @@ function getSuitableVersion(
   }
 }
 
-
 async function processRequirement(
   requirement: ISpec,
   warnedPackages: Set<string>,
