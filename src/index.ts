@@ -1,7 +1,7 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
-  formPackagesPathes,
-  getPackagesPathes,
+  formPackagesPaths,
+  getPackagesPaths,
   getSharedLibs,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
@@ -11,7 +11,7 @@ import {
   ISolveOptions,
   removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
-  savePackagesPathes,
+  savePackagesPaths,
   splitPipPackages,
   TSharedLibsMap,
   untarCondaPackage
@@ -97,7 +97,7 @@ export const bootstrapEmpackPackedEnvironment = async (
 
   const sharedLibsMap: TSharedLibsMap = {};
   const pythonVersion = getPythonVersion(empackEnvMeta.packages);
-  let pathes = {};
+  let paths = {};
   if (empackEnvMeta.packages.length) {
     await Promise.all(
       empackEnvMeta.packages.map(async pkg => {
@@ -113,14 +113,14 @@ export const bootstrapEmpackPackedEnvironment = async (
         });
 
         sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
-        pathes[pkg.filename] = formPackagesPathes(extractedPackage, '');
+        paths[pkg.filename] = formPackagesPaths(extractedPackage, '');
         saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
       })
     );
     await waitRunDependencies(Module);
   }
 
-  savePackagesPathes(pathes, Module.FS, logger);
+  savePackagesPaths(paths, Module.FS, logger);
 
   return sharedLibsMap;
 };
@@ -152,10 +152,10 @@ export const removingFiles = async (
   options: IRemovePackagesFromEnvOptions
 ): Promise<void> => {
   const { removeList, Module, logger } = options;
-  const pathes = getPackagesPathes(Module.FS, logger);
+  const paths = getPackagesPaths(Module.FS, logger);
   if (removeList.length) {
     removeList.map((pkg: any) => {
-      const packages = pathes[pkg.filename];
+      const packages = paths[pkg.filename];
       removeFilesFromEmscriptenFS(Module.FS, packages);
     });
   }

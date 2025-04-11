@@ -194,12 +194,12 @@ export function saveFilesIntoEmscriptenFS(
   }
 }
 
-export function removeFilesFromEmscriptenFS(FS: any, pathes: any): void {
+export function removeFilesFromEmscriptenFS(FS: any, paths: any): void {
   try {
     const pwd = FS.cwd();
     FS.chdir('/');
-    Object.keys(pathes).forEach(filename => {
-      const path = pathes[filename];
+    Object.keys(paths).forEach(filename => {
+      const path = paths[filename];
       const pathInfo = FS.analyzePath(path);
       if (pathInfo.exists) {
         if (pathInfo.isDir) {
@@ -215,35 +215,35 @@ export function removeFilesFromEmscriptenFS(FS: any, pathes: any): void {
   }
 }
 
-export function formPackagesPathes(files: FilesData, prefix: string): any {
-  let pathes = {};
+export function formPackagesPaths(files: FilesData, prefix: string): any {
+  let paths = {};
   Object.keys(files).forEach(filename => {
-    pathes[filename] = `${prefix}/${filename}`;
+    paths[filename] = `${prefix}/${filename}`;
   });
-  return pathes;
+  return paths;
 }
 
-export function savePackagesPathes(pathes: any, FS: any, logger?: ILogger) {
-  const dir = '/pathes';
+export function savePackagesPaths(paths: any, FS: any, logger?: ILogger) {
+  const dir = '/paths';
   if (!FS.analyzePath(dir).exists) {
     FS.mkdirTree(dir);
   }
   try {
-    FS.writeFile(`${dir}/pathes.json`, JSON.stringify(pathes));
+    FS.writeFile(`${dir}/paths.json`, JSON.stringify(paths));
   } catch (error) {
     logger?.error(error);
   }
 }
 
-export function getPackagesPathes(FS: any, logger?: ILogger) {
-  let pathes = {};
+export function getPackagesPaths(FS: any, logger?: ILogger) {
+  let paths = {};
   try {
-    const file = FS.readFile('/pathes/pathes.json', { encoding: 'utf8' });
-    pathes = JSON.parse(file);
+    const file = FS.readFile('/paths/paths.json', { encoding: 'utf8' });
+    paths = JSON.parse(file);
   } catch (error) {
     logger?.error(error);
   }
-  return pathes;
+  return paths;
 }
 
 export interface IUntarCondaPackageOptions {
