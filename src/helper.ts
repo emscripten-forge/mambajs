@@ -79,25 +79,31 @@ function replaceStringWithZeroPadding(
   search: string,
   replacement: string
 ): Uint8Array {
-  const searchBytes = new TextEncoder().encode(search);
-  const replacementBytes = new TextEncoder().encode(replacement);
+  const encoder = new TextEncoder();
+  const searchBytes = encoder.encode(search);
+  const replacementBytes = encoder.encode(replacement);
 
   const searchLength = searchBytes.length;
+  const replacementLength = replacementBytes.length;
+  const inputLength = input.length;
 
-  for (let i = 0; i <= input.length - searchLength; i++) {
-    if (
-      input
-        .slice(i, i + searchLength)
-        .every((byte, index) => byte === searchBytes[index])
-    ) {
-      // Replace with replacement bytes
-      input.set(replacementBytes, i);
-
-      // Zero-pad the rest of the replaced section
-      for (let j = i + replacementBytes.length; j < i + searchLength; j++) {
-        input[j] = 0;
+  outer: for (let i = 0; i <= inputLength - searchLength; i++) {
+    for (let j = 0; j < searchLength; j++) {
+      if (input[i + j] !== searchBytes[j]) {
+        continue outer; // exit early if mismatch
       }
     }
+
+    // Match found, do replacement
+    for (let j = 0; j < replacementLength; j++) {
+      input[i + j] = replacementBytes[j];
+    }
+
+    for (let j = replacementLength; j < searchLength; j++) {
+      input[i + j] = 0;
+    }
+
+    i += searchLength - 1;
   }
 
   return input;
@@ -108,50 +114,49 @@ function replaceString(
   search: string,
   replacement: string
 ): Uint8Array {
-  const searchBytes = new TextEncoder().encode(search);
-  const replacementBytes = new TextEncoder().encode(replacement);
+  const encoder = new TextEncoder();
+  const searchBytes = encoder.encode(search);
+  const replacementBytes = encoder.encode(replacement);
 
-  const maxOutputSize =
+  const searchLen = searchBytes.length;
+  const replacementLen = replacementBytes.length;
+
+  // Estimate output size: assume worst-case every byte is a match
+  const estimatedMaxSize =
     data.length +
-    (replacementBytes.length - searchBytes.length) *
-      countOccurrences(data, searchBytes);
-  const output = new Uint8Array(maxOutputSize);
+    Math.max(
+      0,
+      (replacementLen - searchLen) * Math.floor(data.length / searchLen)
+    );
+  const output = new Uint8Array(estimatedMaxSize);
 
-  let i = 0,
-    j = 0;
-  while (i < data.length) {
-    if (matchesAt(data, searchBytes, i)) {
+  let i = 0;
+  let j = 0;
+
+  while (i <= data.length - searchLen) {
+    let matched = true;
+    for (let k = 0; k < searchLen; k++) {
+      if (data[i + k] !== searchBytes[k]) {
+        matched = false;
+        break;
+      }
+    }
+
+    if (matched) {
       output.set(replacementBytes, j);
-      j += replacementBytes.length;
-      i += searchBytes.length;
+      j += replacementLen;
+      i += searchLen;
     } else {
       output[j++] = data[i++];
     }
   }
 
-  return output.subarray(0, j);
-}
-
-function countOccurrences(data: Uint8Array, searchBytes: Uint8Array): number {
-  let count = 0;
-  for (let i = 0; i <= data.length - searchBytes.length; i++) {
-    if (matchesAt(data, searchBytes, i)) {
-      count++;
-      i += searchBytes.length - 1;
-    }
+  // Copy any trailing unmatched bytes
+  while (i < data.length) {
+    output[j++] = data[i++];
   }
-  return count;
-}
 
-function matchesAt(
-  data: Uint8Array,
-  searchBytes: Uint8Array,
-  pos: number
-): boolean {
-  if (pos + searchBytes.length > data.length) return false;
-  return data
-    .subarray(pos, pos + searchBytes.length)
-    .every((byte, idx) => byte === searchBytes[idx]);
+  return output.subarray(0, j);
 }
 
 export function checkWasmMagicNumber(uint8Array: Uint8Array): boolean {
