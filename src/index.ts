@@ -1,8 +1,8 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
   formPackagesPaths,
-  getPackagesPaths,
   getSharedLibs,
+  IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaPkg,
   ILogger,
@@ -11,7 +11,6 @@ import {
   ISolveOptions,
   removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
-  savePackagesPaths,
   splitPipPackages,
   TSharedLibsMap,
   untarCondaPackage
@@ -83,7 +82,7 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  */
 export const bootstrapEmpackPackedEnvironment = async (
   options: IBootstrapEmpackPackedEnvironmentOptions
-): Promise<TSharedLibsMap> => {
+): Promise<IBootstrapData> => {
   const { empackEnvMeta, pkgRootUrl, Module, generateCondaMeta, logger } =
     options;
 
@@ -120,9 +119,7 @@ export const bootstrapEmpackPackedEnvironment = async (
     await waitRunDependencies(Module);
   }
 
-  savePackagesPaths(paths, Module.FS, logger);
-
-  return sharedLibsMap;
+  return { sharedLibs: sharedLibsMap, paths: paths };
 };
 
 export interface IRemovePackagesFromEnvOptions {
@@ -135,6 +132,8 @@ export interface IRemovePackagesFromEnvOptions {
    * The Emscripten Module
    */
   Module: any;
+
+  paths: { [key: string]: string };
 
   /**
    * The logger to use during the bootstrap.
@@ -151,9 +150,9 @@ export interface IRemovePackagesFromEnvOptions {
 export const removingFiles = async (
   options: IRemovePackagesFromEnvOptions
 ): Promise<void> => {
-  const { removeList, Module, logger } = options;
-  const paths = getPackagesPaths(Module.FS, logger);
+  const { removeList, Module, paths, logger } = options;
   if (removeList.length) {
+    logger?.log('Removing files of previous installed packages');
     removeList.map((pkg: any) => {
       const packages = paths[pkg.filename];
       removeFilesFromEmscriptenFS(Module.FS, packages);

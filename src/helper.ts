@@ -50,6 +50,10 @@ export type TSharedLibs = string[];
  * Shared libraries. A map package name -> list of .so files
  */
 export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
+export interface IBootstrapData {
+  sharedLibs: TSharedLibsMap;
+  paths: { [key: string]: string };
+}
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));
 }
@@ -220,29 +224,6 @@ export function formPackagesPaths(files: FilesData, prefix: string): any {
   Object.keys(files).forEach(filename => {
     paths[filename] = `${prefix}/${filename}`;
   });
-  return paths;
-}
-
-export function savePackagesPaths(paths: any, FS: any, logger?: ILogger) {
-  const dir = '/paths';
-  if (!FS.analyzePath(dir).exists) {
-    FS.mkdirTree(dir);
-  }
-  try {
-    FS.writeFile(`${dir}/paths.json`, JSON.stringify(paths));
-  } catch (error) {
-    logger?.error(error);
-  }
-}
-
-export function getPackagesPaths(FS: any, logger?: ILogger) {
-  let paths = {};
-  try {
-    const file = FS.readFile('/paths/paths.json', { encoding: 'utf8' });
-    paths = JSON.parse(file);
-  } catch (error) {
-    logger?.error(error);
-  }
   return paths;
 }
 
