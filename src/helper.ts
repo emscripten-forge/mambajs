@@ -219,14 +219,6 @@ export function removeFilesFromEmscriptenFS(FS: any, paths: any): void {
   }
 }
 
-export function formPackagesPaths(files: FilesData, prefix: string): any {
-  let paths = {};
-  Object.keys(files).forEach(filename => {
-    paths[filename] = `${prefix}/${filename}`;
-  });
-  return paths;
-}
-
 export interface IUntarCondaPackageOptions {
   /**
    * The URL to the package

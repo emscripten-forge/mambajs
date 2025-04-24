@@ -1,6 +1,5 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
-  formPackagesPaths,
   getSharedLibs,
   IBootstrapData,
   IEmpackEnvMeta,
@@ -96,7 +95,7 @@ export const bootstrapEmpackPackedEnvironment = async (
 
   const sharedLibsMap: TSharedLibsMap = {};
   const pythonVersion = getPythonVersion(empackEnvMeta.packages);
-  let paths = {};
+  const paths = {};
   if (empackEnvMeta.packages.length) {
     await Promise.all(
       empackEnvMeta.packages.map(async pkg => {
@@ -112,7 +111,10 @@ export const bootstrapEmpackPackedEnvironment = async (
         });
 
         sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
-        paths[pkg.filename] = formPackagesPaths(extractedPackage, '');
+        paths[pkg.filename] = {};
+        Object.keys(extractedPackage).forEach(filename => {
+          paths[pkg.filename][filename] = `/${filename}`;
+        });
         saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
       })
     );
@@ -133,6 +135,10 @@ export interface IRemovePackagesFromEnvOptions {
    */
   Module: any;
 
+  /**
+   * Paths where previous installed package files have been saved
+   */
+
   paths: { [key: string]: string };
 
   /**
@@ -147,13 +153,13 @@ export interface IRemovePackagesFromEnvOptions {
  * @param options
  * @returns void
  */
-export const removingFiles = async (
+export const removePackagesFromEmscriptenFS = async (
   options: IRemovePackagesFromEnvOptions
 ): Promise<void> => {
   const { removeList, Module, paths, logger } = options;
   if (removeList.length) {
-    logger?.log('Removing files of previous installed packages');
     removeList.map((pkg: any) => {
+      logger?.log(`Uninstalling ${pkg.name} ${pkg.version}`);
       const packages = paths[pkg.filename];
       removeFilesFromEmscriptenFS(Module.FS, packages);
     });
