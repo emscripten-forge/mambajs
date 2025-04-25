@@ -74,34 +74,28 @@ export const getSolvedPackages = async (
   options: ISolveOptions
 ): Promise<ISolvedPackages> => {
   const { ymlOrSpecs, installedPackages, channels, logger } = options;
-  if (logger) {
-    logger.log('Loading solver ...');
-  }
   let solvedPackages: ISolvedPackages = {};
 
   let specs: string[] = [],
     newChannels: string[] = [];
 
   if (typeof ymlOrSpecs === 'string') {
-    if (logger) {
-      logger.log('Solving environment...');
-    }
     const ymlData = parseEnvYml(ymlOrSpecs);
     specs = ymlData.specs;
     newChannels = formatChannels(ymlData.channels);
   } else {
-    if (logger) {
-      logger.log('Solving packages for installing them...');
-    }
     const { installedCondaPackages } = splitPipPackages(installedPackages);
-    const data = prepareForInstalling(
+    specs = prepareSpecsForInstalling(
       installedCondaPackages,
-      ymlOrSpecs as string[],
-      channels
+      ymlOrSpecs as string[]
     );
-    specs = data.specs;
-    newChannels = data.channels;
+    newChannels = formatChannels(channels);
   }
+
+  if (logger) {
+    logger.log('Solving environment...');
+  }
+
   try {
     solvedPackages = await solve(specs, newChannels, logger);
   } catch (error: any) {
@@ -110,19 +104,12 @@ export const getSolvedPackages = async (
   return solvedPackages;
 };
 
-export const prepareForInstalling = (
+export const prepareSpecsForInstalling = (
   condaPackages: ISolvedPackages,
-  specs: Array<string>,
-  channelNames: Array<string> = []
+  specs: Array<string>
 ) => {
-  const channelsUrl: Set<string> = new Set();
-  let channels: string[] = [];
-
   Object.keys(condaPackages).map((filename: string) => {
     const installedPackage = condaPackages[filename];
-    if (installedPackage.repo_url) {
-      channelsUrl.add(installedPackage.repo_url);
-    }
     if (installedPackage.name === 'python') {
       specs.push(`${installedPackage.name}=${installedPackage.version}`);
     } else {
@@ -130,9 +117,7 @@ export const prepareForInstalling = (
     }
   });
 
-  channels = Array.from(new Set([...channelsUrl, ...channelNames]));
-  channels = formatChannels(channels);
-  return { specs, channels };
+  return specs;
 };
 
 const getChannelsAlias = (channelNames: string[]) => {
