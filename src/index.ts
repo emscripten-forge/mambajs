@@ -10,6 +10,7 @@ import {
   ISolveOptions,
   removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
+  sort,
   splitPipPackages,
   TSharedLibsMap,
   untarCondaPackage
@@ -333,4 +334,28 @@ export async function solve(
     condaPackages,
     pipPackages
   };
+}
+
+export function showPackagesList(
+  installedPackages: ISolvedPackages,
+  logger: ILogger
+) {
+  if (Object.keys(installedPackages).length) {
+    installedPackages = sort(installedPackages);
+
+    const nameWidth = 30;
+    const versionWidth = 30;
+    const buildWidth = 30;
+
+    logger.log(
+      `${'Name'.padEnd(nameWidth)}${'Version'.padEnd(versionWidth)}${'Build'.padEnd(buildWidth)} \n`
+    );
+
+    logger.log('─'.repeat(nameWidth + versionWidth + buildWidth) + '\n');
+
+    Object.keys(installedPackages).forEach(filename => {
+      const text = `${installedPackages[filename].name.padEnd(nameWidth)}${installedPackages[filename].version.padEnd(versionWidth)}${installedPackages[filename].build_string?.padEnd(buildWidth)} \n`;
+      logger.log(text);
+    });
+  }
 }

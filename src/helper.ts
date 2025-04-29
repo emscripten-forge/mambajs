@@ -477,3 +477,15 @@ export function splitPipPackages(installed?: ISolvedPackages) {
   }
   return { installedCondaPackages, installedPipPackages };
 }
+
+export function sort(installed: ISolvedPackages) {
+  const sorted = Object.entries(installed).sort((a, b) => {
+    const packageA: any = a[1];
+    const packageB: any = b[1];
+    return packageA.name.localeCompare(packageB.name);
+  });
+
+  const sortedInstalled = Object.fromEntries(sorted);
+
+  return sortedInstalled;
+}
