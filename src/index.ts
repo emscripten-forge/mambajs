@@ -10,7 +10,6 @@ import {
   ISolveOptions,
   removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
-  sort,
   splitPipPackages,
   TSharedLibsMap,
   untarCondaPackage
@@ -348,14 +347,26 @@ export function showPackagesList(
     const buildWidth = 30;
 
     logger.log(
-      `${'Name'.padEnd(nameWidth)}${'Version'.padEnd(versionWidth)}${'Build'.padEnd(buildWidth)} \n`
+      `${'Name'.padEnd(nameWidth)}${'Version'.padEnd(versionWidth)}${'Build'.padEnd(buildWidth)}`
     );
 
-    logger.log('─'.repeat(nameWidth + versionWidth + buildWidth) + '\n');
+    logger.log('─'.repeat(nameWidth + versionWidth + buildWidth));
 
     Object.keys(installedPackages).forEach(filename => {
-      const text = `${installedPackages[filename].name.padEnd(nameWidth)}${installedPackages[filename].version.padEnd(versionWidth)}${installedPackages[filename].build_string?.padEnd(buildWidth)} \n`;
+      const text = `${installedPackages[filename].name.padEnd(nameWidth)}${installedPackages[filename].version.padEnd(versionWidth)}${installedPackages[filename].build_string?.padEnd(buildWidth)}`;
       logger.log(text);
     });
   }
+}
+
+export function sort(installed: ISolvedPackages) {
+  const sorted = Object.entries(installed).sort((a, b) => {
+    const packageA: any = a[1];
+    const packageB: any = b[1];
+    return packageA.name.localeCompare(packageB.name);
+  });
+
+  const sortedInstalled = Object.fromEntries(sorted);
+
+  return sortedInstalled;
 }
