@@ -99,7 +99,7 @@ export const bootstrapEmpackPackedEnvironment = async (
   if (empackEnvMeta.packages.length) {
     await Promise.all(
       empackEnvMeta.packages.map(async pkg => {
-        const url = pkg?.url ? pkg?.url : `${pkgRootUrl}/${pkg.filename}`;
+        const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${pkg.filename}`;
         logger?.log(`Installing ${pkg.filename}`);
 
         const extractedPackage = await untarCondaPackage({
