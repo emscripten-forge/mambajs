@@ -53,6 +53,7 @@ export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
 export interface IBootstrapData {
   sharedLibs: TSharedLibsMap;
   paths: { [key: string]: string };
+  untarjs: IUnpackJSAPI;
 }
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));

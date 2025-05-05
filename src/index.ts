@@ -101,7 +101,6 @@ export const bootstrapEmpackPackedEnvironment = async (
       empackEnvMeta.packages.map(async pkg => {
         const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${pkg.filename}`;
         logger?.log(`Installing ${pkg.filename}`);
-
         const extractedPackage = await untarCondaPackage({
           url,
           untarjs,
@@ -109,7 +108,6 @@ export const bootstrapEmpackPackedEnvironment = async (
           generateCondaMeta,
           pythonVersion
         });
-
         sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
         paths[pkg.filename] = {};
         Object.keys(extractedPackage).forEach(filename => {
@@ -121,7 +119,7 @@ export const bootstrapEmpackPackedEnvironment = async (
     await waitRunDependencies(Module);
   }
 
-  return { sharedLibs: sharedLibsMap, paths: paths };
+  return { sharedLibs: sharedLibsMap, paths: paths, untarjs };
 };
 
 export interface IRemovePackagesFromEnvOptions {
