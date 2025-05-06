@@ -1,5 +1,6 @@
 import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import {
+  allowInstallSpecs,
   getSharedLibs,
   IBootstrapData,
   IEmpackEnvMeta,
@@ -264,9 +265,28 @@ export async function waitRunDependencies(Module: any): Promise<void> {
 export async function solve(
   options: ISolveOptions
 ): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
-  const { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
+  const { logger, installedPackages } = options;
+  let { ymlOrSpecs, pipSpecs } = options;
   const { installedPipPackages, installedCondaPackages } =
     splitPipPackages(installedPackages);
+    
+  const verifiedPackagesData = allowInstallSpecs(
+    installedPackages,
+    ymlOrSpecs,
+    pipSpecs
+  );
+
+  if (!verifiedPackagesData.isAllow) {
+    logger?.log('Required packages are already installed');
+    return {
+      condaPackages: installedCondaPackages,
+      pipPackages: installedPipPackages
+    };
+  } else {
+    pipSpecs = verifiedPackagesData.pipSpecs;
+    ymlOrSpecs = verifiedPackagesData.specs;
+  }
+
   let condaPackages: ISolvedPackages = {};
 
   if ((!ymlOrSpecs || !ymlOrSpecs.length) && installedCondaPackages) {
