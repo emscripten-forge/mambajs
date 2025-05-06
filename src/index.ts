@@ -19,6 +19,7 @@ import { hasPipDependencies, solvePip } from './solverpip';
 import { getSolvedPackages } from './solver';
 
 export * from './helper';
+export * from './parser';
 
 /**
  * Given a list of packages from a lock file, get the Python version
