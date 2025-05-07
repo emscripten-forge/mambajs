@@ -478,3 +478,100 @@ export function splitPipPackages(installed?: ISolvedPackages) {
   }
   return { installedCondaPackages, installedPipPackages };
 }
+export function allowInstallSpecs(
+  installed: ISolvedPackages | undefined,
+  specs: string | string[] | undefined,
+  pipSpecs: string[] | undefined,
+  logger?: ILogger
+) {
+  let isAllow = true;
+  let parsedSpecs: string[] = [];
+  let parsedPipSpec: string[] = [];
+  if (typeof specs !== 'string') {
+    parsedSpecs = skipSpecs(installed, specs, logger);
+    console.log('parsedSpecs', parsedSpecs);
+    parsedPipSpec = skipSpecs(installed, pipSpecs, logger);
+
+    console.log('parsedPipSpec', parsedPipSpec);
+    if (
+      (specs?.length && !parsedSpecs.length) ||
+      (pipSpecs?.length && !parsedPipSpec.length)
+    ) {
+      isAllow = false;
+    }
+  }
+
+  return {
+    isAllow,
+    specs: parsedSpecs,
+    pipSpecs: parsedPipSpec
+  };
+}
+
+function skipSpecs(
+  installed: ISolvedPackages | undefined,
+  specs: string[] | undefined,
+  logger?: ILogger
+) {
+  const parsedSpecs = parseSpecs(specs);
+
+  let skipSpecArray: string[] = [];
+  let filteredSpecs: string[] | undefined = [];
+  if (installed) {
+    if (Object.keys(installed).length && parsedSpecs.length) {
+      parsedSpecs.forEach((parsedSpec: any) => {
+        Object.keys(installed).forEach((filename: string) => {
+          let pkg = installed[filename];
+
+          if (
+            parsedSpec.name === pkg.name &&
+            parsedSpec.version === pkg.version &&
+            parsedSpec.operator
+          ) {
+            if (['=', '=='].includes(parsedSpec.operator)) {
+              skipSpecArray.push(parsedSpec.name);
+            }
+          } else if (parsedSpec.name === pkg.name && !parsedSpec.version) {
+            skipSpecArray.push(parsedSpec.name);
+          }
+        });
+      });
+    }
+    if (skipSpecArray.length) {
+      logger?.log(
+        `Requirement already satisfied:${skipSpecArray} already installed`
+      );
+    }
+    console.log('skipArray', skipSpecArray);
+    if (specs?.length) {
+      filteredSpecs = specs.filter((spec: string) => {
+        skipSpecArray.forEach((pkgName: string) => {
+          if (!spec.includes(pkgName)) {
+            return spec;
+          }
+        });
+      });
+    }
+  }
+  console.log('filteredSpecs', filteredSpecs);
+  return filteredSpecs;
+}
+
+function parseSpecs(pkgs: string[] | undefined) {
+  const regex = /^([\w\-]+)([=><!~]{1,2})?([\w.\-]+)?$/;
+  let result: any = [];
+  if (pkgs) {
+    pkgs.forEach(pkg => {
+      const match = pkg.match(regex);
+      if (match) {
+        result.push({
+          name: match[1],
+          operator: match[2] ? match[2] : undefined,
+          version: match[3] ? match[3] : undefined
+        });
+      }
+    });
+  }
+  console.log('result', result);
+  return result;
+}
