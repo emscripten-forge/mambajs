@@ -345,8 +345,11 @@ export function showPackagesList(
     logger?.log('─'.repeat(4 * columnWidth));
 
     for (const [, pkg] of sortedPackages) {
+      const buildString = pkg.build_string || 'unknown';
+      const repoName = pkg.repo_name ? pkg.repo_name : '';
+
       logger?.log(
-        `${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
+        `${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${buildString.padEnd(columnWidth)}${repoName.padEnd(columnWidth)}`
       );
     }
   }
@@ -394,20 +397,20 @@ export function showEnvironmentDiff(
         loggedHeader = true;
       }
 
-      let type: string;
+      let prefix = '';
       let versionDiff: string;
       let buildStringDiff: string;
       let channelDiff: string;
 
       if (!prevPkg) {
-        type = '+';
+        prefix = '\x1b[0;32m+';
         versionDiff = pkg.version;
         buildStringDiff = pkg.build_string || '';
         channelDiff = pkg.repo_name || '';
       } else {
-        type = '~';
+        prefix = '\x1b[0;31m~';
         versionDiff = `${prevPkg.version} -> ${pkg.version}`;
-        buildStringDiff = `${prevPkg.build_string} -> ${pkg.build_string}`;
+        buildStringDiff = `${prevPkg.build_string || 'unknown'} -> ${pkg.build_string || 'unknown'}`;
         channelDiff =
           prevPkg.repo_name === pkg.repo_name
             ? pkg.repo_name || ''
@@ -415,13 +418,13 @@ export function showEnvironmentDiff(
       }
 
       logger?.log(
-        `${type} ${pkg.name.padEnd(columnWidth)}${versionDiff.padEnd(columnWidth)}${buildStringDiff?.padEnd(columnWidth)}${channelDiff.padEnd(columnWidth)}`
+        `${prefix} ${pkg.name.padEnd(columnWidth)}\x1b[0m${versionDiff.padEnd(columnWidth)}${buildStringDiff.padEnd(columnWidth)}${channelDiff.padEnd(columnWidth)}`
       );
     }
 
     // Displaying removed packages
     for (const [name, pkg] of previousInstall) {
-      if (!newInstall.has(name)) {
+      if (pkg.repo_name !== 'PyPi' && !newInstall.has(name)) {
         logger?.log(
           `- ${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
         );
