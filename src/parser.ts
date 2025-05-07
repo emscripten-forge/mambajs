@@ -11,8 +11,11 @@ export interface IInstallationCommandOptions {
 }
 
 export interface ICommands extends IParsedCommands {
+  install: IInstallationCommandOptions,
+  run: string;
   list: boolean[];
 }
+
 export type SpecTypes = 'specs' | 'pipSpecs';
 
 /**
