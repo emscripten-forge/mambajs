@@ -296,7 +296,7 @@ export async function solve(
         throw msg;
       }
       logger?.log('');
-      logger?.log('Process pip dependencies ...');
+      logger?.log('Process pip requirements ...\n');
       pipPackages = await solvePip(ymlOrSpecs, condaPackages, [], logger);
     }
   } else if (
@@ -313,8 +313,7 @@ export async function solve(
     if ((!pipSpecs || !pipSpecs.length) && installedPipPackages) {
       pipPackages = installedPipPackages;
     } else {
-      logger?.log('');
-      logger?.log('Process solving pip packages ...');
+      logger?.log('Process pip requirements ...\n');
       if (installedPipPackages) {
         Object.keys(installedPipPackages).map(filename => {
           const pkg = installedPipPackages[filename];
@@ -376,11 +375,7 @@ export function showEnvironmentDiff(
 
     const columnWidth = 30;
 
-    logger?.log(
-      `  ${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
-    );
-
-    logger?.log('─'.repeat(4 * columnWidth));
+    let loggedHeader = false;
 
     for (const [, pkg] of sortedPackages) {
       const prevPkg = previousInstall.get(pkg.name);
@@ -388,6 +383,16 @@ export function showEnvironmentDiff(
       // Not listing untouched packages
       if (prevPkg && prevPkg.build_string === pkg.build_string) {
         continue;
+      }
+
+      if (!loggedHeader) {
+        logger?.log(
+          `  ${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
+        );
+
+        logger?.log('─'.repeat(4 * columnWidth));
+
+        loggedHeader = true;
       }
 
       let type: string;
