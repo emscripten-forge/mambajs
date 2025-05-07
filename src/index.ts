@@ -280,8 +280,12 @@ export async function solve(
   }
   let pipPackages: ISolvedPackages = {};
 
-  logger?.log('Solved environment!');
-  showPackagesList(condaPackages, logger);
+  logger?.log('Solved environment!\n');
+  if (!installedPackages) {
+    showPackagesList(condaPackages, logger);
+  } else {
+    showEnvironmentDiff(installedPackages, condaPackages, logger);
+  }
 
   if (typeof ymlOrSpecs === 'string') {
     if (hasPipDependencies(ymlOrSpecs)) {
@@ -334,24 +338,95 @@ export function showPackagesList(
   if (Object.keys(installedPackages).length) {
     const sortedPackages = sort(installedPackages);
 
-    const nameWidth = 30;
-    const versionWidth = 30;
-    const buildWidth = 30;
+    const columnWidth = 30;
 
     logger?.log(
-      `${'Name'.padEnd(nameWidth)}${'Version'.padEnd(versionWidth)}${'Build'.padEnd(buildWidth)}`
+      `${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
     );
 
-    logger?.log('─'.repeat(nameWidth + versionWidth + buildWidth));
+    logger?.log('─'.repeat(4 * columnWidth));
 
     for (const [, pkg] of sortedPackages) {
-      const text = `${pkg.name.padEnd(nameWidth)}${pkg.version.padEnd(versionWidth)}${pkg.build_string?.padEnd(buildWidth)}`;
-      logger?.log(text);
+      logger?.log(
+        `${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
+      );
     }
   }
 }
 
-export function sort(installed: ISolvedPackages): Map<string, any> {
+export function showEnvironmentDiff(
+  installedPackages: ISolvedPackages,
+  newPackages: ISolvedPackages,
+  logger: ILogger | undefined
+) {
+  if (Object.keys(newPackages).length) {
+    const previousInstall = new Map<string, ISolvedPackage>();
+    for (const name of Object.keys(installedPackages)) {
+      previousInstall.set(
+        installedPackages[name].name,
+        installedPackages[name]
+      );
+    }
+    const newInstall = new Map<string, ISolvedPackage>();
+    for (const name of Object.keys(newPackages)) {
+      newInstall.set(newPackages[name].name, newPackages[name]);
+    }
+
+    const sortedPackages = sort(newPackages);
+
+    const columnWidth = 30;
+
+    logger?.log(
+      `  ${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
+    );
+
+    logger?.log('─'.repeat(4 * columnWidth));
+
+    for (const [, pkg] of sortedPackages) {
+      const prevPkg = previousInstall.get(pkg.name);
+
+      // Not listing untouched packages
+      if (prevPkg && prevPkg.build_string === pkg.build_string) {
+        continue;
+      }
+
+      let type: string;
+      let versionDiff: string;
+      let buildStringDiff: string;
+      let channelDiff: string;
+
+      if (!prevPkg) {
+        type = '+';
+        versionDiff = pkg.version;
+        buildStringDiff = pkg.build_string || '';
+        channelDiff = pkg.repo_name || '';
+      } else {
+        type = '~';
+        versionDiff = `${prevPkg.version} -> ${pkg.version}`;
+        buildStringDiff = `${prevPkg.build_string} -> ${pkg.build_string}`;
+        channelDiff =
+          prevPkg.repo_name === pkg.repo_name
+            ? pkg.repo_name || ''
+            : `${prevPkg.repo_name} -> ${pkg.repo_name}`;
+      }
+
+      logger?.log(
+        `${type} ${pkg.name.padEnd(columnWidth)}${versionDiff.padEnd(columnWidth)}${buildStringDiff?.padEnd(columnWidth)}${channelDiff.padEnd(columnWidth)}`
+      );
+    }
+
+    // Displaying removed packages
+    for (const [name, pkg] of previousInstall) {
+      if (!newInstall.has(name)) {
+        logger?.log(
+          `- ${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
+        );
+      }
+    }
+  }
+}
+
+export function sort(installed: ISolvedPackages): Map<string, ISolvedPackage> {
   const sorted = Object.entries(installed).sort((a, b) => {
     const packageA: any = a[1];
     const packageB: any = b[1];
