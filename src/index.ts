@@ -280,7 +280,6 @@ export async function solve(
   }
   let pipPackages: ISolvedPackages = {};
 
-  logger?.log('Solved environment!\n');
   if (!installedPackages) {
     showPackagesList(condaPackages, logger);
   } else {
