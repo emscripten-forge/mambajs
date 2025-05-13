@@ -3,7 +3,7 @@ export interface IParsedCommand {
   data: IInstallationCommandOptions | null;
 }
 
-type CommandsName = 'install' | 'list' | 'remove' | 'update' | 'type';
+type CommandsName = 'install' | 'list';
 
 export interface ICommandData {
   commands: IParsedCommand[];
@@ -12,8 +12,8 @@ export interface ICommandData {
 
 export interface IInstallationCommandOptions {
   channels: string[];
-  specs?: string[];
-  pipSpecs?: string[];
+  specs: string[];
+  pipSpecs: string[];
   isPipCommand?: boolean;
 }
 
@@ -86,8 +86,8 @@ function parseCommand(code: string): {
 } {
   const run = code;
   let isPipCommand = false;
-  const isCondaCommand = hasCondaInstallCommand(code);
-  code = replaceCommandHeader(code);
+  const isInstallCommand = hasInstallCommand(code);
+  code = isInstallCommand ? replaceCommandHeader(code) : code;
   let command: IParsedCommand = {
     type: 'install',
     data: {
@@ -97,12 +97,12 @@ function parseCommand(code: string): {
     }
   };
 
-  if (!isCondaCommand && code.includes('%pip install')) {
+  if (isInstallCommand && code.includes('%pip install')) {
     code = code.replace('%pip install', '');
     isPipCommand = true;
   }
 
-  if ((isCondaCommand || isPipCommand) && code) {
+  if (isInstallCommand && code) {
     if (isPipCommand) {
       command.data = parsePipCommand(code);
     } else {
@@ -135,7 +135,8 @@ function parseLines(codeLines: string[]): ICommandData {
   const runCommands: string[] = [];
   const commands: IParsedCommand[] = [];
   codeLines.forEach((line: string) => {
-    if (hasCondaInstallCommand(line) || hasPipCommand(line)) {
+    const isInstallCommand = hasInstallCommand(line);
+    if (isInstallCommand) {
       const { command } = { ...parseCommand(line) };
       if (command) {
         commands.push(command);
@@ -177,16 +178,16 @@ function replaceCommandHeader(code: string): string {
  * @param {string} code - The command line which should be parsed.
  * @returns {boolean} - True if it is a conda installation command
  */
-function hasCondaInstallCommand(code: string): boolean {
-  let isCondaCommand = false;
-  const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler'];
-  commandNames.forEach((name: string) => {
-    if (code.includes(`%${name} install`)) {
-      isCondaCommand = true;
-    }
-  });
+function hasInstallCommand(code: string): boolean {
+  let isCommand = false;
+  const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler', 'pip'];
+  const pattern = new RegExp(
+    `^\\s*%(${commandNames.join('|')})\\s+install\\b`,
+    'm'
+  );
 
-  return isCondaCommand;
+  isCommand = pattern.test(code);
+  return isCommand;
 }
 
 /**
@@ -205,21 +206,6 @@ function hasCondaListCommand(code: string): boolean {
   });
 
   return isCondaListCommand;
-}
-
-/**
- * Detects whether the line has pip installation commands
- *
- * @param {string} code - The command line which should be parsed.
- * @returns {boolean} - True if it is a pip installation command
- */
-function hasPipCommand(code: string): boolean {
-  let isPipCommand = false;
-  if (code.includes('%pip install')) {
-    isPipCommand = true;
-  }
-
-  return isPipCommand;
 }
 
 /**
