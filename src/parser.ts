@@ -3,8 +3,6 @@ export interface IParsedCommand {
   data: IInstallationCommandOptions | null;
 }
 
-//export function parse(code: string): {commands: IParsedCommand[], run: string}
-
 type CommandsName = 'install' | 'list' | 'remove' | 'update' | 'type';
 
 export interface ICommandData {
