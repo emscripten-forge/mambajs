@@ -380,6 +380,14 @@ export function showEnvironmentDiff(
 
     let loggedHeader = false;
 
+    const logHeader = () => {
+      logger?.log(
+        `  ${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
+      );
+
+      logger?.log('─'.repeat(4 * columnWidth));
+    }
+
     for (const [, pkg] of sortedPackages) {
       const prevPkg = previousInstall.get(pkg.name);
 
@@ -389,11 +397,7 @@ export function showEnvironmentDiff(
       }
 
       if (!loggedHeader) {
-        logger?.log(
-          `  ${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
-        );
-
-        logger?.log('─'.repeat(4 * columnWidth));
+        logHeader();
 
         loggedHeader = true;
       }
@@ -426,10 +430,20 @@ export function showEnvironmentDiff(
     // Displaying removed packages
     for (const [name, pkg] of previousInstall) {
       if (pkg.repo_name !== 'PyPi' && !newInstall.has(name)) {
+        if (!loggedHeader) {
+          logHeader();
+
+          loggedHeader = true;
+        }
+
         logger?.log(
           `- ${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
         );
       }
+    }
+
+    if (!loggedHeader) {
+      logger?.log('All requested packages already installed.');
     }
   }
 }
