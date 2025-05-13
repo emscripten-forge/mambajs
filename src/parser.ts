@@ -1,18 +1,24 @@
-export interface IParsedCommands {
-  install: IInstallationCommandOptions;
+export interface IParsedCommand {
+  type: CommandsName;
+  data: IInstallationCommandOptions | null;
+}
+
+//export function parse(code: string): {commands: IParsedCommand[], run: string}
+
+type CommandsName = 'install' | 'list' | 'remove' | 'update' | 'type';
+
+export interface ICommandData {
+  commands: IParsedCommand[];
   run: string;
 }
 
 export interface IInstallationCommandOptions {
-  channels?: string[];
+  channels: string[];
   specs?: string[];
   pipSpecs?: string[];
   isPipCommand?: boolean;
 }
 
-export interface ICommands extends IParsedCommands {
-  list: boolean[];
-}
 export type SpecTypes = 'specs' | 'pipSpecs';
 
 /**
@@ -29,20 +35,39 @@ export type SpecTypes = 'specs' | 'pipSpecs';
  *  - run command code,
  *  - and a list flag indicating whether a list command was detected.
  */
-export function parse(code: string): ICommands {
-  let result: ICommands = {
-    install: {},
-    run: code,
-    list: [false]
+export function parse(code: string): ICommandData {
+  let result: ICommandData = {
+    commands: [],
+    run: code
   };
+
   const codeLines = code.split('\n');
   if (codeLines.length > 1) {
     result = { ...parseLines(codeLines) };
   } else {
     if (hasCondaListCommand(code)) {
-      result = { install: result.install, run: '', list: [true] };
+      let command: IParsedCommand = {
+        type: 'list',
+        data: null
+      };
+
+      result = {
+        commands: [command],
+        run: ''
+      };
     } else {
-      result = { ...parseCommand(code), list: [false] };
+      const parsedData = { ...parseCommand(code) };
+      if (parsedData.command) {
+        result = {
+          commands: [parsedData.command],
+          run: parsedData.run
+        };
+      } else {
+        result = {
+          commands: [],
+          run: parsedData.run
+        };
+      }
     }
   }
   return result;
@@ -57,31 +82,44 @@ export function parse(code: string): ICommands {
  *  - parsed installation options,
  *  - run command code
  */
-function parseCommand(code: string): IParsedCommands {
+function parseCommand(code: string): {
+  command: IParsedCommand | null;
+  run: string;
+} {
   const run = code;
   let isPipCommand = false;
   const isCondaCommand = hasCondaInstallCommand(code);
-  code = isCondaCodeLine(code);
+  code = replaceCommandHeader(code);
+  let command: IParsedCommand = {
+    type: 'install',
+    data: {
+      channels: [],
+      specs: [],
+      pipSpecs: []
+    }
+  };
 
   if (!isCondaCommand && code.includes('%pip install')) {
     code = code.replace('%pip install', '');
     isPipCommand = true;
   }
-  let result: IInstallationCommandOptions = {
-    channels: [],
-    specs: [],
-    pipSpecs: []
-  };
+
   if ((isCondaCommand || isPipCommand) && code) {
     if (isPipCommand) {
-      result = parsePipCommand(code);
+      command.data = parsePipCommand(code);
     } else {
-      result = parseCondaCommand(code);
+      command.data = parseCondaCommand(code);
     }
 
-    return { install: { ...result, isPipCommand }, run: '' };
+    return {
+      command,
+      run: ''
+    };
   } else {
-    return { install: {}, run };
+    return {
+      command: null,
+      run
+    };
   }
 }
 
@@ -95,51 +133,25 @@ function parseCommand(code: string): IParsedCommands {
  *  - and a list flag indicating whether a list command was detected.
  */
 
-function parseLines(codeLines: string[]): ICommands {
-  const installCommands: string[] = [];
+function parseLines(codeLines: string[]): ICommandData {
   const runCommands: string[] = [];
-  const listCommand: boolean[] = [];
-
-  let channels: string[] = [];
-  let specs: string[] = [];
-  let pipSpecs: string[] = [];
+  const commands: IParsedCommand[] = [];
   codeLines.forEach((line: string) => {
     if (hasCondaInstallCommand(line) || hasPipCommand(line)) {
-      installCommands.push(line);
+      const { command } = { ...parseCommand(line) };
+      if (command) {
+        commands.push(command);
+      }
     } else if (hasCondaListCommand(line)) {
-      listCommand.push(true);
+      commands.push({ type: 'list', data: null });
     } else {
       runCommands.push(line);
     }
   });
 
-  if (installCommands.length) {
-    let tmpResult: IParsedCommands = {
-      install: {
-        channels: [],
-        specs: [],
-        pipSpecs: []
-      },
-      run: ''
-    };
-    installCommands.forEach((line: string) => {
-      tmpResult = { ...parseCommand(line) };
-      channels = tmpResult.install.channels
-        ? [...channels, ...tmpResult.install.channels]
-        : channels;
-      specs = tmpResult.install.specs
-        ? [...specs, ...tmpResult.install.specs]
-        : specs;
-      pipSpecs = tmpResult.install.pipSpecs
-        ? [...pipSpecs, ...tmpResult.install.pipSpecs]
-        : pipSpecs;
-    });
-  }
-
   return {
-    install: { channels, specs, pipSpecs },
-    run: runCommands ? runCommands.join('\n') : '',
-    list: listCommand ? listCommand : [false]
+    commands,
+    run: runCommands.length ? runCommands.join('\n') : ''
   };
 }
 
@@ -150,7 +162,7 @@ function parseLines(codeLines: string[]): ICommands {
  * @param {string} code - The command line which should be parsed.
  * @returns {string} - Can be as part of conda installation command and as code
  */
-function isCondaCodeLine(code: string): string {
+function replaceCommandHeader(code: string): string {
   const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler'];
   commandNames.forEach((name: string) => {
     if (code.includes(`%${name} install`)) {
