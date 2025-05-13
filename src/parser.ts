@@ -14,7 +14,6 @@ export interface IInstallationCommandOptions {
   channels: string[];
   specs: string[];
   pipSpecs: string[];
-  isPipCommand?: boolean;
 }
 
 export type SpecTypes = 'specs' | 'pipSpecs';
