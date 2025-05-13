@@ -43,7 +43,7 @@ export function parse(code: string): ICommandData {
     result = { ...parseLines(codeLines) };
   } else {
     if (hasCondaListCommand(code)) {
-      let command: IParsedCommand = {
+      const command: IParsedCommand = {
         type: 'list',
         data: null
       };
@@ -87,7 +87,7 @@ function parseCommand(code: string): {
   let isPipCommand = false;
   const isInstallCommand = hasInstallCommand(code);
   code = isInstallCommand ? replaceCommandHeader(code) : code;
-  let command: IParsedCommand = {
+  const command: IParsedCommand = {
     type: 'install',
     data: {
       channels: [],

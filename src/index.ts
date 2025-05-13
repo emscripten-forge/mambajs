@@ -386,7 +386,7 @@ export function showEnvironmentDiff(
       );
 
       logger?.log('─'.repeat(4 * columnWidth));
-    }
+    };
 
     for (const [, pkg] of sortedPackages) {
       const prevPkg = previousInstall.get(pkg.name);
