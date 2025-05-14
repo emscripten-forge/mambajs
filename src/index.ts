@@ -59,6 +59,11 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
   Module: any;
 
   /**
+   * The Python version (will be inferred from the lock file if not provided)
+   */
+  pythonVersion?: number[];
+
+  /**
    * Whether to install conda-meta for packages, default to False
    */
   generateCondaMeta?: boolean;
@@ -95,7 +100,9 @@ export const bootstrapEmpackPackedEnvironment = async (
   }
 
   const sharedLibsMap: TSharedLibsMap = {};
-  const pythonVersion = getPythonVersion(empackEnvMeta.packages);
+  const pythonVersion = options.pythonVersion
+    ? options.pythonVersion
+    : getPythonVersion(empackEnvMeta.packages);
   const paths = {};
   if (empackEnvMeta.packages.length) {
     await Promise.all(
