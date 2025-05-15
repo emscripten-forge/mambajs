@@ -23,6 +23,7 @@ export interface IEmpackEnvMetaPkg {
   name: string;
   version: string;
   build: string;
+  channel: string;
   filename_stem: string;
   filename: string;
   url: string;
@@ -55,6 +56,7 @@ export interface IBootstrapData {
   paths: { [key: string]: string };
   untarjs: IUnpackJSAPI;
 }
+
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));
 }
