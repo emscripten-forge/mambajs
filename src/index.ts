@@ -1,4 +1,9 @@
-import { initUntarJS, IUnpackJSAPI } from '@emscripten-forge/untarjs';
+import {
+  fetchByteArray,
+  FilesData,
+  initUntarJS,
+  IUnpackJSAPI
+} from '@emscripten-forge/untarjs';
 import {
   getSharedLibs,
   IBootstrapData,
@@ -166,15 +171,36 @@ export const installPackagesToEmscriptenFS = async (
   await Promise.all(
     Object.keys(packages).map(async filename => {
       const pkg = packages[filename];
-      const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
-      logger?.log(`Installing ${filename}`);
-      const extractedPackage = await untarCondaPackage({
-        url,
-        untarjs,
-        verbose: false,
-        generateCondaMeta,
-        pythonVersion
-      });
+      let extractedPackage: FilesData = {};
+
+      // Special case for wheels
+      if (pkg.url.endsWith('.whl')) {
+        if (!pythonVersion) {
+          const msg = 'Cannot install wheel if Python is not there';
+          console.error(msg);
+          throw msg;
+        }
+
+        // TODO Read record properly to know where to put each files
+        const rawData = await fetchByteArray(pkg.url);
+        const rawPackageData = await untarjs.extractData(rawData, false);
+        for (const key of Object.keys(rawPackageData)) {
+          extractedPackage[
+            `/lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
+          ] = rawPackageData[key];
+        }
+      } else {
+        const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
+        logger?.log(`Installing ${filename}`);
+        extractedPackage = await untarCondaPackage({
+          url,
+          untarjs,
+          verbose: false,
+          generateCondaMeta,
+          pythonVersion
+        });
+      }
+
       sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
       paths[filename] = {};
       Object.keys(extractedPackage).forEach(filen => {
@@ -221,7 +247,7 @@ export const removePackagesFromEmscriptenFS = async (
   options: IRemovePackagesFromEnvOptions
 ): Promise<void> => {
   const { removedPackages, Module, paths, logger } = options;
-  Object.keys(removedPackages).map((filename) => {
+  Object.keys(removedPackages).map(filename => {
     const pkg = removedPackages[filename];
     logger?.log(`Uninstalling ${pkg.name} ${pkg.version}`);
     const packages = paths[filename];
