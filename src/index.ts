@@ -186,7 +186,7 @@ export const installPackagesToEmscriptenFS = async (
         const rawPackageData = await untarjs.extractData(rawData, false);
         for (const key of Object.keys(rawPackageData)) {
           extractedPackage[
-            `/lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
+            `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
           ] = rawPackageData[key];
         }
       } else {
