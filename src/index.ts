@@ -174,7 +174,7 @@ export const installPackagesToEmscriptenFS = async (
       let extractedPackage: FilesData = {};
 
       // Special case for wheels
-      if (pkg.url.endsWith('.whl')) {
+      if (pkg.url?.endsWith('.whl')) {
         if (!pythonVersion) {
           const msg = 'Cannot install wheel if Python is not there';
           console.error(msg);
