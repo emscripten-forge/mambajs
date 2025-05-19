@@ -1,5 +1,6 @@
 import {
   ILogger,
+  ISolvedPackage,
   ISolvedPackages,
   ISolveOptions,
   splitPipPackages
@@ -36,13 +37,22 @@ const parseEnvYml = (envYml: string) => {
 const solve = async (
   specs: Array<string>,
   channels: Array<string>,
+  installedCondaPackages: ISolvedPackages,
   logger?: ILogger
 ) => {
   let result: any = undefined;
   const solvedPackages: ISolvedPackages = {};
   try {
+    let installed: ISolvedPackage[] | undefined = [];
+    if (Object.keys(installedCondaPackages).length) {
+      for (const installedPkg of Object.values(installedCondaPackages)) {
+        installed.push(installedPkg);
+      }
+    } else {
+      installed = undefined;
+    }
     const startSolveTime = performance.now();
-    result = await simpleSolve(specs, channels, PLATFORMS);
+    result = await simpleSolve(specs, channels, PLATFORMS, installed);
     const endSolveTime = performance.now();
 
     if (logger) {
@@ -78,13 +88,16 @@ export const getSolvedPackages = async (
 
   let specs: string[] = [],
     newChannels: string[] = [];
+  let installedCondaPackages: ISolvedPackages = {};
 
   if (typeof ymlOrSpecs === 'string') {
     const ymlData = parseEnvYml(ymlOrSpecs);
     specs = ymlData.specs;
     newChannels = formatChannels(ymlData.channels);
   } else {
-    const { installedCondaPackages } = splitPipPackages(installedPackages);
+    const pkgs = splitPipPackages(installedPackages);
+    installedCondaPackages = pkgs.installedCondaPackages;
+
     specs = prepareSpecsForInstalling(
       installedCondaPackages,
       ymlOrSpecs as string[]
@@ -97,7 +110,12 @@ export const getSolvedPackages = async (
   }
 
   try {
-    solvedPackages = await solve(specs, newChannels, logger);
+    solvedPackages = await solve(
+      specs,
+      newChannels,
+      installedCondaPackages,
+      logger
+    );
   } catch (error: any) {
     throw new Error(error.message);
   }
