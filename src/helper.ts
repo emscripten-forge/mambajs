@@ -11,8 +11,11 @@ export interface ISolvedPackage {
   version: string;
   repo_url?: string;
   url: string;
+  build_number?: bigint;
   repo_name?: string;
   build_string?: string;
+  subdir?: string;
+  depends?: string[];
 }
 
 export interface ISolvedPackages {

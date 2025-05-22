@@ -1,6 +1,5 @@
 import {
   ILogger,
-  ISolvedPackage,
   ISolvedPackages,
   ISolveOptions,
   splitPipPackages
@@ -43,35 +42,78 @@ const solve = async (
   let result: any = undefined;
   const solvedPackages: ISolvedPackages = {};
   try {
-    let installed: ISolvedPackage[] | undefined = [];
+    let installed: any = [];
     if (Object.keys(installedCondaPackages).length) {
-      for (const installedPkg of Object.values(installedCondaPackages)) {
-        installed.push(installedPkg);
-      }
+      Object.keys(installedCondaPackages).map((filename: string) => {
+        const installedPkg = installedCondaPackages[filename];
+        let tmpPkg = {
+          url: installedPkg.url,
+          packageName: installedPkg.name,
+          build: installedPkg.build_string,
+          repoName: installedPkg.repo_name,
+          filename: filename,
+          version: installedPkg.version,
+          depends: installedPkg?.depends,
+          buildNumber: installedPkg.build_number,
+          subdir: installedPkg?.subdir
+        };
+
+        installed.push(tmpPkg);
+      });
     } else {
       installed = undefined;
     }
     const startSolveTime = performance.now();
     result = await simpleSolve(specs, channels, PLATFORMS, installed);
     const endSolveTime = performance.now();
-
     if (logger) {
       logger.log(
         `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
       );
     }
 
-    result.map((item: any) => {
-      const { filename, packageName, repoName, url, version, build } = item;
-      solvedPackages[filename] = {
-        name: packageName,
-        repo_url: repoName,
-        build_string: build,
-        url: url,
-        version: version,
-        repo_name: repoName
-      };
-    });
+    if (!result.length) {
+      logger?.log(`${specs.join(',')} have been already installed`);
+    } else {
+      specs.map((spec: string) => {
+        let isIncluded = false;
+        result.map((pkg: any) => {
+          if (spec.includes(pkg.packageName)) {
+            isIncluded = true;
+          }
+        });
+        if (!isIncluded) {
+          logger?.log(
+            `Conditions for ${spec} were met before and the package was already installed`
+          );
+        }
+      });
+
+      result.map((item: any) => {
+        const {
+          filename,
+          packageName,
+          repoName,
+          url,
+          version,
+          build,
+          buildNumber,
+          depends,
+          subdir
+        } = item;
+        solvedPackages[filename] = {
+          name: packageName,
+          repo_url: repoName,
+          build_string: build,
+          url: url,
+          version: version,
+          repo_name: repoName,
+          build_number: buildNumber,
+          depends,
+          subdir
+        };
+      });
+    }
   } catch (error) {
     logger?.error(error);
     throw new Error(error as string);
@@ -98,10 +140,7 @@ export const getSolvedPackages = async (
     const pkgs = splitPipPackages(installedPackages);
     installedCondaPackages = pkgs.installedCondaPackages;
 
-    specs = prepareSpecsForInstalling(
-      installedCondaPackages,
-      ymlOrSpecs as string[]
-    );
+    specs = ymlOrSpecs as string[];
     newChannels = formatChannels(channels);
   }
 
@@ -120,22 +159,6 @@ export const getSolvedPackages = async (
     throw new Error(error.message);
   }
   return solvedPackages;
-};
-
-export const prepareSpecsForInstalling = (
-  condaPackages: ISolvedPackages,
-  specs: Array<string>
-) => {
-  Object.keys(condaPackages).map((filename: string) => {
-    const installedPackage = condaPackages[filename];
-    if (installedPackage.name === 'python') {
-      specs.push(`${installedPackage.name}=${installedPackage.version}`);
-    } else {
-      specs.push(`${installedPackage.name}`);
-    }
-  });
-
-  return specs;
 };
 
 const getChannelsAlias = (channelNames: string[]) => {
