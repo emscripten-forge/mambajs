@@ -47,15 +47,10 @@ const solve = async (
       Object.keys(installedCondaPackages).map((filename: string) => {
         const installedPkg = installedCondaPackages[filename];
         let tmpPkg = {
-          url: installedPkg.url,
+          ...installedPkg,
           packageName: installedPkg.name,
           build: installedPkg.build_string,
-          repoName: installedPkg.repo_name,
-          filename: filename,
-          version: installedPkg.version,
-          depends: installedPkg?.depends,
-          buildNumber: installedPkg.build_number,
-          subdir: installedPkg?.subdir
+          filename
         };
 
         installed.push(tmpPkg);
