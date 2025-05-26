@@ -73,22 +73,10 @@ const solve = async (
     }
 
     if (!result.length) {
-      logger?.log(`${specs.join(',')} have been already installed`);
+      const msg = `${specs.join(',')} have been already installed`;
+      logger?.error(msg);
+      throw new Error(msg as string);
     } else {
-      specs.map((spec: string) => {
-        let isIncluded = false;
-        result.map((pkg: any) => {
-          if (spec.includes(pkg.packageName)) {
-            isIncluded = true;
-          }
-        });
-        if (!isIncluded) {
-          logger?.log(
-            `Conditions for ${spec} were met before and the package was already installed`
-          );
-        }
-      });
-
       result.map((item: any) => {
         const {
           filename,
