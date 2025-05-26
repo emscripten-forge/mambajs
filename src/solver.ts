@@ -72,6 +72,12 @@ const solve = async (
       logger?.error(msg);
       throw new Error(msg as string);
     } else {
+      result.forEach((pkg: any) => {
+        const installedPkg = installedCondaPackages[pkg.filename];
+        if (installedPkg) {
+          logger?.log(`${installedPkg.name} has been already installed`);
+        }
+      });
       result.map((item: any) => {
         const {
           filename,
