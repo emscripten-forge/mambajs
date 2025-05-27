@@ -37,14 +37,6 @@ export interface IEmpackEnvMeta {
   packages: IEmpackEnvMetaPkg[];
 }
 
-export interface ISolveOptions {
-  ymlOrSpecs?: string | string[];
-  installedPackages?: ISolvedPackages;
-  pipSpecs?: string[];
-  channels?: string[];
-  logger?: ILogger;
-}
-
 /**
  * Shared libraries. list of .so files
  */

@@ -1,11 +1,10 @@
 import {
   ILogger,
   ISolvedPackages,
-  ISolveOptions,
   splitPipPackages
-} from './helper';
+} from '@emscripten-forge/mambajs-core';
 import { parse } from 'yaml';
-import { Platform, simpleSolve } from '@baszalmstra/rattler';
+import { Platform, simpleSolve, SolvedPackage } from '@baszalmstra/rattler';
 
 const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
 const DEFAULT_CHANNELS = [
@@ -33,13 +32,21 @@ const parseEnvYml = (envYml: string) => {
   return { prefix, specs, channels };
 };
 
+export interface ISolveOptions {
+  ymlOrSpecs?: string | string[];
+  installedPackages?: ISolvedPackages;
+  pipSpecs?: string[];
+  channels?: string[];
+  logger?: ILogger;
+}
+
 const solve = async (
   specs: Array<string>,
   channels: Array<string>,
   installedCondaPackages: ISolvedPackages,
   logger?: ILogger
 ) => {
-  let result: any = undefined;
+  let result: SolvedPackage[] | undefined = undefined;
   const solvedPackages: ISolvedPackages = {};
   try {
     let installed: any = [];
