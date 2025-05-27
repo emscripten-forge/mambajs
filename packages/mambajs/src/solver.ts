@@ -66,7 +66,7 @@ const solve = async (
       installed = undefined;
     }
     const startSolveTime = performance.now();
-    result = await simpleSolve(specs, channels, PLATFORMS, installed);
+    result = await simpleSolve(specs, channels, PLATFORMS, installed) as SolvedPackage[];
     const endSolveTime = performance.now();
     if (logger) {
       logger.log(
