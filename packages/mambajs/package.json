@@ -39,7 +39,6 @@
   "dependencies": {
     "@baszalmstra/rattler": "^0.2.1",
     "@emscripten-forge/mambajs-core": "^0.13.0",
-    "comlink": "^4.4.2",
     "yaml": "^2.7.0"
   }
 }
