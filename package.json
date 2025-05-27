@@ -1,25 +1,19 @@
 {
-  "name": "@emscripten-forge/mambajs",
+  "name": "@emscripten-forge/mambajs-root",
   "version": "0.12.1",
-  "description": "A simple project for downloading conda packages and saving them into browser memory",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "description": "Solve conda environments and pip packages in your browser",
+  "private": true,
   "scripts": {
-    "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
-    "build": "yarn run clean && yarn run build:esbuild && yarn run build:types",
-    "build:types": "tsc --emitDeclarationOnly",
-    "prettier": "prettier --list-different --write \"src/**/*.ts\"",
-    "prettier:check": "prettier --check \"src/**/*.ts\"",
+    "build": "lerna run build",
+    "prettier": "prettier --list-different --write \"packages/**/*.ts\"",
+    "prettier:check": "prettier --check \"packages/**/*.ts\"",
     "eslint": "eslint --ext .ts --fix .",
-    "eslint:check": "eslint --ext .ts.",
-    "test": "jest",
-    "build:esbuild": "node esbuild.config.js"
+    "eslint:check": "eslint --ext .ts."
   },
-  "files": [
-    "lib/*"
-  ],
-  "publishConfig": {
-    "access": "public"
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
   },
   "keywords": [
     "conda packages"
@@ -32,36 +26,22 @@
     "type": "git",
     "url": "https://github.com/emscripten-forge/mambajs"
   },
-  "author": "Anastasiia Sliusar",
+  "author": "Emscripten-forge developers",
   "license": "MIT",
-  "dependencies": {
-    "@baszalmstra/rattler": "^0.2.1",
-    "@emscripten-forge/untarjs": "^5.3.0",
-    "yaml": "^2.7.0"
-  },
   "devDependencies": {
-    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
-    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@eslint/js": "^9.13.0",
-    "@types/copyfiles": "^2",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^22.8.1",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
-    "assert": "^2.1.0",
-    "copyfiles": "^2.4.1",
-    "esbuild": "^0.24.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "~9.1.0",
     "eslint-plugin-jest": "~27.6.0",
     "eslint-plugin-prettier": "~5.0.1",
     "eslint-plugin-react": "~7.33.2",
     "globals": "^15.11.0",
-    "jest": "^29.7.0",
+    "lerna": "^8.2.2",
     "prettier": "^3.3.3",
     "process": "^0.11.10",
     "rimraf": "^3.0.2",
-    "ts-jest": "^29.2.5",
     "typescript": "^5",
     "url": "^0.11.4"
   }

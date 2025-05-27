@@ -1,7 +1,11 @@
 // A dumb pip "solver" which does a tiny bit of version matching
 
 import { parse } from 'yaml';
-import { ILogger, ISolvedPackage, ISolvedPackages } from './helper';
+import {
+  ILogger,
+  ISolvedPackage,
+  ISolvedPackages
+} from '@emscripten-forge/mambajs-core';
 
 interface ISpec {
   package: string;
