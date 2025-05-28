@@ -66,50 +66,48 @@ const solve = async (
       installed = undefined;
     }
     const startSolveTime = performance.now();
-    result = await simpleSolve(specs, channels, PLATFORMS, installed) as SolvedPackage[];
+    result = (await simpleSolve(
+      specs,
+      channels,
+      PLATFORMS,
+      installed
+    )) as SolvedPackage[];
     const endSolveTime = performance.now();
     if (logger) {
       logger.log(
         `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
       );
     }
-
-    if (!result.length) {
-      const msg = `${specs.join(',')} have been already installed`;
-      logger?.error(msg);
-      throw new Error(msg as string);
-    } else {
-      result.forEach((pkg: any) => {
-        const installedPkg = installedCondaPackages[pkg.filename];
-        if (installedPkg) {
-          logger?.log(`${installedPkg.name} has been already installed`);
-        }
-      });
-      result.map((item: any) => {
-        const {
-          filename,
-          packageName,
-          repoName,
-          url,
-          version,
-          build,
-          buildNumber,
-          depends,
-          subdir
-        } = item;
-        solvedPackages[filename] = {
-          name: packageName,
-          repo_url: repoName,
-          build_string: build,
-          url: url,
-          version: version,
-          repo_name: repoName,
-          build_number: buildNumber,
-          depends,
-          subdir
-        };
-      });
-    }
+    result.forEach((pkg: any) => {
+      const installedPkg = installedCondaPackages[pkg.filename];
+      if (installedPkg) {
+        logger?.log(`${installedPkg.name} has been already installed`);
+      }
+    });
+    result.map((item: any) => {
+      const {
+        filename,
+        packageName,
+        repoName,
+        url,
+        version,
+        build,
+        buildNumber,
+        depends,
+        subdir
+      } = item;
+      solvedPackages[filename] = {
+        name: packageName,
+        repo_url: repoName,
+        build_string: build,
+        url: url,
+        version: version,
+        repo_name: repoName,
+        build_number: buildNumber,
+        depends,
+        subdir
+      };
+    });
   } catch (error) {
     logger?.error(error);
     throw new Error(error as string);
