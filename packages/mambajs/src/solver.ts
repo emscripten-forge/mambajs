@@ -5,6 +5,7 @@ import {
 } from '@emscripten-forge/mambajs-core';
 import { parse } from 'yaml';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
+import { parsePackageRequirement } from './solverpip';
 
 const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
 const DEFAULT_CHANNELS = [
@@ -57,6 +58,9 @@ const solve = async (
           ...installedPkg,
           packageName: installedPkg.name,
           build: installedPkg.build_string,
+          build_number: installed.build_number
+            ? BigInt(installed.build_number)
+            : undefined,
           filename
         };
 
@@ -78,9 +82,17 @@ const solve = async (
         `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
       );
     }
+
+    const packagesNames = new Set<string>();
+    specs.forEach((spec: string) => {
+      const parsedSpec = parsePackageRequirement(spec);
+      if (parsedSpec) {
+        packagesNames.add(parsedSpec.package);
+      }
+    });
     result.forEach((pkg: any) => {
       const installedPkg = installedCondaPackages[pkg.filename];
-      if (installedPkg) {
+      if (installedPkg && packagesNames.has(installedPkg.name)) {
         logger?.log(`${installedPkg.name} has been already installed`);
       }
     });
@@ -103,7 +115,10 @@ const solve = async (
         url: url,
         version: version,
         repo_name: repoName,
-        build_number: buildNumber,
+        build_number:
+          buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
+            ? Number(buildNumber)
+            : undefined,
         depends,
         subdir
       };
