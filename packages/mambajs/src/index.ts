@@ -48,34 +48,27 @@ export async function solve(
       pipPackages = await solvePip(
         ymlOrSpecs,
         condaPackages,
-        pipPackages,
+        installedPipPackages,
         [],
         logger
       );
     }
-  } else if (
-    (installedPipPackages && Object.keys(installedPipPackages).length) ||
-    (pipSpecs?.length && pipSpecs)
-  ) {
-    const pkgs = pipSpecs?.length ? [...pipSpecs] : [];
+  } else if (pipSpecs?.length) {
     if (!getPythonVersion(Object.values(condaPackages))) {
       const msg =
         'Cannot install pip dependencies without Python installed in the environment!';
       logger?.error(msg);
       throw msg;
     }
-    if ((!pipSpecs || !pipSpecs.length) && installedPipPackages) {
-      pipPackages = installedPipPackages;
-    } else {
-      logger?.log('Process pip requirements ...\n');
-      pipPackages = await solvePip(
-        '',
-        condaPackages,
-        pipPackages,
-        pkgs,
-        logger
-      );
-    }
+
+    logger?.log('Process pip requirements ...\n');
+    pipPackages = await solvePip(
+      '',
+      condaPackages,
+      installedPipPackages,
+      pipSpecs,
+      logger
+    );
   }
 
   return {

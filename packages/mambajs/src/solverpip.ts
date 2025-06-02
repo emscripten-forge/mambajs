@@ -147,7 +147,7 @@ async function processRequirement(
 
   const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
   if (!solved) {
-    const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "conda install ${requirement.package}"`;
+    const msg = `\x1b[38;5;208mCannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "conda install ${requirement.package}\x1b[0m"`;
 
     // Package is a direct requirement requested by the user, we throw an error
     if (required) {
@@ -220,6 +220,7 @@ export async function solvePip(
   logger?: ILogger
 ): Promise<ISolvedPackages> {
   let specs: ISpec[] = [];
+
   if (yml) {
     const data = parse(yml);
     const packages = data?.dependencies ? data.dependencies : [];
@@ -244,9 +245,9 @@ export async function solvePip(
   }
 
   const warnedPackages = new Set<string>();
-  const pipSolvedPackages: ISolvedPackages = {};
+  const pipSolvedPackages: ISolvedPackages = { ...installedPipPackages };
   for (const spec of specs) {
-    // Ignoring already installed package (TODO Compare versions)
+    // Ignoring already installed package (TODO Compare versions and update if needed)
     if (installedPackages.has(spec.package)) {
       logger?.log(`Requirement ${spec.package} already satisfied.`);
       continue;
@@ -262,11 +263,21 @@ export async function solvePip(
     );
   }
 
+  // TODO Compare versions
+  const oldPackages = new Set(
+    Object.values(installedPipPackages).map(pkg => pkg.name)
+  );
+
   if (Object.values(pipSolvedPackages).length) {
-    const pkgs = Object.values(pipSolvedPackages).map(
-      pkg => `${pkg.name}-${pkg.version}`
-    );
-    logger?.log(`Successfully installed ${pkgs.join(' ')}`);
+    const newPkgs: string[] = [];
+    for (const pkg of Object.values(pipSolvedPackages)) {
+      if (!oldPackages.has(pkg.name)) {
+        newPkgs.push(`${pkg.name}-${pkg.version}`);
+      }
+    }
+    if (newPkgs.length) {
+      logger?.log(`Successfully installed ${newPkgs.join(' ')}`);
+    }
   }
 
   return pipSolvedPackages;
