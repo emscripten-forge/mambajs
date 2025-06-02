@@ -90,13 +90,13 @@ const solve = async (
         packagesNames.add(parsedSpec.package);
       }
     });
-    result.forEach((pkg: any) => {
+    result.forEach(pkg => {
       const installedPkg = installedCondaPackages[pkg.filename];
       if (installedPkg && packagesNames.has(installedPkg.name)) {
         logger?.log(`${installedPkg.name} has been already installed`);
       }
     });
-    result.map((item: any) => {
+    result.map(item => {
       const {
         filename,
         packageName,
@@ -116,7 +116,7 @@ const solve = async (
         version: version,
         repo_name: repoName,
         build_number:
-          buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
+          buildNumber && buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
             ? Number(buildNumber)
             : undefined,
         depends,
