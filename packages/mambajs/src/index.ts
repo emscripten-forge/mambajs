@@ -19,7 +19,7 @@ export async function solve(
     splitPipPackages(installedPackages);
   let condaPackages: ISolvedPackages = installedCondaPackages;
 
-  // Create a structure that's easily checked
+  // Create a wheel -> package name lookup table
   const installedWheels: { [name: string]: string } = {};
   for (const wheelname of Object.keys(installedPipPackages)) {
     installedWheels[installedPipPackages[wheelname].name] = wheelname;
@@ -62,6 +62,7 @@ export async function solve(
       pipPackages = await solvePip(
         ymlOrSpecs,
         condaPackages,
+        installedWheels,
         installedPipPackages,
         [],
         logger
@@ -79,6 +80,7 @@ export async function solve(
     pipPackages = await solvePip(
       '',
       condaPackages,
+      installedWheels,
       installedPipPackages,
       pipSpecs,
       logger

@@ -137,7 +137,9 @@ async function processRequirement(
   requirement: ISpec,
   warnedPackages: Set<string>,
   pipSolvedPackages: ISolvedPackages,
-  installedPackages: Set<string>,
+  installedCondaPackagesNames: Set<string>,
+  installedWheels: { [name: string]: string },
+  installPipPackagesLookup: ISolvedPackages,
   logger?: ILogger,
   required = false
 ) {
@@ -163,7 +165,10 @@ async function processRequirement(
     return;
   }
 
-  installedPackages.add(requirement.package);
+  // Remove old version (if exists) and add new one
+  if (installPipPackagesLookup[requirement.package]) {
+    delete pipSolvedPackages[installedWheels[requirement.package]];
+  }
   pipSolvedPackages[solved.name] = {
     name: requirement.package,
     version: solved.version,
@@ -187,34 +192,51 @@ async function processRequirement(
       continue;
     }
 
-    // Ignoring already installed package (TODO Compare versions)
-    if (installedPackages.has(parsedRequirement.package)) {
+    // Ignoring already installed package through conda
+    if (installedCondaPackagesNames.has(parsedRequirement.package)) {
       if (!warnedPackages.has(parsedRequirement.package)) {
         logger?.log(
           `Requirement ${parsedRequirement.package} already satisfied.`
         );
-        warnedPackages.add(parsedRequirement.package);
       }
+      warnedPackages.add(parsedRequirement.package);
       continue;
     }
 
-    // Only process package if it's not already being installed
-    if (!installedPackages.has(parsedRequirement.package)) {
-      await processRequirement(
-        parsedRequirement,
-        warnedPackages,
-        pipSolvedPackages,
-        installedPackages,
-        logger,
-        false
-      );
+    // Ignoring already installed package through pip
+    const alreadyInstalled =
+      installPipPackagesLookup[parsedRequirement.package];
+    if (
+      alreadyInstalled &&
+      (!parsedRequirement.constraints ||
+        satisfies(alreadyInstalled.version, parsedRequirement.constraints))
+    ) {
+      if (!warnedPackages.has(parsedRequirement.package)) {
+        logger?.log(
+          `Requirement ${parsedRequirement.package}${parsedRequirement.constraints || ''} already satisfied.`
+        );
+      }
+      warnedPackages.add(parsedRequirement.package);
+      continue;
     }
+
+    await processRequirement(
+      parsedRequirement,
+      warnedPackages,
+      pipSolvedPackages,
+      installedCondaPackagesNames,
+      installedWheels,
+      installPipPackagesLookup,
+      logger,
+      false
+    );
   }
 }
 
 export async function solvePip(
   yml: string,
   installedCondaPackages: ISolvedPackages,
+  installedWheels: { [name: string]: string },
   installedPipPackages: ISolvedPackages,
   packageNames: Array<string> = [],
   logger?: ILogger
@@ -235,21 +257,39 @@ export async function solvePip(
     specs = parsePipPackage(packageNames);
   }
 
-  const installedPackages = new Set<string>();
+  // Create lookup tables for already installed packages
+  // Pip will not take ownership of install conda packages, it cannot update them
+  // Pip can only update pip-installed packages and install new ones
+  const installedCondaPackagesNames = new Set<string>();
   for (const installedPackage of Object.values(installedCondaPackages)) {
     const pipPackageName = await getPipPackageName(installedPackage.name);
-    installedPackages.add(pipPackageName);
+    installedCondaPackagesNames.add(pipPackageName);
   }
+
+  // Create pip package lookup we can more easily use (index by package name, not wheel name)
+  const installPipPackagesLookup: ISolvedPackages = {};
   for (const installedPackage of Object.values(installedPipPackages)) {
-    installedPackages.add(installedPackage.name);
+    installPipPackagesLookup[installedPackage.name] = installedPackage;
   }
 
   const warnedPackages = new Set<string>();
   const pipSolvedPackages: ISolvedPackages = { ...installedPipPackages };
   for (const spec of specs) {
-    // Ignoring already installed package (TODO Compare versions and update if needed)
-    if (installedPackages.has(spec.package)) {
+    // Ignoring already installed package via conda
+    if (installedCondaPackagesNames.has(spec.package)) {
       logger?.log(`Requirement ${spec.package} already satisfied.`);
+      continue;
+    }
+
+    const alreadyInstalled = installPipPackagesLookup[spec.package];
+    if (
+      alreadyInstalled &&
+      (!spec.constraints ||
+        satisfies(alreadyInstalled.version, spec.constraints))
+    ) {
+      logger?.log(
+        `Requirement ${spec.package}${spec.constraints || ''} already satisfied.`
+      );
       continue;
     }
 
@@ -257,21 +297,26 @@ export async function solvePip(
       spec,
       warnedPackages,
       pipSolvedPackages,
-      installedPackages,
+      installedCondaPackagesNames,
+      installedWheels,
+      installPipPackagesLookup,
       logger,
       true
     );
   }
 
-  // TODO Compare versions
-  const oldPackages = new Set(
-    Object.values(installedPipPackages).map(pkg => pkg.name)
-  );
+  const oldPackagesLookup: ISolvedPackages = {};
+  for (const pkg of Object.values(installedPipPackages)) {
+    oldPackagesLookup[pkg.name] = pkg;
+  }
 
   if (Object.values(pipSolvedPackages).length) {
     const newPkgs: string[] = [];
     for (const pkg of Object.values(pipSolvedPackages)) {
-      if (!oldPackages.has(pkg.name)) {
+      if (
+        !oldPackagesLookup[pkg.name] ||
+        oldPackagesLookup[pkg.name].version !== pkg.version
+      ) {
         newPkgs.push(`${pkg.name}-${pkg.version}`);
       }
     }
