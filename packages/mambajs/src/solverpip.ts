@@ -147,6 +147,12 @@ async function processRequirement(
     await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
   ).json();
 
+  if (pkgMetadata.message === 'Not Found') {
+    const msg = `ERROR: Could not find a version that satisfies the requirement ${requirement.package}`;
+    logger?.error(msg);
+    throw new Error(msg);
+  }
+
   const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
   if (!solved) {
     const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "conda install ${requirement.package}"`;
