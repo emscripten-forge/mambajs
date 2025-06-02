@@ -6,7 +6,7 @@ import {
   splitPipPackages
 } from '@emscripten-forge/mambajs-core';
 import { getSolvedPackages, ISolveOptions } from './solver';
-import { hasPipDependencies, solvePip } from './solverpip';
+import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
 
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
@@ -19,9 +19,23 @@ export async function solve(
     splitPipPackages(installedPackages);
   let condaPackages: ISolvedPackages = installedCondaPackages;
 
+  // Create a structure that's easily checked
+  const installedWheels: { [name: string]: string } = {};
+  for (const wheelname of Object.keys(installedPipPackages)) {
+    installedWheels[installedPipPackages[wheelname].name] = wheelname;
+  }
+
   if (ymlOrSpecs && ymlOrSpecs.length) {
     try {
       condaPackages = await getSolvedPackages(options);
+
+      // Remove pip packages if they are now coming from conda
+      for (const condaPackage of Object.values(condaPackages)) {
+        const pipName = await getPipPackageName(condaPackage.name);
+        if (installedWheels[pipName]) {
+          delete installedPipPackages[installedWheels[pipName]];
+        }
+      }
 
       if (!installedPackages) {
         showPackagesList(condaPackages, logger);

@@ -294,11 +294,11 @@ function parsePipPackage(pipPackages: Array<string>): ISpec[] {
   return specs;
 }
 
-async function getPipPackageName(
-  installedPackage: string,
+export async function getPipPackageName(
+  packageName: string,
   logger?: ILogger
 ): Promise<string> {
-  let result = installedPackage;
+  let result = packageName;
   try {
     const url =
       'https://raw.githubusercontent.com/prefix-dev/parselmouth/main/files/compressed_mapping.json';
@@ -309,8 +309,8 @@ async function getPipPackageName(
 
     const packageMapping = await response.json();
 
-    if (packageMapping.hasOwnProperty(installedPackage)) {
-      result = packageMapping[installedPackage];
+    if (packageMapping.hasOwnProperty(packageName)) {
+      result = packageMapping[packageName];
     }
   } catch (error) {
     logger?.error('Cannot get pip package names', error);
