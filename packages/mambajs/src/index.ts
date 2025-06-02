@@ -30,10 +30,14 @@ export async function solve(
       condaPackages = await getSolvedPackages(options);
 
       // Remove pip packages if they are now coming from conda
+      // Here we try our best given the possible mismatches between pip package names and conda names
       for (const condaPackage of Object.values(condaPackages)) {
         const pipName = await getPipPackageName(condaPackage.name);
         if (installedWheels[pipName]) {
           delete installedPipPackages[installedWheels[pipName]];
+        }
+        if (installedWheels[condaPackage.name]) {
+          delete installedPipPackages[installedWheels[condaPackage.name]];
         }
       }
 

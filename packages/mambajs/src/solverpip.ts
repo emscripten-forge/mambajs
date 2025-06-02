@@ -277,7 +277,9 @@ export async function solvePip(
   for (const spec of specs) {
     // Ignoring already installed package via conda
     if (installedCondaPackagesNames.has(spec.package)) {
-      logger?.log(`Requirement ${spec.package} already satisfied.`);
+      logger?.log(
+        `Requirement ${spec.package} already handled by conda/micromamba/mamba.`
+      );
       continue;
     }
 
