@@ -137,7 +137,6 @@ async function processRequirement(
   requirement: ISpec,
   warnedPackages: Set<string>,
   pipSolvedPackages: ISolvedPackages,
-  pipInstalledPackages: Set<string>,
   installedPackages: Set<string>,
   logger?: ILogger,
   required = false
@@ -163,11 +162,8 @@ async function processRequirement(
 
     return;
   }
-  logger?.log(
-    `${requirement.package}${requirement.constraints || ''}: Installing ${solved.version}`
-  );
 
-  pipInstalledPackages.add(requirement.package);
+  installedPackages.add(requirement.package);
   pipSolvedPackages[solved.name] = {
     name: requirement.package,
     version: solved.version,
@@ -191,16 +187,23 @@ async function processRequirement(
       continue;
     }
 
+    // Ignoring already installed package (TODO Compare versions)
+    if (installedPackages.has(parsedRequirement.package)) {
+      if (!warnedPackages.has(parsedRequirement.package)) {
+        logger?.log(
+          `Requirement ${parsedRequirement.package} already satisfied.`
+        );
+        warnedPackages.add(parsedRequirement.package);
+      }
+      continue;
+    }
+
     // Only process package if it's not already being installed
-    if (
-      !installedPackages.has(parsedRequirement.package) &&
-      !pipInstalledPackages.has(parsedRequirement.package)
-    ) {
+    if (!installedPackages.has(parsedRequirement.package)) {
       await processRequirement(
         parsedRequirement,
         warnedPackages,
         pipSolvedPackages,
-        pipInstalledPackages,
         installedPackages,
         logger,
         false
@@ -211,7 +214,8 @@ async function processRequirement(
 
 export async function solvePip(
   yml: string,
-  installed: ISolvedPackages,
+  installedCondaPackages: ISolvedPackages,
+  installedPipPackages: ISolvedPackages,
   packageNames: Array<string> = [],
   logger?: ILogger
 ): Promise<ISolvedPackages> {
@@ -231,24 +235,38 @@ export async function solvePip(
   }
 
   const installedPackages = new Set<string>();
-  for (const installedPackage of Object.values(installed)) {
+  for (const installedPackage of Object.values(installedCondaPackages)) {
     const pipPackageName = await getPipPackageName(installedPackage.name);
     installedPackages.add(pipPackageName);
+  }
+  for (const installedPackage of Object.values(installedPipPackages)) {
+    installedPackages.add(installedPackage.name);
   }
 
   const warnedPackages = new Set<string>();
   const pipSolvedPackages: ISolvedPackages = {};
-  const pipInstalledPackages = new Set<string>();
   for (const spec of specs) {
+    // Ignoring already installed package (TODO Compare versions)
+    if (installedPackages.has(spec.package)) {
+      logger?.log(`Requirement ${spec.package} already satisfied.`);
+      continue;
+    }
+
     await processRequirement(
       spec,
       warnedPackages,
       pipSolvedPackages,
-      pipInstalledPackages,
       installedPackages,
       logger,
       true
     );
+  }
+
+  if (Object.values(pipSolvedPackages).length) {
+    const pkgs = Object.values(pipSolvedPackages).map(
+      pkg => `${pkg.name}-${pkg.version}`
+    );
+    logger?.log(`Successfully installed ${pkgs.join(' ')}`);
   }
 
   return pipSolvedPackages;

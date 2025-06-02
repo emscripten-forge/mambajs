@@ -17,11 +17,9 @@ export async function solve(
   const { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
   const { installedPipPackages, installedCondaPackages } =
     splitPipPackages(installedPackages);
-  let condaPackages: ISolvedPackages = {};
+  let condaPackages: ISolvedPackages = installedCondaPackages;
 
-  if ((!ymlOrSpecs || !ymlOrSpecs.length) && installedCondaPackages) {
-    condaPackages = installedCondaPackages;
-  } else {
+  if (ymlOrSpecs && ymlOrSpecs.length) {
     try {
       condaPackages = await getSolvedPackages(options);
 
@@ -35,7 +33,7 @@ export async function solve(
     }
   }
 
-  let pipPackages: ISolvedPackages = {};
+  let pipPackages: ISolvedPackages = installedPipPackages;
 
   if (typeof ymlOrSpecs === 'string') {
     if (hasPipDependencies(ymlOrSpecs)) {
@@ -47,7 +45,13 @@ export async function solve(
       }
       logger?.log('');
       logger?.log('Process pip requirements ...\n');
-      pipPackages = await solvePip(ymlOrSpecs, condaPackages, [], logger);
+      pipPackages = await solvePip(
+        ymlOrSpecs,
+        condaPackages,
+        pipPackages,
+        [],
+        logger
+      );
     }
   } else if (
     (installedPipPackages && Object.keys(installedPipPackages).length) ||
@@ -64,13 +68,13 @@ export async function solve(
       pipPackages = installedPipPackages;
     } else {
       logger?.log('Process pip requirements ...\n');
-      if (installedPipPackages) {
-        Object.keys(installedPipPackages).map(filename => {
-          const pkg = installedPipPackages[filename];
-          pkgs?.push(`${pkg.name}`);
-        });
-      }
-      pipPackages = await solvePip('', condaPackages, pkgs, logger);
+      pipPackages = await solvePip(
+        '',
+        condaPackages,
+        pipPackages,
+        pkgs,
+        logger
+      );
     }
   }
 
