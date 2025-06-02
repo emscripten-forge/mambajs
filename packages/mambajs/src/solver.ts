@@ -4,7 +4,7 @@ import {
   splitPipPackages
 } from '@emscripten-forge/mambajs-core';
 import { parse } from 'yaml';
-import { Platform, simpleSolve, SolvedPackage } from '@baszalmstra/rattler';
+import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
 
 const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
 const DEFAULT_CHANNELS = [
