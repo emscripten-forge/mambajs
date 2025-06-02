@@ -139,7 +139,8 @@ async function processRequirement(
   pipSolvedPackages: ISolvedPackages,
   pipInstalledPackages: Set<string>,
   installedPackages: Set<string>,
-  logger?: ILogger
+  logger?: ILogger,
+  required = false
 ) {
   const pkgMetadata = await (
     await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
@@ -147,10 +148,16 @@ async function processRequirement(
 
   const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
   if (!solved) {
+    const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "conda install ${requirement.package}"`;
+
+    // Package is a direct requirement requested by the user, we throw an error
+    if (required) {
+      logger?.error(msg);
+      throw new Error(msg);
+    }
+
     if (!warnedPackages.has(requirement.package)) {
-      logger?.warn(
-        `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge!`
-      );
+      logger?.warn(msg);
       warnedPackages.add(requirement.package);
     }
 
@@ -195,7 +202,8 @@ async function processRequirement(
         pipSolvedPackages,
         pipInstalledPackages,
         installedPackages,
-        logger
+        logger,
+        false
       );
     }
   }
@@ -238,7 +246,8 @@ export async function solvePip(
       pipSolvedPackages,
       pipInstalledPackages,
       installedPackages,
-      logger
+      logger,
+      true
     );
   }
 

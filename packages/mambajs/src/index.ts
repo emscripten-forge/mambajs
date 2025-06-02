@@ -24,17 +24,18 @@ export async function solve(
   } else {
     try {
       condaPackages = await getSolvedPackages(options);
+
+      if (!installedPackages) {
+        showPackagesList(condaPackages, logger);
+      } else {
+        showEnvironmentDiff(installedPackages, condaPackages, logger);
+      }
     } catch (error: any) {
       throw new Error(error.message);
     }
   }
-  let pipPackages: ISolvedPackages = {};
 
-  if (!installedPackages) {
-    showPackagesList(condaPackages, logger);
-  } else {
-    showEnvironmentDiff(installedPackages, condaPackages, logger);
-  }
+  let pipPackages: ISolvedPackages = {};
 
   if (typeof ymlOrSpecs === 'string') {
     if (hasPipDependencies(ymlOrSpecs)) {
