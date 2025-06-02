@@ -341,28 +341,27 @@ function parsePipPackage(pipPackages: Array<string>): ISpec[] {
   return specs;
 }
 
-export async function getPipPackageName(
-  packageName: string,
-  logger?: ILogger
-): Promise<string> {
-  let result = packageName;
-  try {
-    const url =
-      'https://raw.githubusercontent.com/prefix-dev/parselmouth/main/files/compressed_mapping.json';
-    const response = await fetch(url);
-    if (!response.ok && logger) {
-      logger.error('Cannot parse pip package mapping json');
+const CONDA_PACKAGE_MAPPING_URL =
+  'https://raw.githubusercontent.com/prefix-dev/parselmouth/main/files/compressed_mapping.json';
+const CONDA_PACKAGE_MAPPING = fetch(CONDA_PACKAGE_MAPPING_URL).then(
+  async response => {
+    if (!response.ok) {
+      console.error('Failed to get conda->pip package mapping');
+      return undefined;
     }
 
-    const packageMapping = await response.json();
-
-    if (packageMapping.hasOwnProperty(packageName)) {
-      result = packageMapping[packageName];
-    }
-  } catch (error) {
-    logger?.error('Cannot get pip package names', error);
+    return await response.json();
   }
-  return result;
+);
+
+export async function getPipPackageName(packageName: string): Promise<string> {
+  const packageMapping = await CONDA_PACKAGE_MAPPING;
+
+  if (packageMapping && packageMapping[packageName]) {
+    return packageMapping[packageName];
+  } else {
+    return packageName;
+  }
 }
 
 export function hasPipDependencies(yml?: string): boolean {
