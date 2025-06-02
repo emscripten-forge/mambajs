@@ -149,7 +149,7 @@ async function processRequirement(
 
   const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
   if (!solved) {
-    const msg = `\x1b[38;5;208mCannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "conda install ${requirement.package}\x1b[0m"`;
+    const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "conda install ${requirement.package}"`;
 
     // Package is a direct requirement requested by the user, we throw an error
     if (required) {
