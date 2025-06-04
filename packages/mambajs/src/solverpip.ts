@@ -87,7 +87,7 @@ function resolveVersion(availableVersions: string[], constraint: string) {
     : validVersions[0] || undefined;
 }
 
-export function parsePackageRequirement(requirement: string): ISpec | null {
+function parsePyPiRequirement(requirement: string): ISpec | null {
   const nameMatch = requirement.match(/^([a-zA-Z0-9_-]+)/);
 
   if (!nameMatch) {
@@ -179,7 +179,7 @@ async function processRequirement(
       continue;
     }
 
-    const parsedRequirement = parsePackageRequirement(requirement);
+    const parsedRequirement = parsePyPiRequirement(requirement);
     if (!parsedRequirement) {
       continue;
     }
@@ -248,7 +248,7 @@ export async function solvePip(
 function parsePipPackage(pipPackages: Array<string>): ISpec[] {
   const specs: ISpec[] = [];
   for (const pipPkg of pipPackages) {
-    const parsedSpec = parsePackageRequirement(pipPkg);
+    const parsedSpec = parsePyPiRequirement(pipPkg);
     if (parsedSpec) {
       specs.push(parsedSpec);
     }

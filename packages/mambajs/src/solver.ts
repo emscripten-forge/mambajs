@@ -5,7 +5,6 @@ import {
 } from '@emscripten-forge/mambajs-core';
 import { parse } from 'yaml';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
-import { parsePackageRequirement } from './solverpip';
 
 const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
 const DEFAULT_CHANNELS = [
@@ -54,21 +53,27 @@ const solve = async (
     if (Object.keys(installedCondaPackages).length) {
       Object.keys(installedCondaPackages).map((filename: string) => {
         const installedPkg = installedCondaPackages[filename];
-        let tmpPkg = {
-          ...installedPkg,
-          packageName: installedPkg.name,
-          build: installedPkg.build_string,
-          build_number: installed.build_number
-            ? BigInt(installed.build_number)
-            : undefined,
-          filename
-        };
+        if (installedPkg.url) {
+       
+          let tmpPkg = {
+            ...installedPkg,
+            packageName: installedPkg.name,
+            repoName: installedPkg.repo_name,
+            build: installedPkg.build_string,
+            buildNumber: installed.build_number
+              ? BigInt(installed.build_number)
+              : undefined,
+            filename
+          };
 
-        installed.push(tmpPkg);
+          installed.push(tmpPkg);
+        }
+        
       });
     } else {
       installed = undefined;
     }
+
     const startSolveTime = performance.now();
     result = (await simpleSolve(
       specs,
@@ -83,19 +88,6 @@ const solve = async (
       );
     }
 
-    const packagesNames = new Set<string>();
-    specs.forEach((spec: string) => {
-      const parsedSpec = parsePackageRequirement(spec);
-      if (parsedSpec) {
-        packagesNames.add(parsedSpec.package);
-      }
-    });
-    result.forEach(pkg => {
-      const installedPkg = installedCondaPackages[pkg.filename];
-      if (installedPkg && packagesNames.has(installedPkg.name)) {
-        logger?.log(`${installedPkg.name} has been already installed`);
-      }
-    });
     result.map(item => {
       const {
         filename,
@@ -148,8 +140,10 @@ export const getSolvedPackages = async (
   } else {
     const pkgs = splitPipPackages(installedPackages);
     installedCondaPackages = pkgs.installedCondaPackages;
-
-    specs = ymlOrSpecs as string[];
+    specs = prepareSpecsForInstalling(
+      installedCondaPackages,
+      ymlOrSpecs as string[]
+    );
     newChannels = formatChannels(channels);
   }
 
@@ -222,4 +216,20 @@ const formatChannels = (channels?: string[]) => {
 
 const normalizeUrl = (url: string) => {
   return url.replace(/[\/\s]+$/, '');
+};
+
+export const prepareSpecsForInstalling = (
+  condaPackages: ISolvedPackages,
+  specs: Array<string>
+) => {
+  Object.keys(condaPackages).map((filename: string) => {
+    const installedPackage = condaPackages[filename];
+    if (installedPackage.name === 'python') {
+      specs.push(`${installedPackage.name}=${installedPackage.version}`);
+    } else {
+      specs.push(`${installedPackage.name}`);
+    }
+  });
+
+  return specs;
 };
