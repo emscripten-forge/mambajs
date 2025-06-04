@@ -1,6 +1,6 @@
 {
   "name": "@emscripten-forge/mambajs",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Solve conda environments and pip packages in your browser",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

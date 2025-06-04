@@ -137,30 +137,44 @@ async function processRequirement(
   requirement: ISpec,
   warnedPackages: Set<string>,
   pipSolvedPackages: ISolvedPackages,
-  pipInstalledPackages: Set<string>,
-  installedPackages: Set<string>,
-  logger?: ILogger
+  installedCondaPackagesNames: Set<string>,
+  installedWheels: { [name: string]: string },
+  installPipPackagesLookup: ISolvedPackages,
+  logger?: ILogger,
+  required = false
 ) {
   const pkgMetadata = await (
     await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
   ).json();
 
+  if (pkgMetadata.message === 'Not Found') {
+    const msg = `ERROR: Could not find a version that satisfies the requirement ${requirement.package}`;
+    logger?.error(msg);
+    throw new Error(msg);
+  }
+
   const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
   if (!solved) {
+    const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "conda install ${requirement.package}"`;
+
+    // Package is a direct requirement requested by the user, we throw an error
+    if (required) {
+      logger?.error(msg);
+      throw new Error(msg);
+    }
+
     if (!warnedPackages.has(requirement.package)) {
-      logger?.warn(
-        `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge!`
-      );
+      logger?.warn(msg);
       warnedPackages.add(requirement.package);
     }
 
     return;
   }
-  logger?.log(
-    `${requirement.package}${requirement.constraints || ''}: Installing ${solved.version}`
-  );
 
-  pipInstalledPackages.add(requirement.package);
+  // Remove old version (if exists) and add new one
+  if (installPipPackagesLookup[requirement.package]) {
+    delete pipSolvedPackages[installedWheels[requirement.package]];
+  }
   pipSolvedPackages[solved.name] = {
     name: requirement.package,
     version: solved.version,
@@ -184,30 +198,57 @@ async function processRequirement(
       continue;
     }
 
-    // Only process package if it's not already being installed
-    if (
-      !installedPackages.has(parsedRequirement.package) &&
-      !pipInstalledPackages.has(parsedRequirement.package)
-    ) {
-      await processRequirement(
-        parsedRequirement,
-        warnedPackages,
-        pipSolvedPackages,
-        pipInstalledPackages,
-        installedPackages,
-        logger
-      );
+    // Ignoring already installed package through conda
+    if (installedCondaPackagesNames.has(parsedRequirement.package)) {
+      if (!warnedPackages.has(parsedRequirement.package)) {
+        logger?.log(
+          `Requirement ${parsedRequirement.package} already satisfied.`
+        );
+      }
+      warnedPackages.add(parsedRequirement.package);
+      continue;
     }
+
+    // Ignoring already installed package through pip
+    const alreadyInstalled =
+      installPipPackagesLookup[parsedRequirement.package];
+    if (
+      alreadyInstalled &&
+      (!parsedRequirement.constraints ||
+        satisfies(alreadyInstalled.version, parsedRequirement.constraints))
+    ) {
+      if (!warnedPackages.has(parsedRequirement.package)) {
+        logger?.log(
+          `Requirement ${parsedRequirement.package}${parsedRequirement.constraints || ''} already satisfied.`
+        );
+      }
+      warnedPackages.add(parsedRequirement.package);
+      continue;
+    }
+
+    await processRequirement(
+      parsedRequirement,
+      warnedPackages,
+      pipSolvedPackages,
+      installedCondaPackagesNames,
+      installedWheels,
+      installPipPackagesLookup,
+      logger,
+      false
+    );
   }
 }
 
 export async function solvePip(
   yml: string,
-  installed: ISolvedPackages,
+  installedCondaPackages: ISolvedPackages,
+  installedWheels: { [name: string]: string },
+  installedPipPackages: ISolvedPackages,
   packageNames: Array<string> = [],
   logger?: ILogger
 ): Promise<ISolvedPackages> {
   let specs: ISpec[] = [];
+
   if (yml) {
     const data = parse(yml);
     const packages = data?.dependencies ? data.dependencies : [];
@@ -222,24 +263,74 @@ export async function solvePip(
     specs = parsePipPackage(packageNames);
   }
 
-  const installedPackages = new Set<string>();
-  for (const installedPackage of Object.values(installed)) {
+  // Create lookup tables for already installed packages
+  // Pip will not take ownership of install conda packages, it cannot update them
+  // Pip can only update pip-installed packages and install new ones
+  const installedCondaPackagesNames = new Set<string>();
+  for (const installedPackage of Object.values(installedCondaPackages)) {
     const pipPackageName = await getPipPackageName(installedPackage.name);
-    installedPackages.add(pipPackageName);
+    installedCondaPackagesNames.add(pipPackageName);
+  }
+
+  // Create pip package lookup we can more easily use (index by package name, not wheel name)
+  const installPipPackagesLookup: ISolvedPackages = {};
+  for (const installedPackage of Object.values(installedPipPackages)) {
+    installPipPackagesLookup[installedPackage.name] = installedPackage;
   }
 
   const warnedPackages = new Set<string>();
-  const pipSolvedPackages: ISolvedPackages = {};
-  const pipInstalledPackages = new Set<string>();
+  const pipSolvedPackages: ISolvedPackages = { ...installedPipPackages };
   for (const spec of specs) {
+    // Ignoring already installed package via conda
+    if (installedCondaPackagesNames.has(spec.package)) {
+      logger?.log(
+        `Requirement ${spec.package} already handled by conda/micromamba/mamba.`
+      );
+      continue;
+    }
+
+    const alreadyInstalled = installPipPackagesLookup[spec.package];
+    if (
+      alreadyInstalled &&
+      (!spec.constraints ||
+        satisfies(alreadyInstalled.version, spec.constraints))
+    ) {
+      logger?.log(
+        `Requirement ${spec.package}${spec.constraints || ''} already satisfied.`
+      );
+      continue;
+    }
+
     await processRequirement(
       spec,
       warnedPackages,
       pipSolvedPackages,
-      pipInstalledPackages,
-      installedPackages,
-      logger
+      installedCondaPackagesNames,
+      installedWheels,
+      installPipPackagesLookup,
+      logger,
+      true
     );
+  }
+
+  const oldPackagesLookup: ISolvedPackages = {};
+  for (const pkg of Object.values(installedPipPackages)) {
+    oldPackagesLookup[pkg.name] = pkg;
+  }
+
+  if (Object.values(pipSolvedPackages).length) {
+    const newPkgs: string[] = [];
+    for (const pkg of Object.values(pipSolvedPackages)) {
+      if (
+        !oldPackagesLookup[pkg.name] ||
+        oldPackagesLookup[pkg.name].version !== pkg.version
+      ) {
+        newPkgs.push(`${pkg.name}-${pkg.version}`);
+      }
+    }
+    if (newPkgs.length) {
+      logger?.log(`Successfully installed ${newPkgs.join(' ')}`);
+    }
   }
 
   return pipSolvedPackages;
@@ -256,28 +347,27 @@ function parsePipPackage(pipPackages: Array<string>): ISpec[] {
   return specs;
 }
 
-async function getPipPackageName(
-  installedPackage: string,
-  logger?: ILogger
-): Promise<string> {
-  let result = installedPackage;
-  try {
-    const url =
-      'https://raw.githubusercontent.com/prefix-dev/parselmouth/main/files/compressed_mapping.json';
-    const response = await fetch(url);
-    if (!response.ok && logger) {
-      logger.error('Cannot parse pip package mapping json');
+const CONDA_PACKAGE_MAPPING_URL =
+  'https://raw.githubusercontent.com/prefix-dev/parselmouth/main/files/compressed_mapping.json';
+const CONDA_PACKAGE_MAPPING = fetch(CONDA_PACKAGE_MAPPING_URL).then(
+  async response => {
+    if (!response.ok) {
+      console.error('Failed to get conda->pip package mapping');
+      return undefined;
     }
 
-    const packageMapping = await response.json();
-
-    if (packageMapping.hasOwnProperty(installedPackage)) {
-      result = packageMapping[installedPackage];
-    }
-  } catch (error) {
-    logger?.error('Cannot get pip package names', error);
+    return await response.json();
   }
-  return result;
+);
+
+export async function getPipPackageName(packageName: string): Promise<string> {
+  const packageMapping = await CONDA_PACKAGE_MAPPING;
+
+  if (packageMapping && packageMapping[packageName]) {
+    return packageMapping[packageName];
+  } else {
+    return packageName;
+  }
 }
 
 export function hasPipDependencies(yml?: string): boolean {
