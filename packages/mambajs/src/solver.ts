@@ -59,8 +59,8 @@ const solve = async (
             packageName: installedPkg.name,
             repoName: installedPkg.repo_name,
             build: installedPkg.build_string,
-            buildNumber: installed.build_number
-              ? BigInt(installed.build_number)
+            buildNumber: installedPkg.build_number
+              ? BigInt(installedPkg.build_number)
               : undefined,
             filename
           };
