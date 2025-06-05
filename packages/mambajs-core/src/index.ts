@@ -432,7 +432,7 @@ export function showEnvironmentDiff(
         buildStringDiff = pkg.build_string || '';
         channelDiff = pkg.repo_name || '';
       } else {
-        prefix = '\x1b[0;31m~';
+        prefix = '\x1b[38;5;208m~';
         versionDiff = `${prevPkg.version} -> ${pkg.version}`;
         buildStringDiff = `${prevPkg.build_string || 'unknown'} -> ${pkg.build_string || 'unknown'}`;
         channelDiff =
@@ -456,7 +456,7 @@ export function showEnvironmentDiff(
         }
 
         logger?.log(
-          `- ${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
+          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
         );
       }
     }
