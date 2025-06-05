@@ -1,9 +1,9 @@
 export interface IParsedCommand {
   type: CommandsName;
-  data: IInstallationCommandOptions | null;
+  data: IInstallationCommandOptions | IUninstallationCommandOptions | null;
 }
 
-type CommandsName = 'install' | 'list';
+type CommandsName = 'install' | 'list' | 'remove' | 'uninstall';
 
 export interface ICommandData {
   commands: IParsedCommand[];
@@ -14,6 +14,12 @@ export interface IInstallationCommandOptions {
   channels: string[];
   specs: string[];
   pipSpecs: string[];
+}
+
+export interface IUninstallationCommandOptions {
+  specs: string[];
+  env?: string;
+  flags?: string[];
 }
 
 export type SpecTypes = 'specs' | 'pipSpecs';
@@ -42,7 +48,7 @@ export function parse(code: string): ICommandData {
   if (codeLines.length > 1) {
     result = { ...parseLines(codeLines) };
   } else {
-    if (hasCondaListCommand(code)) {
+    if (hasCommand(code)['list']) {
       const command: IParsedCommand = {
         type: 'list',
         data: null
@@ -84,9 +90,101 @@ function parseCommand(code: string): {
   run: string;
 } {
   const run = code;
+  let result: {
+    command: IParsedCommand | null;
+    run: string;
+  } = {
+    command: null,
+    run
+  };
+  const isCommand = hasCommand(code);
+  if (isCommand.install) {
+    result = parseInstallCommand(code);
+  } else if (isCommand.remove || isCommand.uninstall) {
+    result = parseRemoveCommand(code);
+  }
+  return result;
+}
+
+function parseRemoveCommand(code: string): {
+  command: IParsedCommand | null;
+  run: string;
+} {
+  const run = code;
   let isPipCommand = false;
-  const isInstallCommand = hasInstallCommand(code);
-  code = isInstallCommand ? replaceCommandHeader(code) : code;
+
+  if (code.includes('%pip uninstall')) {
+    isPipCommand = true;
+  }
+  // todo to pip uninstall
+  code = replaceCommandHeader(code, 'remove');
+
+  const command: IParsedCommand = {
+    type: 'remove',
+    data: {
+      specs: [],
+      env: '',
+      flags: []
+    }
+  };
+
+  if (code) {
+    if (isPipCommand) {
+      command.data = parsePipUninstallCommand(code);
+    } else {
+      command.data = parseCondaRemoveCommand(code);
+    }
+
+    return {
+      command,
+      run: ''
+    };
+  } else {
+    return {
+      command: null,
+      run
+    };
+  }
+}
+
+function parsePipUninstallCommand(code: string) {}
+
+export interface IUninstallationCommandOptions {
+  specs: string[];
+  env?: string;
+  flags?: string[];
+}
+
+function parseCondaRemoveCommand(code: string): IUninstallationCommandOptions {
+  const parts = code.split(' ');
+  const specs: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part) {
+      //todo we have to check if we have env name;
+      specs.push(part);
+    }
+  }
+
+  return {
+    specs,
+    env: '',
+    flags: []
+  };
+}
+
+function parseInstallCommand(code: string): {
+  command: IParsedCommand | null;
+  run: string;
+} {
+  const run = code;
+  let isPipCommand = false;
+
+  if (code.includes('%pip install')) {
+    isPipCommand = true;
+  }
+
+  code = replaceCommandHeader(code, 'install');
   const command: IParsedCommand = {
     type: 'install',
     data: {
@@ -96,16 +194,11 @@ function parseCommand(code: string): {
     }
   };
 
-  if (isInstallCommand && code.includes('%pip install')) {
-    code = code.replace('%pip install', '');
-    isPipCommand = true;
-  }
-
-  if (isInstallCommand && code) {
+  if (code) {
     if (isPipCommand) {
-      command.data = parsePipCommand(code);
+      command.data = parsePipInstallCommand(code);
     } else {
-      command.data = parseCondaCommand(code);
+      command.data = parseCondaInstallCommand(code);
     }
 
     return {
@@ -134,13 +227,13 @@ function parseLines(codeLines: string[]): ICommandData {
   const runCommands: string[] = [];
   const commands: IParsedCommand[] = [];
   codeLines.forEach((line: string) => {
-    const isInstallCommand = hasInstallCommand(line);
-    if (isInstallCommand) {
+    const isCommand = hasCommand(line);
+    if (isCommand['install'] || isCommand['remove'] || isCommand['uninstall']) {
       const { command } = { ...parseCommand(line) };
       if (command) {
         commands.push(command);
       }
-    } else if (hasCondaListCommand(line)) {
+    } else if (isCommand['list']) {
       commands.push({ type: 'list', data: null });
     } else {
       runCommands.push(line);
@@ -160,11 +253,11 @@ function parseLines(codeLines: string[]): ICommandData {
  * @param {string} code - The command line which should be parsed.
  * @returns {string} - Can be as part of conda installation command and as code
  */
-function replaceCommandHeader(code: string): string {
-  const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler'];
+function replaceCommandHeader(code: string, command: string): string {
+  const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler', 'pip'];
   commandNames.forEach((name: string) => {
-    if (code.includes(`%${name} install`)) {
-      code = code.replace(`%${name} install`, '');
+    if (code.includes(`%${name} ${command}`)) {
+      code = code.replace(`%${name} ${command}`, '');
     }
   });
 
@@ -172,39 +265,29 @@ function replaceCommandHeader(code: string): string {
 }
 
 /**
- * Detects whether the line has conda installation commands
+ * Detects whether the line has commands
  *
  * @param {string} code - The command line which should be parsed.
- * @returns {boolean} - True if it is a conda installation command
+ * @returns {string} - True if code has a command
  */
-function hasInstallCommand(code: string): boolean {
-  let isCommand = false;
-  const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler', 'pip'];
-  const pattern = new RegExp(
-    `^\\s*%(${commandNames.join('|')})\\s+install\\b`,
-    'm'
-  );
-
-  isCommand = pattern.test(code);
-  return isCommand;
-}
-
-/**
- * Detects whether the line is to list installed packages
- *
- * @param {string} code - The command line which should be parsed.
- * @returns {boolean} - True if it is list command
- */
-function hasCondaListCommand(code: string): boolean {
-  let isCondaListCommand = false;
-  const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler'];
-  commandNames.forEach((name: string) => {
-    if (code === `%${name} list`) {
-      isCondaListCommand = true;
-    }
+function hasCommand(code: string): any {
+  const commands = {
+    remove: 'micromamba | un | mamba | conda | rattler',
+    uninstall: 'pip',
+    install: 'micromamba | un | mamba | conda | rattler | pip',
+    list: 'micromamba | un | mamba | conda | rattler'
+  };
+  const result = Object.keys(commands).map(command => {
+    const pattern = new RegExp(
+      `^\\s*%(${commands[command]})\\s+${command}\\b`,
+      'm'
+    );
+    const tmp = {};
+    tmp[command] = pattern.test(code);
+    console.log('tmp', tmp);
+    return tmp;
   });
-
-  return isCondaListCommand;
+  return result;
 }
 
 /**
@@ -216,7 +299,7 @@ function hasCondaListCommand(code: string): boolean {
  *  - conda packages for installing,
  *  - pip packages for installing
  */
-function parseCondaCommand(input: string): IInstallationCommandOptions {
+function parseCondaInstallCommand(input: string): IInstallationCommandOptions {
   const parts = input.split(' ');
   const channels: string[] = [];
   const specs: string[] = [];
@@ -252,7 +335,7 @@ function parseCondaCommand(input: string): IInstallationCommandOptions {
  *  - pip packages for installing
  */
 
-function parsePipCommand(input: string): IInstallationCommandOptions {
+function parsePipInstallCommand(input: string): IInstallationCommandOptions {
   const parts = input.split(' ');
   let skip = false;
   const limits = [
