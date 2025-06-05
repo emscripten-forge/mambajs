@@ -411,7 +411,11 @@ export function showEnvironmentDiff(
       const prevPkg = previousInstall.get(pkg.name);
 
       // Not listing untouched packages
-      if (prevPkg && prevPkg.build_string === pkg.build_string) {
+      if (
+        prevPkg &&
+        prevPkg.version === pkg.version &&
+        prevPkg.build_string === pkg.build_string
+      ) {
         continue;
       }
 

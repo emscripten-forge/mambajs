@@ -54,7 +54,7 @@ const solve = async (
       Object.keys(installedCondaPackages).map((filename: string) => {
         const installedPkg = installedCondaPackages[filename];
         if (installedPkg.url) {
-          let tmpPkg = {
+          const tmpPkg = {
             ...installedPkg,
             packageName: installedPkg.name,
             repoName: installedPkg.repo_name,
