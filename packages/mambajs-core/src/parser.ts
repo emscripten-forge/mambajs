@@ -1,3 +1,5 @@
+import { ILogger } from './helper';
+
 export interface IParsedCommand {
   type: CommandsName;
   data: IInstallationCommandOptions | IUninstallationCommandOptions | null;
@@ -18,8 +20,7 @@ export interface IInstallationCommandOptions {
 
 export interface IUninstallationCommandOptions {
   specs: string[];
-  env?: string;
-  flags?: string[];
+  env?: string[];
 }
 
 export type SpecTypes = 'specs' | 'pipSpecs';
@@ -32,23 +33,23 @@ export type SpecTypes = 'specs' | 'pipSpecs';
  * - If the code contains conda or pip installation command, then it tries to parse it
  * - Otherwise code will be executed as it is
  *
- * @param {string} code - The raw command-line input string to be parsed.
+ * @param {string} input - The raw command-line input string to be parsed.
  * @returns {ICommands} An object containing:
  *  - parsed installation options,
  *  - run command code,
  *  - and a list flag indicating whether a list command was detected.
  */
-export function parse(code: string): ICommandData {
+export function parse(input: string, logger?: ILogger): ICommandData {
   let result: ICommandData = {
     commands: [],
-    run: code
+    run: input
   };
 
-  const codeLines = code.split('\n');
+  const codeLines = input.split('\n');
   if (codeLines.length > 1) {
-    result = { ...parseLines(codeLines) };
+    result = { ...parseLines(codeLines, logger) };
   } else {
-    if (hasCommand(code)['list']) {
+    if (hasCommand(input)['list']) {
       const command: IParsedCommand = {
         type: 'list',
         data: null
@@ -59,7 +60,7 @@ export function parse(code: string): ICommandData {
         run: ''
       };
     } else {
-      const parsedData = { ...parseCommand(code) };
+      const parsedData = { ...parseCommand(input, logger) };
       if (parsedData.command) {
         result = {
           commands: [parsedData.command],
@@ -80,16 +81,19 @@ export function parse(code: string): ICommandData {
  * Parses one row of code and detects whether it is conda or pip installation command.
  * runnable code, or conda list operations.
  *
- * @param {string} code - The raw command-line input string to be parsed.
+ * @param {string} input - The raw command-line input string to be parsed.
  * @returns {IParsedCommands} An object containing:
  *  - parsed installation options,
  *  - run command code
  */
-function parseCommand(code: string): {
+function parseCommand(
+  input: string,
+  logger?: ILogger
+): {
   command: IParsedCommand | null;
   run: string;
 } {
-  const run = code;
+  const run = input;
   let result: {
     command: IParsedCommand | null;
     run: string;
@@ -97,45 +101,47 @@ function parseCommand(code: string): {
     command: null,
     run
   };
-  const isCommand = hasCommand(code);
+  const isCommand = hasCommand(input);
   if (isCommand.install) {
-    result = parseInstallCommand(code);
+    result = parseInstallCommand(input, logger);
   } else if (isCommand.remove || isCommand.uninstall) {
-    result = parseRemoveCommand(code);
+    result = parseRemoveCommand(input, logger);
   }
   return result;
 }
 
-function parseRemoveCommand(code: string): {
+function parseRemoveCommand(
+  input: string,
+  logger?: ILogger
+): {
   command: IParsedCommand | null;
   run: string;
 } {
-  const run = code;
+  const run = input;
   let isPipCommand = false;
 
-  if (code.includes('%pip uninstall')) {
+  if (input.includes('%pip uninstall')) {
     isPipCommand = true;
   }
   if (isPipCommand) {
-    code = replaceCommandHeader(code, 'uninstall');
+    input = replaceCommandHeader(input, 'uninstall');
   } else {
-    code = replaceCommandHeader(code, 'remove');
+    input = replaceCommandHeader(input, 'remove');
   }
 
   const command: IParsedCommand = {
     type: 'remove',
     data: {
       specs: [],
-      env: '',
-      flags: []
+      env: []
     }
   };
 
-  if (code) {
+  if (input) {
     if (isPipCommand) {
-      command.data = getCommandParameter(code);
+      command.data = getPipUnInstallParameters(input, logger);
     } else {
-      command.data = getCommandParameter(code);
+      command.data = getCondaRemoveCommandParameters(input, logger);
     }
 
     return {
@@ -150,36 +156,62 @@ function parseRemoveCommand(code: string): {
   }
 }
 
-function getCommandParameter(code: string): IUninstallationCommandOptions {
-  const parts = code.split(' ');
+function getCondaRemoveCommandParameters(
+  input: string,
+  logger?: ILogger
+): IUninstallationCommandOptions {
+  const parts = input.split(' ');
   const specs: string[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (part) {
-      //todo we have to check if we have env name;
-      specs.push(part);
+  const env: string[] = [];
+  const limits = ['-all', '--override-frozen', '--keep-env', '--dev'];
+  let skip = false;
+  let envFlags = ['-n', '--name', '-p', '--prefix'];
+
+  limits.map((options: string) => {
+    if (input.includes(options)) {
+      skip = true;
+    }
+  });
+  if (!skip) {
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (part) {
+        const j = i + 1;
+        if (
+          envFlags.includes(part) &&
+          j < parts.length &&
+          !parts[j].startsWith('-')
+        ) {
+          env.push(parts[j]);
+          i++;
+        } else {
+          specs.push(part);
+        }
+      }
     }
   }
 
   return {
     specs,
-    env: '',
-    flags: []
+    env
   };
 }
 
-function parseInstallCommand(code: string): {
+function parseInstallCommand(
+  input: string,
+  logger?: ILogger
+): {
   command: IParsedCommand | null;
   run: string;
 } {
-  const run = code;
+  const run = input;
   let isPipCommand = false;
 
-  if (code.includes('%pip install')) {
+  if (input.includes('%pip install')) {
     isPipCommand = true;
   }
 
-  code = replaceCommandHeader(code, 'install');
+  input = replaceCommandHeader(input, 'install');
   const command: IParsedCommand = {
     type: 'install',
     data: {
@@ -189,11 +221,11 @@ function parseInstallCommand(code: string): {
     }
   };
 
-  if (code) {
+  if (input) {
     if (isPipCommand) {
-      command.data = parsePipInstallCommand(code);
+      command.data = parsePipInstallCommand(input, logger);
     } else {
-      command.data = parseCondaInstallCommand(code);
+      command.data = parseCondaInstallCommand(input);
     }
 
     return {
@@ -218,13 +250,13 @@ function parseInstallCommand(code: string): {
  *  - and a list flag indicating whether a list command was detected.
  */
 
-function parseLines(codeLines: string[]): ICommandData {
+function parseLines(codeLines: string[], logger?: ILogger): ICommandData {
   const runCommands: string[] = [];
   const commands: IParsedCommand[] = [];
   codeLines.forEach((line: string) => {
     const isCommand = hasCommand(line);
     if (isCommand['install'] || isCommand['remove'] || isCommand['uninstall']) {
-      const { command } = { ...parseCommand(line) };
+      const { command } = { ...parseCommand(line, logger) };
       if (command) {
         commands.push(command);
       }
@@ -245,27 +277,27 @@ function parseLines(codeLines: string[]): ICommandData {
  * Detects whether the line has conda installation commands
  * and replace the patter '[commandNames] install' for futher calculations
  *
- * @param {string} code - The command line which should be parsed.
+ * @param {string} input - The command line which should be parsed.
  * @returns {string} - Can be as part of conda installation command and as code
  */
-function replaceCommandHeader(code: string, command: string): string {
+function replaceCommandHeader(input: string, command: string): string {
   const commandNames = ['micromamba', 'un', 'mamba', 'conda', 'rattler', 'pip'];
   commandNames.forEach((name: string) => {
-    if (code.includes(`%${name} ${command}`)) {
-      code = code.replace(`%${name} ${command}`, '');
+    if (input.includes(`%${name} ${command}`)) {
+      input = input.replace(`%${name} ${command}`, '');
     }
   });
 
-  return code;
+  return input;
 }
 
 /**
  * Detects whether the line has commands
  *
- * @param {string} code - The command line which should be parsed.
+ * @param {string} input - The command line which should be parsed.
  * @returns {string} - True if code has a command
  */
-function hasCommand(code: string): any {
+function hasCommand(input: string): any {
   const commands = {
     remove: 'micromamba|un|mamba|conda|rattler',
     uninstall: 'pip',
@@ -278,9 +310,8 @@ function hasCommand(code: string): any {
       `^\\s*%(${commands[command]})\\s+${command}\\b`,
       'm'
     );
-    result[command] = pattern.test(code);
+    result[command] = pattern.test(input);
   });
-  console.log('result', result);
   return result;
 }
 
@@ -329,9 +360,10 @@ function parseCondaInstallCommand(input: string): IInstallationCommandOptions {
  *  - pip packages for installing
  */
 
-function parsePipInstallCommand(input: string): IInstallationCommandOptions {
-  const parts = input.split(' ');
-  let skip = false;
+function parsePipInstallCommand(
+  input: string,
+  logger?: ILogger
+): IInstallationCommandOptions {
   const limits = [
     '--index-url',
     '.whl',
@@ -354,7 +386,53 @@ function parsePipInstallCommand(input: string): IInstallationCommandOptions {
     '--no-deps'
   ];
 
-  const pipSpecs: string[] = [];
+  const pipSpecs: string[] = getPipSpecs(input, limits, flags, logger);
+  return {
+    channels: [],
+    specs: [],
+    pipSpecs
+  };
+}
+
+/**
+ * Parse pip uninstall command
+ *
+ * @param {string} input - The command line which should be parsed.
+ * @returns {IUninstallationCommandOptions} An object containing:
+ *  - specs is the array of package name that should be removed,
+ *  - env which is the name of the environment where packages should be removed from
+ */
+
+function getPipUnInstallParameters(
+  input: string,
+  logger?: ILogger
+): IUninstallationCommandOptions {
+  const limits = ['-r'];
+
+  const flags = [
+    '-y',
+    '--yes',
+    '--root-user-action',
+    '--break-system-packages'
+  ];
+
+  const specs: string[] = getPipSpecs(input, limits, flags, logger);
+
+  return {
+    specs,
+    env: []
+  };
+}
+
+function getPipSpecs(
+  input: string,
+  limits: string[],
+  flags: string[],
+  logger?: ILogger
+): string[] {
+  const parts = input.split(' ');
+  let skip = false;
+  const specs: string[] = [];
 
   limits.map((options: string) => {
     if (input.includes(options)) {
@@ -366,15 +444,12 @@ function parsePipInstallCommand(input: string): IInstallationCommandOptions {
       const part = parts[i];
       if (part) {
         if (!flags.includes(part)) {
-          pipSpecs.push(part);
+          specs.push(part);
         }
       }
     }
+  } else {
+    logger?.log('The command format is not supported');
   }
-
-  return {
-    channels: [],
-    specs: [],
-    pipSpecs
-  };
+  return specs;
 }
