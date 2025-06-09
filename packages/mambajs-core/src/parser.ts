@@ -116,8 +116,11 @@ function parseRemoveCommand(code: string): {
   if (code.includes('%pip uninstall')) {
     isPipCommand = true;
   }
-  // todo to pip uninstall
-  code = replaceCommandHeader(code, 'remove');
+  if (isPipCommand) {
+    code = replaceCommandHeader(code, 'uninstall');
+  } else {
+    code = replaceCommandHeader(code, 'remove');
+  }
 
   const command: IParsedCommand = {
     type: 'remove',
@@ -130,9 +133,9 @@ function parseRemoveCommand(code: string): {
 
   if (code) {
     if (isPipCommand) {
-      command.data = parsePipUninstallCommand(code);
+      command.data = getCommandParameter(code);
     } else {
-      command.data = parseCondaRemoveCommand(code);
+      command.data = getCommandParameter(code);
     }
 
     return {
@@ -147,15 +150,7 @@ function parseRemoveCommand(code: string): {
   }
 }
 
-function parsePipUninstallCommand(code: string) {}
-
-export interface IUninstallationCommandOptions {
-  specs: string[];
-  env?: string;
-  flags?: string[];
-}
-
-function parseCondaRemoveCommand(code: string): IUninstallationCommandOptions {
+function getCommandParameter(code: string): IUninstallationCommandOptions {
   const parts = code.split(' ');
   const specs: string[] = [];
   for (let i = 0; i < parts.length; i++) {
@@ -272,21 +267,20 @@ function replaceCommandHeader(code: string, command: string): string {
  */
 function hasCommand(code: string): any {
   const commands = {
-    remove: 'micromamba | un | mamba | conda | rattler',
+    remove: 'micromamba|un|mamba|conda|rattler',
     uninstall: 'pip',
-    install: 'micromamba | un | mamba | conda | rattler | pip',
-    list: 'micromamba | un | mamba | conda | rattler'
+    install: 'micromamba|un|mamba|conda|rattler|pip',
+    list: 'micromamba|un|mamba|conda|rattler'
   };
-  const result = Object.keys(commands).map(command => {
+  const result = {};
+  Object.keys(commands).forEach(command => {
     const pattern = new RegExp(
       `^\\s*%(${commands[command]})\\s+${command}\\b`,
       'm'
     );
-    const tmp = {};
-    tmp[command] = pattern.test(code);
-    console.log('tmp', tmp);
-    return tmp;
+    result[command] = pattern.test(code);
   });
+  console.log('result', result);
   return result;
 }
 
