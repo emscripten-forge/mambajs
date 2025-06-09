@@ -34,6 +34,7 @@ export type SpecTypes = 'specs' | 'pipSpecs';
  * - Otherwise code will be executed as it is
  *
  * @param {string} input - The raw command-line input string to be parsed.
+ * @param {ILogger} logger - The logger
  * @returns {ICommands} An object containing:
  *  - parsed installation options,
  *  - run command code,
@@ -78,10 +79,10 @@ export function parse(input: string, logger?: ILogger): ICommandData {
 }
 
 /**
- * Parses one row of code and detects whether it is conda or pip installation command.
- * runnable code, or conda list operations.
+ * Parses one row of code and detects whether it is conda or pip command.
  *
  * @param {string} input - The raw command-line input string to be parsed.
+ * @param {ILogger} logger - The logger
  * @returns {IParsedCommands} An object containing:
  *  - parsed installation options,
  *  - run command code
@@ -110,6 +111,15 @@ function parseCommand(
   return result;
 }
 
+/**
+ * Parses remove commands.
+ *
+ * @param {string} input - The command line which should be parsed.
+ * @param {ILogger} [logger] - The logger.
+ * @returns {{ command: IParsedCommand | null, run: string }} An object containing:
+ *  - parsed remove options (`command`),
+ *  - the raw command to run (`run`).
+ */
 function parseRemoveCommand(
   input: string,
   logger?: ILogger
@@ -156,6 +166,15 @@ function parseRemoveCommand(
   }
 }
 
+/**
+ * Parses conda remove command and returns packages which should be deleted and from what environments.
+ *
+ * @param {string} input - The command line which should be parsed.
+ * @param {ILogger} [logger] - The logger.
+ * @returns {IUninstallationCommandOptions} An object containing:
+ *  - parsed specs,
+ *  - parsed environment.
+ */
 function getCondaRemoveCommandParameters(
   input: string,
   logger?: ILogger
@@ -189,6 +208,8 @@ function getCondaRemoveCommandParameters(
         }
       }
     }
+  } else {
+    logger?.log('The command format is not supported');
   }
 
   return {
@@ -196,6 +217,16 @@ function getCondaRemoveCommandParameters(
     env
   };
 }
+
+/**
+ * Parses installation commands.
+ *
+ * @param {string} input - The command line which should be parsed.
+ * @param {ILogger} [logger] - The logger.
+ * @returns {{ command: IParsedCommand | null, run: string }} An object containing:
+ *  - parsed installation options (`command`),
+ *  - the raw command to run (`run`).
+ */
 
 function parseInstallCommand(
   input: string,
@@ -244,6 +275,7 @@ function parseInstallCommand(
  * Parses multiply lines
  *
  * @param {string[]} codeLines - The command line which should be parsed.
+ * @param {ILogger} logger - the logger
  * @returns {ICommands} An object containing:
  *  - parsed installation options,
  *  - run command code,
@@ -274,8 +306,8 @@ function parseLines(codeLines: string[], logger?: ILogger): ICommandData {
 }
 
 /**
- * Detects whether the line has conda installation commands
- * and replace the patter '[commandNames] install' for futher calculations
+ * Detects whether the line has commands
+ * and replace the pattern '[commandNames] [command]' for futher calculations
  *
  * @param {string} input - The command line which should be parsed.
  * @returns {string} - Can be as part of conda installation command and as code
@@ -295,7 +327,7 @@ function replaceCommandHeader(input: string, command: string): string {
  * Detects whether the line has commands
  *
  * @param {string} input - The command line which should be parsed.
- * @returns {string} - True if code has a command
+ * @returns {object} - Includes the dictionary of command type flags, where which of them can be true or false
  */
 function hasCommand(input: string): any {
   const commands = {
@@ -316,7 +348,7 @@ function hasCommand(input: string): any {
 }
 
 /**
- * Parse conda installation command
+ * Parses conda installation command
  *
  * @param {string} input - The command line which should be parsed.
  * @returns {IInstallationCommandOptions} An object containing:
@@ -351,9 +383,10 @@ function parseCondaInstallCommand(input: string): IInstallationCommandOptions {
 }
 
 /**
- * Parse pip installation command
+ * Parses pip installation command
  *
  * @param {string} input - The command line which should be parsed.
+ * @param {ILogger} logger - The logger
  * @returns {IInstallationCommandOptions} An object containing:
  *  - channels,
  *  - conda packages for installing,
@@ -395,9 +428,10 @@ function parsePipInstallCommand(
 }
 
 /**
- * Parse pip uninstall command
+ * Parses pip uninstall command
  *
  * @param {string} input - The command line which should be parsed.
+ * @param {ILogger} logger - The logger
  * @returns {IUninstallationCommandOptions} An object containing:
  *  - specs is the array of package name that should be removed,
  *  - env which is the name of the environment where packages should be removed from
