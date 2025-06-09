@@ -458,6 +458,15 @@ function getPipUnInstallParameters(
   };
 }
 
+/**
+ * Parses pip command and returns pip specs
+ *
+ * @param {string} input - The command line which should be parsed.
+ * @param {string[]} limits - Command flags which are not supported for a pip command
+ * @param {string[]} flags - Command flags which may be supported
+ * @param {ILogger} logger - The logger
+ * @returns {string[]} An array of pip specs
+ */
 function getPipSpecs(
   input: string,
   limits: string[],
