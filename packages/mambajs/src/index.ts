@@ -106,38 +106,38 @@ export async function solve(
 export async function solveWithoutPackages(
   specs: string[],
   pipSpecs: string[],
+  packagesList: string[],
   installedPackages: ISolvedPackages,
   logger: ILogger
 ) {
-  let newSpecs: string[] = getSpecs(installedPackages, specs);
-  let newPipSpecs: string[] = getSpecs(installedPackages, pipSpecs);
+  let newSpecs: string[] = removePackagesFromTheList(packagesList, specs);
+  let newPipSpecs: string[] = removePackagesFromTheList(packagesList, pipSpecs);
 
   return await solve({
     ymlOrSpecs: newSpecs,
     installedPackages: installedPackages,
     pipSpecs: newPipSpecs,
-    channels: [], //?
+    channels: [],
     logger: logger
   });
 }
 
-function getSpecs(installedPackages: ISolvedPackages, specs: string[]) {
+function removePackagesFromTheList(packageList: string[], specs: string[]) {
   const newSpecs: string[] = [];
   if (specs.length) {
-    Object.keys(installedPackages).forEach(filename => {
-      const pkg = installedPackages[filename];
+    packageList.forEach((name:string) => {
       let isInSpecs = false;
       specs.filter((spec: string) => {
         const nameMatch = getPackageName(spec);
         if (nameMatch !== null) {
           const packageName = nameMatch[1];
-          if (pkg.name === packageName) {
+          if (name === packageName) {
             isInSpecs = true;
           }
         }
       });
       if (!isInSpecs) {
-        newSpecs.push(pkg.name);
+        newSpecs.push(name);
       }
     });
   }
