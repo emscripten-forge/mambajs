@@ -103,7 +103,7 @@ export async function solve(
   };
 }
 
-export async function solveEnv(
+export async function solveWithoutPackages(
   specs: string[],
   pipSpecs: string[],
   installedPackages: ISolvedPackages,
