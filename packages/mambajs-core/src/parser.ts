@@ -150,6 +150,7 @@ function parseRemoveCommand(
   if (input) {
     if (isPipCommand) {
       command.data = getPipUnInstallParameters(input, logger);
+      command.type = 'uninstall';
     } else {
       command.data = getCondaRemoveCommandParameters(input, logger);
     }
