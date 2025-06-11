@@ -1,12 +1,18 @@
 import {
   getPythonVersion,
+  ILogger,
   ISolvedPackages,
   showEnvironmentDiff,
   showPackagesList,
   splitPipPackages
 } from '@emscripten-forge/mambajs-core';
 import { getSolvedPackages, ISolveOptions } from './solver';
-import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
+import {
+  getPackageName,
+  getPipPackageName,
+  hasPipDependencies,
+  solvePip
+} from './solverpip';
 
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
@@ -95,4 +101,45 @@ export async function solve(
     condaPackages,
     pipPackages
   };
+}
+
+export async function solveEnv(
+  specs: string[],
+  pipSpecs: string[],
+  installedPackages: ISolvedPackages,
+  logger: ILogger
+) {
+  let newSpecs: string[] = getSpecs(installedPackages, specs);
+  let newPipSpecs: string[] = getSpecs(installedPackages, pipSpecs);
+
+  return await solve({
+    ymlOrSpecs: newSpecs,
+    installedPackages: installedPackages,
+    pipSpecs: newPipSpecs,
+    channels: [], //?
+    logger: logger
+  });
+}
+
+function getSpecs(installedPackages: ISolvedPackages, specs: string[]) {
+  const newSpecs: string[] = [];
+  if (specs.length) {
+    Object.keys(installedPackages).forEach(filename => {
+      const pkg = installedPackages[filename];
+      let isInSpecs = false;
+      specs.filter((spec: string) => {
+        const nameMatch = getPackageName(spec);
+        if (nameMatch !== null) {
+          const packageName = nameMatch[1];
+          if (pkg.name === packageName) {
+            isInSpecs = true;
+          }
+        }
+      });
+      if (!isInSpecs) {
+        newSpecs.push(pkg.name);
+      }
+    });
+  }
+  return newSpecs;
 }

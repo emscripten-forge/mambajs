@@ -86,9 +86,11 @@ function resolveVersion(availableVersions: string[], constraint: string) {
     ? stableVersions[0]
     : validVersions[0] || undefined;
 }
-
+export function getPackageName(name: string) {
+  return name.match(/^([a-zA-Z0-9_-]+)/);
+}
 function parsePyPiRequirement(requirement: string): ISpec | null {
-  const nameMatch = requirement.match(/^([a-zA-Z0-9_-]+)/);
+  const nameMatch = getPackageName(requirement);
 
   if (!nameMatch) {
     return null;
