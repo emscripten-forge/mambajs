@@ -212,18 +212,3 @@ const normalizeUrl = (url: string) => {
   return url.replace(/[\/\s]+$/, '');
 };
 
-export const prepareSpecsForInstalling = (
-  condaPackages: ISolvedPackages,
-  specs: Array<string>
-) => {
-  Object.keys(condaPackages).map((filename: string) => {
-    const installedPackage = condaPackages[filename];
-    if (installedPackage.name === 'python') {
-      specs.push(`${installedPackage.name}=${installedPackage.version}`);
-    } else {
-      specs.push(`${installedPackage.name}`);
-    }
-  });
-
-  return specs;
-};
