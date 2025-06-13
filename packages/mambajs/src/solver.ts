@@ -139,6 +139,7 @@ export const getSolvedPackages = async (
     const pkgs = splitPipPackages(installedPackages);
     installedCondaPackages = pkgs.installedCondaPackages;
     newChannels = formatChannels(channels);
+    specs = ymlOrSpecs as string[];
   }
 
   if (logger) {
@@ -211,4 +212,3 @@ const formatChannels = (channels?: string[]) => {
 const normalizeUrl = (url: string) => {
   return url.replace(/[\/\s]+$/, '');
 };
-
