@@ -138,10 +138,6 @@ export const getSolvedPackages = async (
   } else {
     const pkgs = splitPipPackages(installedPackages);
     installedCondaPackages = pkgs.installedCondaPackages;
-    specs = prepareSpecsForInstalling(
-      installedCondaPackages,
-      ymlOrSpecs as string[]
-    );
     newChannels = formatChannels(channels);
   }
 
