@@ -5,7 +5,7 @@ export interface IParsedCommand {
   data: IInstallationCommandOptions | IUninstallationCommandOptions | null;
 }
 
-type CommandsName = 'install' | 'list' | 'remove' | 'uninstall';
+export type CommandsName = 'install' | 'list' | 'remove' | 'uninstall';
 
 export interface ICommandData {
   commands: IParsedCommand[];

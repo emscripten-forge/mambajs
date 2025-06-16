@@ -30,6 +30,8 @@ export interface IEmpackEnvMetaPkg {
   filename_stem: string;
   filename: string;
   url: string;
+  depends: [],
+  subdir: string
 }
 
 export interface IEmpackEnvMeta {
