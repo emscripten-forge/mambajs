@@ -241,15 +241,17 @@ export interface IRemovePackagesFromEnvOptions {
  */
 export const removePackagesFromEmscriptenFS = async (
   options: IRemovePackagesFromEnvOptions
-): Promise<void> => {
+): Promise<any> => {
   const { removedPackages, Module, paths, logger } = options;
+  const newPath = {...paths}; 
   Object.keys(removedPackages).map(filename => {
     const pkg = removedPackages[filename];
     logger?.log(`Uninstalling ${pkg.name} ${pkg.version}`);
-    const packages = paths[filename];
-    removeFilesFromEmscriptenFS(Module.FS, packages);
-    delete paths[filename];
+    const packages = newPath[filename];
+    removeFilesFromEmscriptenFS(Module.FS, packages, logger);
+    delete newPath[filename];
   });
+  return newPath;
 };
 
 export interface IBootstrapPythonOptions {
