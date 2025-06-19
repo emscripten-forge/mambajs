@@ -243,11 +243,33 @@ export const removePackagesFromEmscriptenFS = async (
   options: IRemovePackagesFromEnvOptions
 ): Promise<any> => {
   const { removedPackages, Module, paths, logger } = options;
-  const newPath = {...paths}; 
+  const newPath = { ...paths };
+
+  const removedPackagesMap: { [name: string]: string } = {};
+  Object.keys(removedPackages).forEach(filename => {
+    const removedPkg = removedPackages[filename];
+    const pkg = `${removedPkg.name}-${removedPkg.version}-${removedPkg.build_string}`;
+    removedPackagesMap[filename] = pkg;
+  });
+
   Object.keys(removedPackages).map(filename => {
     const pkg = removedPackages[filename];
     logger?.log(`Uninstalling ${pkg.name} ${pkg.version}`);
-    const packages = newPath[filename];
+    let packages = newPath[filename];
+    if (!packages) {
+
+      // file extensions can be different after resolving packages even though a package has the same name, build and version,
+      // so we need to check this and delete
+      const pkgData = removedPackagesMap[filename];
+      Object.keys(newPath).forEach((path: string) => {
+        if (path.includes(pkgData)) {
+          packages = newPath[path];
+        }
+      });
+    }
+    if (!packages) {
+      throw new Error(`There are no pathes for ${filename}`);
+    }
     removeFilesFromEmscriptenFS(Module.FS, packages, logger);
     delete newPath[filename];
   });

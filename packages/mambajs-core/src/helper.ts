@@ -30,14 +30,14 @@ export interface IEmpackEnvMetaPkg {
   filename_stem: string;
   filename: string;
   url: string;
-  depends: [],
-  subdir: string
+  depends: [];
+  subdir: string;
 }
 
 export interface IEmpackEnvMeta {
   prefix: string;
   packages: IEmpackEnvMetaPkg[];
-  specs?: string[]
+  specs?: string[];
 }
 
 /**
@@ -204,7 +204,11 @@ export function saveFilesIntoEmscriptenFS(
   }
 }
 
-export function removeFilesFromEmscriptenFS(FS: any, paths: any, logger?: ILogger): void {
+export function removeFilesFromEmscriptenFS(
+  FS: any,
+  paths: any,
+  logger?: ILogger
+): void {
   try {
     const pwd = FS.cwd();
     FS.chdir('/');
@@ -217,8 +221,8 @@ export function removeFilesFromEmscriptenFS(FS: any, paths: any, logger?: ILogge
         } else {
           FS.unlink(path);
         }
-      }else {
-         logger?.log(`Path ${path} does not exist`);
+      } else {
+        logger?.log(`Path ${path} does not exist`);
       }
     });
     FS.chdir(pwd);
