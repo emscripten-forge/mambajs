@@ -23,10 +23,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@conda-org/rattler@npm:^0.3.0":
-  version: 0.3.0
-  resolution: "@conda-org/rattler@npm:0.3.0"
-  checksum: 10c0/af9d03c8bc63694c654ea950df4f3e2044c1d2205e258e4e739a9c9971898a40e4fba627066a3e6683c2a3e7bc337b1c167932901845ddd9904a7417bf3c0e92
+"@conda-org/rattler@npm:^0.3.1":
+  version: 0.3.1
+  resolution: "@conda-org/rattler@npm:0.3.1"
+  checksum: 10c0/882dda8d0d420a61d19ac95d551469d3da8f7cf1ea59bcf08579d4bda42b0a00d6d64a1df0b898cfccef4b38123ca26b8088f8ec96298cec937fcff05a253376
   languageName: node
   linkType: hard
 
@@ -98,7 +98,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs@workspace:packages/mambajs"
   dependencies:
-    "@conda-org/rattler": "npm:^0.3.0"
+    "@conda-org/rattler": "npm:^0.3.1"
     "@emscripten-forge/mambajs-core": "npm:^0.13.0"
     "@esbuild-plugins/node-globals-polyfill": "npm:^0.2.3"
     "@esbuild-plugins/node-modules-polyfill": "npm:^0.2.2"
