@@ -174,6 +174,8 @@ async function processRequirement(
   // Remove old version (if exists) and add new one
   if (installPipPackagesLookup[requirement.package]) {
     delete pipSolvedPackages[installedWheels[requirement.package]];
+    delete installPipPackagesLookup[requirement.package];
+    delete installedWheels[requirement.package];
   }
   pipSolvedPackages[solved.name] = {
     name: requirement.package,
@@ -181,6 +183,8 @@ async function processRequirement(
     url: solved.url,
     repo_name: 'PyPi'
   };
+  installedWheels[requirement.package] = solved.name
+  installPipPackagesLookup[requirement.package] = pipSolvedPackages[solved.name]
 
   if (!pkgMetadata.info.requires_dist) {
     return;
