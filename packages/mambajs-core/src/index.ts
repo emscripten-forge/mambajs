@@ -268,7 +268,7 @@ export const removePackagesFromEmscriptenFS = async (
       });
     }
     if (!packages) {
-      throw new Error(`There are no pathes for ${filename}`);
+      throw new Error(`There are no paths for ${filename}`);
     }
     removeFilesFromEmscriptenFS(Module.FS, packages, logger);
     delete newPath[filename];
