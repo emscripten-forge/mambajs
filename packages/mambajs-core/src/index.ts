@@ -241,7 +241,7 @@ export interface IRemovePackagesFromEnvOptions {
  */
 export const removePackagesFromEmscriptenFS = async (
   options: IRemovePackagesFromEnvOptions
-): Promise<any> => {
+): Promise<{ [key: string]: string }> => {
   const { removedPackages, Module, paths, logger } = options;
   const newPath = { ...paths };
 
@@ -257,7 +257,6 @@ export const removePackagesFromEmscriptenFS = async (
     logger?.log(`Uninstalling ${pkg.name} ${pkg.version}`);
     let packages = newPath[filename];
     if (!packages) {
-
       // file extensions can be different after resolving packages even though a package has the same name, build and version,
       // so we need to check this and delete
       const pkgData = removedPackagesMap[filename];

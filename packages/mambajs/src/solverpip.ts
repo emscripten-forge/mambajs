@@ -183,8 +183,9 @@ async function processRequirement(
     url: solved.url,
     repo_name: 'PyPi'
   };
-  installedWheels[requirement.package] = solved.name
-  installPipPackagesLookup[requirement.package] = pipSolvedPackages[solved.name]
+  installedWheels[requirement.package] = solved.name;
+  installPipPackagesLookup[requirement.package] =
+    pipSolvedPackages[solved.name];
 
   if (!pkgMetadata.info.requires_dist) {
     return;

@@ -222,7 +222,7 @@ export function removeFilesFromEmscriptenFS(
           FS.unlink(path);
         }
       } else {
-        logger?.log(`Path ${path} does not exist`);
+        console.log(`Uninstall error: Path ${path} does not exist`);
       }
     });
     FS.chdir(pwd);
