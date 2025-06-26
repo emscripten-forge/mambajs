@@ -503,3 +503,14 @@ export function sort(installed: ISolvedPackages): Map<string, ISolvedPackage> {
 
   return new Map(sorted);
 }
+
+export function packageNameFromSpec(specs: string) {
+  const nameMatch = specs.match(/^([a-zA-Z0-9_-]+)/);
+
+  if (!nameMatch) {
+    return null;
+  }
+
+  const packageName = nameMatch[1];
+  return packageName;
+}

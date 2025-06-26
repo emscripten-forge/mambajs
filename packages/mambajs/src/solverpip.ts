@@ -4,7 +4,8 @@ import { parse } from 'yaml';
 import {
   ILogger,
   ISolvedPackage,
-  ISolvedPackages
+  ISolvedPackages,
+  packageNameFromSpec
 } from '@emscripten-forge/mambajs-core';
 
 interface ISpec {
@@ -88,13 +89,10 @@ function resolveVersion(availableVersions: string[], constraint: string) {
 }
 
 function parsePyPiRequirement(requirement: string): ISpec | null {
-  const nameMatch = requirement.match(/^([a-zA-Z0-9_-]+)/);
-
-  if (!nameMatch) {
+  const packageName = packageNameFromSpec(requirement);
+  if (!packageName) {
     return null;
   }
-
-  const packageName = nameMatch[1];
 
   return {
     package: packageName,
