@@ -42,7 +42,7 @@ export interface IEmpackEnvMetaMountPoint {
 export interface IEmpackEnvMeta {
   prefix: string;
   packages: IEmpackEnvMetaPkg[];
-  mounts: IEmpackEnvMetaMountPoint[];
+  mounts?: IEmpackEnvMetaMountPoint[];
 }
 
 /**
