@@ -8,6 +8,7 @@ import {
   getSharedLibs,
   IBootstrapData,
   IEmpackEnvMeta,
+  IEmpackEnvMetaMountPoint,
   IEmpackEnvMetaPkg,
   ILogger,
   ISolvedPackage,
@@ -86,9 +87,9 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
  * @param options
  * @returns The installed shared libraries as a TSharedLibs
  */
-export const bootstrapEmpackPackedEnvironment = async (
+export async function bootstrapEmpackPackedEnvironment(
   options: IBootstrapEmpackPackedEnvironmentOptions
-): Promise<IBootstrapData> => {
+): Promise<IBootstrapData> {
   const { empackEnvMeta } = options;
 
   const solvedPkgs: ISolvedPackages = {};
@@ -100,14 +101,9 @@ export const bootstrapEmpackPackedEnvironment = async (
     packages: solvedPkgs,
     ...options
   });
-};
+}
 
-export interface IInstallPackagesToEnvOptions {
-  /**
-   * The packages to install
-   */
-  packages: ISolvedPackages;
-
+export interface IInstallFilesToEnvOptions {
   /**
    * The URL (CDN or similar) from which to download packages
    */
@@ -139,15 +135,31 @@ export interface IInstallPackagesToEnvOptions {
   logger?: ILogger;
 }
 
+export interface IInstallPackagesToEnvOptions
+  extends IInstallFilesToEnvOptions {
+  /**
+   * The packages to install
+   */
+  packages: ISolvedPackages;
+}
+
+export interface IInstallMountPointsToEnvOptions
+  extends IInstallFilesToEnvOptions {
+  /**
+   * The mount points to install
+   */
+  mountPoints: IEmpackEnvMetaMountPoint;
+}
+
 /**
  * Install packages into an emscripten FS.
  *
  * @param options
  * @returns The installed shared libraries as a TSharedLibs
  */
-export const installPackagesToEmscriptenFS = async (
+export async function installPackagesToEmscriptenFS(
   options: IInstallPackagesToEnvOptions
-): Promise<IBootstrapData> => {
+): Promise<IBootstrapData> {
   const { packages, pkgRootUrl, Module, generateCondaMeta, logger } = options;
 
   let untarjs: IUnpackJSAPI;
@@ -208,7 +220,33 @@ export const installPackagesToEmscriptenFS = async (
   await waitRunDependencies(Module);
 
   return { sharedLibs: sharedLibsMap, paths: paths, untarjs };
-};
+}
+
+export async function installMountPointToEmscriptenFS(
+  options: IInstallMountPointsToEnvOptions
+): Promise<void> {
+  const { mountPoints, pkgRootUrl, Module, logger } = options;
+
+  let untarjs: IUnpackJSAPI;
+  if (options.untarjs) {
+    untarjs = options.untarjs;
+  } else {
+    const untarjsReady = initUntarJS();
+    untarjs = await untarjsReady;
+  }
+
+  await Promise.all(
+    Object.keys(mountPoints).map(async filename => {
+      const pkg = mountPoints[filename];
+
+      const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
+      logger?.log(`Extracting ${filename}`);
+      const extractedMountPoint = await untarjs.extract(url);
+
+      saveFilesIntoEmscriptenFS(Module.FS, extractedMountPoint, '');
+    })
+  );
+}
 
 export interface IRemovePackagesFromEnvOptions {
   /**

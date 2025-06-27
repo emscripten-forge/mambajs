@@ -34,10 +34,16 @@ export interface IEmpackEnvMetaPkg {
   subdir: string;
 }
 
+export interface IEmpackEnvMetaMountPoint {
+  name: string;
+  filename: string;
+}
+
 export interface IEmpackEnvMeta {
   prefix: string;
   packages: IEmpackEnvMetaPkg[];
   specs?: string[];
+  mounts: IEmpackEnvMetaMountPoint[];
 }
 
 /**
