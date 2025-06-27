@@ -43,7 +43,7 @@ export interface IEmpackEnvMeta {
   prefix: string;
   packages: IEmpackEnvMetaPkg[];
   specs?: string[];
-  mounts: IEmpackEnvMetaMountPoint[];
+  mounts?: IEmpackEnvMetaMountPoint[];
 }
 
 /**

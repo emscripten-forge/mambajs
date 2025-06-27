@@ -92,6 +92,13 @@ export async function bootstrapEmpackPackedEnvironment(
 ): Promise<IBootstrapData> {
   const { empackEnvMeta } = options;
 
+  if (empackEnvMeta.mounts) {
+    await installMountPointToEmscriptenFS({
+      mountPoints: empackEnvMeta.mounts,
+      ...options
+    });
+  }
+
   const solvedPkgs: ISolvedPackages = {};
   for (const empackPkg of empackEnvMeta.packages) {
     solvedPkgs[empackPkg.filename] = empackPkg;
@@ -148,7 +155,7 @@ export interface IInstallMountPointsToEnvOptions
   /**
    * The mount points to install
    */
-  mountPoints: IEmpackEnvMetaMountPoint;
+  mountPoints: IEmpackEnvMetaMountPoint[];
 }
 
 /**
@@ -236,11 +243,9 @@ export async function installMountPointToEmscriptenFS(
   }
 
   await Promise.all(
-    Object.keys(mountPoints).map(async filename => {
-      const pkg = mountPoints[filename];
-
-      const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
-      logger?.log(`Extracting ${filename}`);
+    mountPoints.map(async mountPoint => {
+      const url = `${pkgRootUrl}/${mountPoint.filename}`;
+      logger?.log(`Extracting ${mountPoint.filename}`);
       const extractedMountPoint = await untarjs.extract(url);
 
       saveFilesIntoEmscriptenFS(Module.FS, extractedMountPoint, '');
