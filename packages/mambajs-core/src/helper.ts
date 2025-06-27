@@ -30,13 +30,19 @@ export interface IEmpackEnvMetaPkg {
   filename_stem: string;
   filename: string;
   url: string;
-  depends: [],
-  subdir: string
+  depends: [];
+  subdir: string;
+}
+
+export interface IEmpackEnvMetaMountPoint {
+  name: string;
+  filename: string;
 }
 
 export interface IEmpackEnvMeta {
   prefix: string;
   packages: IEmpackEnvMetaPkg[];
+  mounts: IEmpackEnvMetaMountPoint[];
 }
 
 /**

@@ -185,7 +185,7 @@ function getCondaRemoveCommandParameters(
   const env: string[] = [];
   const limits = ['-all', '--override-frozen', '--keep-env', '--dev'];
   let skip = false;
-  let envFlags = ['-n', '--name', '-p', '--prefix'];
+  const envFlags = ['-n', '--name', '-p', '--prefix'];
 
   limits.map((options: string) => {
     if (input.includes(options)) {
