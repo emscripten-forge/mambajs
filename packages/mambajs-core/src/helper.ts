@@ -223,9 +223,9 @@ function removeParentDirIfEmpty(FS: any, path: string) {
   // only contains . and ..
   if (FS.readdir(path).length === 2) {
     FS.rmdir(path);
-  }
 
-  removeParentDirIfEmpty(FS, pathInfo.parentPath);
+    removeParentDirIfEmpty(FS, pathInfo.parentPath);
+  }
 }
 
 export function removeFilesFromEmscriptenFS(
