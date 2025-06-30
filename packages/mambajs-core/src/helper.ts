@@ -204,6 +204,24 @@ export function saveFilesIntoEmscriptenFS(
   }
 }
 
+/**
+ * Recursive function that removes parent directories if they are empty
+ */
+function removeParentDirIfEmpty(FS: any, path: string) {
+  const pathInfo = FS.analyzePath(path);
+
+  if (!pathInfo.exists) {
+    return;
+  }
+
+  // only contains . and ..
+  if (FS.readdir(path).length === 2) {
+    FS.rmdir(path);
+  }
+
+  removeParentDirIfEmpty(FS, pathInfo.parentPath);
+}
+
 export function removeFilesFromEmscriptenFS(
   FS: any,
   paths: any,
@@ -221,6 +239,8 @@ export function removeFilesFromEmscriptenFS(
         } else {
           FS.unlink(path);
         }
+
+        removeParentDirIfEmpty(FS, pathInfo.parentPath);
       } else {
         console.log(`Uninstall error: Path ${path} does not exist`);
       }
