@@ -381,7 +381,7 @@ export interface ILoadSharedLibsOptions {
 export async function loadShareLibs(
   options: ILoadSharedLibsOptions
 ): Promise<void[]> {
-  const { sharedLibs, prefix, Module, logger } = options;
+  const { sharedLibs, prefix, Module } = options;
 
   const sharedLibsLoad: Promise<void>[] = [];
 
@@ -389,7 +389,6 @@ export async function loadShareLibs(
     const packageShareLibs = sharedLibs[pkgName];
 
     if (packageShareLibs.length > 0) {
-      logger?.log(`Loading shared libraries from ${pkgName}`);
       sharedLibsLoad.push(
         loadDynlibsFromPackage(prefix, pkgName, packageShareLibs, Module)
       );
