@@ -167,7 +167,7 @@ export interface IInstallMountPointsToEnvOptions
 export async function installPackagesToEmscriptenFS(
   options: IInstallPackagesToEnvOptions
 ): Promise<IBootstrapData> {
-  const { packages, pkgRootUrl, Module, generateCondaMeta, logger } = options;
+  const { packages, pkgRootUrl, Module, generateCondaMeta } = options;
 
   let untarjs: IUnpackJSAPI;
   if (options.untarjs) {
@@ -206,7 +206,6 @@ export async function installPackagesToEmscriptenFS(
         }
       } else {
         const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
-        logger?.log(`Installing ${filename}`);
         extractedPackage = await untarCondaPackage({
           url,
           untarjs,
@@ -296,8 +295,6 @@ export const removePackagesFromEmscriptenFS = async (
   });
 
   Object.keys(removedPackages).map(filename => {
-    const pkg = removedPackages[filename];
-    logger?.log(`Uninstalling ${pkg.name} ${pkg.version}`);
     let packages = newPath[filename];
     if (!packages) {
       // file extensions can be different after resolving packages even though a package has the same name, build and version,
