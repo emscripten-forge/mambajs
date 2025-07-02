@@ -1,4 +1,5 @@
 import { FilesData, IUnpackJSAPI } from '@emscripten-forge/untarjs';
+import { parse } from 'yaml';
 
 export interface ILogger {
   log(...msg: any[]): void;
@@ -60,6 +61,21 @@ export interface IBootstrapData {
   paths: { [key: string]: string };
   untarjs: IUnpackJSAPI;
 }
+
+export function parseEnvYml(envYml: string) {
+  const data = parse(envYml);
+  const packages = data.dependencies ? data.dependencies : [];
+  const prefix: string = data.name ? data.name : '/';
+  const channels: Array<string> = data.channels ? data.channels : [];
+
+  const specs: string[] = [];
+  for (const pkg of packages) {
+    if (typeof pkg === 'string') {
+      specs.push(pkg);
+    }
+  }
+  return { prefix, specs, channels };
+};
 
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));

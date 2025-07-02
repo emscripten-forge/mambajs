@@ -1,9 +1,9 @@
 import {
   ILogger,
   ISolvedPackages,
-  splitPipPackages
+  splitPipPackages,
+  parseEnvYml
 } from '@emscripten-forge/mambajs-core';
-import { parse } from 'yaml';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
 
 const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
@@ -15,21 +15,6 @@ const ALIAS = ['conda-forge', 'emscripten-forge-dev'];
 const CHANNEL_ALIASES = {
   'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev',
   'conda-forge': 'https://repo.prefix.dev/conda-forge'
-};
-
-const parseEnvYml = (envYml: string) => {
-  const data = parse(envYml);
-  const packages = data.dependencies ? data.dependencies : [];
-  const prefix = data.name ? data.name : '/';
-  const channels: Array<string> = data.channels ? data.channels : [];
-
-  const specs: string[] = [];
-  for (const pkg of packages) {
-    if (typeof pkg === 'string') {
-      specs.push(pkg);
-    }
-  }
-  return { prefix, specs, channels };
 };
 
 export interface ISolveOptions {
