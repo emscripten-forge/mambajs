@@ -69,13 +69,17 @@ export function parseEnvYml(envYml: string) {
   const channels: Array<string> = data.channels ? data.channels : [];
 
   const specs: string[] = [];
+  let pipSpecs: string[] = [];
   for (const pkg of packages) {
+    if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
+      pipSpecs = pkg.pip;
+    }
     if (typeof pkg === 'string') {
       specs.push(pkg);
     }
   }
-  return { prefix, specs, channels };
-};
+  return { prefix, specs, pipSpecs, channels };
+}
 
 export function getParentDirectory(filePath: string): string {
   return filePath.substring(0, filePath.lastIndexOf('/'));

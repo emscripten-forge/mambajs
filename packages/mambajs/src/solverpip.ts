@@ -5,7 +5,8 @@ import {
   ILogger,
   ISolvedPackage,
   ISolvedPackages,
-  packageNameFromSpec
+  packageNameFromSpec,
+  parseEnvYml
 } from '@emscripten-forge/mambajs-core';
 
 interface ISpec {
@@ -253,15 +254,8 @@ export async function solvePip(
   let specs: ISpec[] = [];
 
   if (yml) {
-    const data = parse(yml);
-    const packages = data?.dependencies ? data.dependencies : [];
-
-    // Get pip dependencies
-    for (const pkg of packages) {
-      if (typeof pkg !== 'string' && Array.isArray(pkg.pip)) {
-        specs = parsePipPackage(pkg.pip);
-      }
-    }
+    const data = parseEnvYml(yml);
+    specs = parsePipPackage(data.pipSpecs);
   } else if (packageNames.length) {
     specs = parsePipPackage(packageNames);
   }

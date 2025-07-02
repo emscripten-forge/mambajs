@@ -1,8 +1,8 @@
 import {
   ILogger,
   ISolvedPackages,
-  splitPipPackages,
-  parseEnvYml
+  parseEnvYml,
+  splitPipPackages
 } from '@emscripten-forge/mambajs-core';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
 
