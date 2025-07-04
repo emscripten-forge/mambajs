@@ -176,6 +176,14 @@ function getCondaRemoveCommandParameters(
   const parts = input.split(' ');
   const specs: string[] = [];
 
+  const limits = ['-all', '--override-frozen', '--keep-env', '--dev'];
+
+  limits.map((option: string) => {
+    if (input.includes(option)) {
+      throw new Error(`Unsupported option ${option}`);
+    }
+  });
+
   for (const part of parts) {
     if (part) {
       specs.push(part);
@@ -441,25 +449,22 @@ function getPipSpecs(
   logger?: ILogger
 ): string[] {
   const parts = input.split(' ');
-  let skip = false;
   const specs: string[] = [];
 
-  limits.map((options: string) => {
-    if (input.includes(options)) {
-      skip = true;
+  limits.map((option: string) => {
+    if (input.includes(option)) {
+      throw new Error(`Unsupported option ${option}`);
     }
   });
-  if (!skip) {
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (part) {
-        if (!flags.includes(part)) {
-          specs.push(part);
-        }
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part) {
+      if (!flags.includes(part)) {
+        specs.push(part);
       }
     }
-  } else {
-    logger?.log('The command format is not supported');
   }
+
   return specs;
 }
