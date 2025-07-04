@@ -5,7 +5,7 @@ export interface IParsedCommand {
   data: IInstallationCommandOptions | IUninstallationCommandOptions | null;
 }
 
-export type CommandsName = 'install' | 'list' | 'remove' | 'uninstall';
+export type CommandsName = 'install' | 'list' | 'remove';
 
 export interface ICommandData {
   commands: IParsedCommand[];
@@ -13,17 +13,15 @@ export interface ICommandData {
 }
 
 export interface IInstallationCommandOptions {
-  channels: string[];
+  type: 'conda' | 'pip';
   specs: string[];
-  pipSpecs: string[];
+  channels: string[];
 }
 
 export interface IUninstallationCommandOptions {
+  type: 'conda' | 'pip';
   specs: string[];
-  env?: string[];
 }
-
-export type SpecTypes = 'specs' | 'pipSpecs';
 
 /**
  * Parses a command-line string and classifies it into installation commands,
@@ -128,31 +126,29 @@ function parseRemoveCommand(
   run: string;
 } {
   const run = input;
-  let isPipCommand = false;
+  const command: IParsedCommand = {
+    type: 'remove',
+    data: {
+      specs: [],
+      type: 'conda'
+    }
+  };
 
   if (input.includes('%pip uninstall')) {
-    isPipCommand = true;
+    command.data!.type = 'pip';
   }
-  if (isPipCommand) {
+
+  if (command.data!.type === 'pip') {
     input = replaceCommandHeader(input, 'uninstall');
   } else {
     input = replaceCommandHeader(input, 'remove');
   }
 
-  const command: IParsedCommand = {
-    type: 'remove',
-    data: {
-      specs: [],
-      env: []
-    }
-  };
-
   if (input) {
-    if (isPipCommand) {
-      command.data = getPipUnInstallParameters(input, logger);
-      command.type = 'uninstall';
+    if (command.data!.type === 'pip') {
+      command.data = getPipUninstallParameters(input, logger);
     } else {
-      command.data = getCondaRemoveCommandParameters(input, logger);
+      command.data = getCondaRemoveCommandParameters(input);
     }
 
     return {
@@ -168,54 +164,27 @@ function parseRemoveCommand(
 }
 
 /**
- * Parses conda remove command and returns packages which should be deleted and from what environments.
+ * Parses conda remove command and returns packages which should be deleted.
  *
  * @param {string} input - The command line which should be parsed.
- * @param {ILogger} [logger] - The logger.
  * @returns {IUninstallationCommandOptions} An object containing:
  *  - parsed specs,
- *  - parsed environment.
  */
 function getCondaRemoveCommandParameters(
-  input: string,
-  logger?: ILogger
+  input: string
 ): IUninstallationCommandOptions {
   const parts = input.split(' ');
   const specs: string[] = [];
-  const env: string[] = [];
-  const limits = ['-all', '--override-frozen', '--keep-env', '--dev'];
-  let skip = false;
-  const envFlags = ['-n', '--name', '-p', '--prefix'];
 
-  limits.map((options: string) => {
-    if (input.includes(options)) {
-      skip = true;
+  for (const part of parts) {
+    if (part) {
+      specs.push(part);
     }
-  });
-  if (!skip) {
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (part) {
-        const j = i + 1;
-        if (
-          envFlags.includes(part) &&
-          j < parts.length &&
-          !parts[j].startsWith('-')
-        ) {
-          env.push(parts[j]);
-          i++;
-        } else {
-          specs.push(part);
-        }
-      }
-    }
-  } else {
-    logger?.log('The command format is not supported');
   }
 
   return {
     specs,
-    env
+    type: 'conda'
   };
 }
 
@@ -237,24 +206,23 @@ function parseInstallCommand(
   run: string;
 } {
   const run = input;
-  let isPipCommand = false;
-
-  if (input.includes('%pip install')) {
-    isPipCommand = true;
-  }
-
-  input = replaceCommandHeader(input, 'install');
   const command: IParsedCommand = {
     type: 'install',
     data: {
       channels: [],
       specs: [],
-      pipSpecs: []
+      type: 'conda'
     }
   };
 
+  if (input.includes('%pip install')) {
+    command.data!.type = 'pip';
+  }
+
+  input = replaceCommandHeader(input, 'install');
+
   if (input) {
-    if (isPipCommand) {
+    if (command.data!.type === 'pip') {
       command.data = parsePipInstallCommand(input, logger);
     } else {
       command.data = parseCondaInstallCommand(input);
@@ -361,7 +329,6 @@ function parseCondaInstallCommand(input: string): IInstallationCommandOptions {
   const parts = input.split(' ');
   const channels: string[] = [];
   const specs: string[] = [];
-  const pipSpecs: string[] = [];
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
     if (part) {
@@ -379,7 +346,7 @@ function parseCondaInstallCommand(input: string): IInstallationCommandOptions {
   return {
     channels,
     specs,
-    pipSpecs
+    type: 'conda'
   };
 }
 
@@ -420,11 +387,10 @@ function parsePipInstallCommand(
     '--no-deps'
   ];
 
-  const pipSpecs: string[] = getPipSpecs(input, limits, flags, logger);
   return {
     channels: [],
-    specs: [],
-    pipSpecs
+    specs: getPipSpecs(input, limits, flags, logger),
+    type: 'pip'
   };
 }
 
@@ -438,7 +404,7 @@ function parsePipInstallCommand(
  *  - env which is the name of the environment where packages should be removed from
  */
 
-function getPipUnInstallParameters(
+function getPipUninstallParameters(
   input: string,
   logger?: ILogger
 ): IUninstallationCommandOptions {
@@ -455,7 +421,7 @@ function getPipUnInstallParameters(
 
   return {
     specs,
-    env: []
+    type: 'pip'
   };
 }
 
