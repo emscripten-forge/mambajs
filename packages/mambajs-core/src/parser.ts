@@ -176,7 +176,16 @@ function getCondaRemoveCommandParameters(
   const parts = input.split(' ');
   const specs: string[] = [];
 
-  const limits = ['-all', '--override-frozen', '--keep-env', '--dev'];
+  const limits = [
+    '-n',
+    '--name',
+    '-p',
+    '--prefix',
+    '-all',
+    '--override-frozen',
+    '--keep-env',
+    '--dev'
+  ];
 
   limits.map((option: string) => {
     if (input.includes(option)) {
@@ -373,18 +382,7 @@ function parsePipInstallCommand(
   input: string,
   logger?: ILogger
 ): IInstallationCommandOptions {
-  const limits = [
-    '--index-url',
-    '.whl',
-    'tar.gz',
-    '--extra-index-url',
-    'http',
-    'https',
-    'git',
-    './',
-    '-r',
-    '--extra-index-url'
-  ];
+  const limits = ['--index-url', '.whl', 'tar.gz', '--extra-index-url', '-r'];
 
   const flags = [
     '--upgrade',
