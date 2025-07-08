@@ -13,6 +13,7 @@ interface ISpec {
   package: string;
 
   constraints: string | null;
+  extras?: string[];
 }
 
 function formatConstraintVersion(constraintVersion: string, version: string) {
@@ -90,14 +91,27 @@ function resolveVersion(availableVersions: string[], constraint: string) {
 }
 
 function parsePyPiRequirement(requirement: string): ISpec | null {
-  const packageName = packageNameFromSpec(requirement);
+  const extrasMatch = requirement.match(/^([^\[]+)\[([^\]]+)\]/);
+  const packageName = extrasMatch
+    ? extrasMatch[1]
+    : packageNameFromSpec(requirement);
+  const extras = extrasMatch
+    ? extrasMatch[2].split(',').map(e => e.trim())
+    : [];
+
   if (!packageName) {
     return null;
   }
 
+  const extrasSuffix = extras.length ? `[${extras.join(',')}]` : '';
+  const baseNameLength = packageName.length + extrasSuffix.length;
+
+  console.log(extras);
+
   return {
     package: packageName,
-    constraints: requirement.slice(packageName.length) || null
+    constraints: requirement.slice(baseNameLength) || null,
+    extras: extras.length ? extras : undefined
   };
 }
 
@@ -186,23 +200,34 @@ async function processRequirement(
   installPipPackagesLookup[requirement.package] =
     pipSolvedPackages[solved.name];
 
-  if (!pkgMetadata.info.requires_dist) {
+  const requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
+  if (!requiresDist) {
     return;
   }
 
-  // Process its dependencies
-  for (const requirement of pkgMetadata.info.requires_dist as string[]) {
-    // TODO Skipping extras for now, we need to support them
-    if (requirement.includes(';')) {
+  for (const raw of requiresDist) {
+    const [requirements, envMarker] = raw.split(';').map(s => s.trim());
+
+    // Filter out extras not explicitly requested
+    if (
+      envMarker &&
+      !requirement.extras?.some(extra =>
+        envMarker.includes(`extra == "${extra}"`)
+      )
+    ) {
+      logger?.log?.(
+        `[skip] Skipping "${requirement}" due to env marker: ${envMarker}`
+      );
       continue;
     }
 
-    const parsedRequirement = parsePyPiRequirement(requirement);
+    const parsedRequirement = parsePyPiRequirement(requirements);
     if (!parsedRequirement) {
       continue;
     }
 
-    // Ignoring already installed package through conda
+    // Don't pass down parent extras unless needed (PyPI handles it via markers)
+    parsedRequirement.extras = undefined;
     if (installedCondaPackagesNames.has(parsedRequirement.package)) {
       if (!warnedPackages.has(parsedRequirement.package)) {
         logger?.log(
