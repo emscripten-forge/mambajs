@@ -215,9 +215,6 @@ async function processRequirement(
         envMarker.includes(`extra == "${extra}"`)
       )
     ) {
-      logger?.log?.(
-        `[skip] Skipping "${requirement}" due to env marker: ${envMarker}`
-      );
       continue;
     }
 
