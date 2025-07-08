@@ -23,6 +23,11 @@ export interface ISolvedPackages {
   [key: string]: ISolvedPackage;
 }
 
+export interface IEnvPackages {
+  condaPackages: ISolvedPackages;
+  pipPackages: ISolvedPackages;
+}
+
 export interface IEmpackEnvMetaPkg {
   name: string;
   version: string;

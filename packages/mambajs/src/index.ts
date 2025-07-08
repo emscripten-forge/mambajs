@@ -3,7 +3,8 @@ import {
   ISolvedPackages,
   showEnvironmentDiff,
   showPackagesList,
-  splitPipPackages
+  splitPipPackages,
+  IEnvPackages
 } from '@emscripten-forge/mambajs-core';
 import { getSolvedPackages, ISolveOptions } from './solver';
 import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
@@ -13,7 +14,7 @@ export * from '@emscripten-forge/mambajs-core';
 
 export async function solve(
   options: ISolveOptions
-): Promise<{ condaPackages: ISolvedPackages; pipPackages: ISolvedPackages }> {
+): Promise<IEnvPackages> {
   const { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
   const { installedPipPackages, installedCondaPackages } =
     splitPipPackages(installedPackages);
