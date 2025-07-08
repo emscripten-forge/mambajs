@@ -188,7 +188,7 @@ function getCondaRemoveCommandParameters(
   ];
 
   limits.map((option: string) => {
-    if (input.includes(option)) {
+    if (input === option) {
       throw new Error(`Unsupported option ${option}`);
     }
   });
@@ -450,7 +450,7 @@ function getPipSpecs(
   const specs: string[] = [];
 
   limits.map((option: string) => {
-    if (input.includes(option)) {
+    if (input === option) {
       throw new Error(`Unsupported option ${option}`);
     }
   });
