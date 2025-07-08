@@ -248,17 +248,13 @@ function removeParentDirIfEmpty(FS: any, path: string) {
   }
 }
 
-export function removeFilesFromEmscriptenFS(
-  FS: any,
-  paths: any,
-  logger?: ILogger
-): void {
+export function removeFilesFromEmscriptenFS(FS: any, paths: string[]): void {
   try {
     const pwd = FS.cwd();
     FS.chdir('/');
-    Object.keys(paths).forEach(filename => {
-      const path = paths[filename];
+    paths.forEach(path => {
       const pathInfo = FS.analyzePath(path);
+
       if (pathInfo.exists) {
         if (pathInfo.isDir) {
           FS.rmdir(path);
@@ -267,8 +263,6 @@ export function removeFilesFromEmscriptenFS(
         }
 
         removeParentDirIfEmpty(FS, pathInfo.parentPath);
-      } else {
-        console.log(`Uninstall error: Path ${path} does not exist`);
       }
     });
     FS.chdir(pwd);

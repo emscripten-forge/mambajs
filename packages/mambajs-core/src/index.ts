@@ -284,7 +284,7 @@ export interface IRemovePackagesFromEnvOptions {
 export const removePackagesFromEmscriptenFS = async (
   options: IRemovePackagesFromEnvOptions
 ): Promise<{ [key: string]: string }> => {
-  const { removedPackages, Module, paths, logger } = options;
+  const { removedPackages, Module, paths } = options;
   const newPath = { ...paths };
 
   const removedPackagesMap: { [name: string]: string } = {};
@@ -309,7 +309,7 @@ export const removePackagesFromEmscriptenFS = async (
     if (!packages) {
       throw new Error(`There are no paths for ${filename}`);
     }
-    removeFilesFromEmscriptenFS(Module.FS, packages, logger);
+    removeFilesFromEmscriptenFS(Module.FS, Object.values(packages));
     delete newPath[filename];
   });
   return newPath;
