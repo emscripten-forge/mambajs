@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,9 +20,19 @@ function runTests(dir) {
       console.log(`Running ${path.relative(__dirname, fullPath)}`);
 
       try {
-        execSync(`node "${fullPath}"`, { stdio: 'inherit' });
+        const result = spawnSync('node', [fullPath], {
+          encoding: 'utf-8',
+          stdio: ['inherit', 'inherit', 'pipe'],
+        });
+
+        if (result.status !== 0) {
+          console.error(`❌ test file ${fullPath} failed with:`);
+          console.error(result.stderr);
+          process.exitCode = 1;
+        }
       } catch (err) {
-        console.error(`❌ test file ${fullPath} failed with:\n${err.message}`);
+        console.error(`Unexpected error while running ${fullPath}`);
+        console.error(err.stack || err.message || err);
         process.exitCode = 1;
       }
     }
