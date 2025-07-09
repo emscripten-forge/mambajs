@@ -18,7 +18,13 @@ function runTests(dir) {
       runTests(fullPath);
     } else if (file.endsWith('.js') && file !== 'runner.js') {
       console.log(`Running ${path.relative(__dirname, fullPath)}`);
-      execSync(`node "${fullPath}"`, { stdio: 'inherit' });
+
+      try {
+        execSync(`node "${fullPath}"`, { stdio: 'inherit' });
+      } catch (err) {
+        console.error(`❌ test file ${relativePath} failed with:\n${err.message}`);
+        process.exitCode = 1;
+      }
     }
   }
 }
