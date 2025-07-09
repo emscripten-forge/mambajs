@@ -22,7 +22,7 @@ function runTests(dir) {
       try {
         execSync(`node "${fullPath}"`, { stdio: 'inherit' });
       } catch (err) {
-        console.error(`❌ test file ${relativePath} failed with:\n${err.message}`);
+        console.error(`❌ test file ${fullPath} failed with:\n${err.message}`);
         process.exitCode = 1;
       }
     }
