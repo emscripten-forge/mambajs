@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-        - main
+      - main
   pull_request:
     branches:
-        - main
+      - main
 
 
 defaults:
@@ -43,7 +43,40 @@ jobs:
       - name: Build mambajs
         run: |
           yarn run build
-          
+
       - name: Run eslint
         run: |
           yarn run eslint
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: environment.yml
+          environment-name: mambajs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: |
+          yarn install
+
+      - name: Build mambajs
+        run: |
+          yarn run build
+
+      - name: Run tests
+        run: |
+          npm run test
