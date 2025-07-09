@@ -3,7 +3,8 @@ import { solvePip } from "../packages/mambajs/src/solverpip";
 const yml = `
 dependencies:
   - pip:
-      - rich[jupyter]
+      - a-random-package
+      - another-random-package
 `;
 
 const logger = {
