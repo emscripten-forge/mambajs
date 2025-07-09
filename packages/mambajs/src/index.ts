@@ -1,10 +1,10 @@
 import {
   getPythonVersion,
+  IEnvPackages,
   ISolvedPackages,
   showEnvironmentDiff,
   showPackagesList,
-  splitPipPackages,
-  IEnvPackages
+  splitPipPackages
 } from '@emscripten-forge/mambajs-core';
 import { getSolvedPackages, ISolveOptions } from './solver';
 import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
@@ -12,9 +12,7 @@ import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
 
-export async function solve(
-  options: ISolveOptions
-): Promise<IEnvPackages> {
+export async function solve(options: ISolveOptions): Promise<IEnvPackages> {
   const { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
   const { installedPipPackages, installedCondaPackages } =
     splitPipPackages(installedPackages);
@@ -26,9 +24,14 @@ export async function solve(
     installedWheels[installedPipPackages[wheelname].name] = wheelname;
   }
 
+  // Get installed Python version
+  let pythonVersion = getPythonVersion(Object.values(condaPackages));
+
+  // Run conda solver first
   if (ymlOrSpecs && ymlOrSpecs.length) {
     try {
       condaPackages = await getSolvedPackages(options);
+      pythonVersion = getPythonVersion(Object.values(condaPackages));
 
       // Remove pip packages if they are now coming from conda
       // Here we try our best given the possible mismatches between pip package names and conda names
@@ -54,16 +57,19 @@ export async function solve(
 
   let pipPackages: ISolvedPackages = installedPipPackages;
 
-  if (typeof ymlOrSpecs === 'string') {
-    if (hasPipDependencies(ymlOrSpecs)) {
-      if (!getPythonVersion(Object.values(condaPackages))) {
-        const msg =
-          'Cannot install pip dependencies without Python installed in the environment!';
-        logger?.error(msg);
-        throw msg;
-      }
-      logger?.log('');
-      logger?.log('Process pip requirements ...\n');
+  // Run pip install second
+  if (typeof ymlOrSpecs === 'string' || pipSpecs?.length) {
+    if (!pythonVersion) {
+      const msg =
+        'Cannot install pip dependencies without Python installed in the environment!';
+      logger?.error(msg);
+      throw msg;
+    }
+
+    logger?.log('');
+    logger?.log('Process pip requirements ...\n');
+
+    if (typeof ymlOrSpecs === 'string' && hasPipDependencies(ymlOrSpecs)) {
       pipPackages = await solvePip(
         ymlOrSpecs,
         condaPackages,
@@ -72,24 +78,17 @@ export async function solve(
         [],
         logger
       );
+    } else {
+      logger?.log('Process pip requirements ...\n');
+      pipPackages = await solvePip(
+        '',
+        condaPackages,
+        installedWheels,
+        installedPipPackages,
+        pipSpecs,
+        logger
+      );
     }
-  } else if (pipSpecs?.length) {
-    if (!getPythonVersion(Object.values(condaPackages))) {
-      const msg =
-        'Cannot install pip dependencies without Python installed in the environment!';
-      logger?.error(msg);
-      throw msg;
-    }
-
-    logger?.log('Process pip requirements ...\n');
-    pipPackages = await solvePip(
-      '',
-      condaPackages,
-      installedWheels,
-      installedPipPackages,
-      pipSpecs,
-      logger
-    );
   }
 
   return {
