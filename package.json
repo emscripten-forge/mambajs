@@ -11,7 +11,7 @@
     "prettier:check": "prettier --check \"packages/**/*.ts\"",
     "eslint": "eslint --ext .ts --fix .",
     "eslint:check": "eslint --ext .ts.",
-    "test": "rimraf tests/testlib && npx tsc -p tests && node tests/runner.js"
+    "test": "rimraf unittests/testlib && npx tsc -p unittests && node unittests/runner.js"
   },
   "workspaces": {
     "packages": [
