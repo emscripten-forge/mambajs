@@ -8,6 +8,10 @@ const __dirname = path.dirname(__filename);
 
 const testsDir = path.resolve(__dirname, 'testlib', 'unittests');
 
+let nTests = 0;
+let nSuccess = 0;
+let nFailures = 0;
+
 function runTests(dir) {
   const files = fs.readdirSync(dir);
   for (const file of files) {
@@ -16,7 +20,9 @@ function runTests(dir) {
 
     if (stat.isDirectory()) {
       runTests(fullPath);
-    } else if (file.endsWith('.js') && !file.endsWith('helpers.js')) {
+    } else if (file.startsWith('test-') && file.endsWith('.js')) {
+      nTests++;
+
       const testname = path.relative(__dirname, fullPath);
       console.log(`🚩 Running ${testname}`);
 
@@ -30,16 +36,21 @@ function runTests(dir) {
           console.error(`❌ test file ${testname} failed with:`);
           console.error(result.stderr);
           process.exitCode = 1;
+          nFailures++;
         }
 
+        nSuccess++;
         console.log(`✅ Test passed ${testname}`);
       } catch (err) {
         console.error(`Unexpected error while running ${fullPath}`);
         console.error(err.stack || err.message || err);
         process.exitCode = 1;
+        nFailures++;
       }
     }
   }
 }
 
 runTests(testsDir);
+
+console.log(`\nTest runs: ${nTests}; ✅ Passed: ${nSuccess}; ❌ Failed: ${nFailures}\n`);

@@ -28,6 +28,12 @@ export interface IEnvPackages {
   pipPackages: ISolvedPackages;
 }
 
+export interface IEnv {
+  specs: string[];
+  channels: string[];
+  packages: IEnvPackages;
+}
+
 export interface IEmpackEnvMetaPkg {
   name: string;
   version: string;
