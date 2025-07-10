@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const testsDir = path.resolve(__dirname, 'tests', 'testlib');
+const testsDir = path.resolve(__dirname, 'testlib', 'tests');
 
 function runTests(dir) {
   const files = fs.readdirSync(dir);
@@ -16,8 +16,9 @@ function runTests(dir) {
 
     if (stat.isDirectory()) {
       runTests(fullPath);
-    } else if (file.endsWith('.js')) {
-      console.log(`Running ${path.relative(__dirname, fullPath)}`);
+    } else if (file.endsWith('.js') && !file.endsWith('helpers.js')) {
+      const testname = path.relative(__dirname, fullPath);
+      console.log(`🚩 Running ${testname}`);
 
       try {
         const result = spawnSync('node', [fullPath], {
@@ -26,10 +27,12 @@ function runTests(dir) {
         });
 
         if (result.status !== 0) {
-          console.error(`❌ test file ${fullPath} failed with:`);
+          console.error(`❌ test file ${testname} failed with:`);
           console.error(result.stderr);
           process.exitCode = 1;
         }
+
+        console.log(`✅ Test passed ${testname}`);
       } catch (err) {
         console.error(`Unexpected error while running ${fullPath}`);
         console.error(err.stack || err.message || err);

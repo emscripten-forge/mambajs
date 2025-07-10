@@ -106,8 +106,6 @@ function parsePyPiRequirement(requirement: string): ISpec | null {
   const extrasSuffix = extras.length ? `[${extras.join(',')}]` : '';
   const baseNameLength = packageName.length + extrasSuffix.length;
 
-  console.log(extras);
-
   return {
     package: packageName,
     constraints: requirement.slice(baseNameLength) || null,
