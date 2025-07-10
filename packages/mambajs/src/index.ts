@@ -70,10 +70,10 @@ export async function solve(options: ISolveOptions): Promise<IEnvPackages> {
       throw msg;
     }
 
-    logger?.log('');
-    logger?.log('Process pip requirements ...\n');
-
     if (typeof ymlOrSpecs === 'string' && hasPipDependencies(ymlOrSpecs)) {
+      logger?.log('');
+      logger?.log('Process pip requirements ...\n');
+
       pipPackages = await solvePip(
         ymlOrSpecs,
         condaPackages,
