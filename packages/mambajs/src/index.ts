@@ -246,7 +246,7 @@ export async function remove(
 
   return {
     channels: env.channels,
-    specs: env.specs,
+    specs: newSpecs,
     packages: newEnvPackages
   };
 }
