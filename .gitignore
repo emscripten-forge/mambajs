@@ -2,7 +2,7 @@
 node_modules/
 npm-debug.log/
 lib/
-tests/tests/
+tests/testlib/
 tests/packages/
 
 .yarn

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const testsDir = path.resolve(__dirname, 'tests');
+const testsDir = path.resolve(__dirname, 'tests', 'testlib');
 
 function runTests(dir) {
   const files = fs.readdirSync(dir);
@@ -16,7 +16,7 @@ function runTests(dir) {
 
     if (stat.isDirectory()) {
       runTests(fullPath);
-    } else if (file.endsWith('.js') && file !== 'runner.js') {
+    } else if (file.endsWith('.js')) {
       console.log(`Running ${path.relative(__dirname, fullPath)}`);
 
       try {

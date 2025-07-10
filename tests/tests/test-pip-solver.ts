@@ -1,4 +1,4 @@
-import { solvePip } from "../packages/mambajs/src/solverpip";
+import { solvePip } from "../../packages/mambajs/src/solverpip";
 
 const yml = `
 dependencies:

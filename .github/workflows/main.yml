@@ -65,13 +65,10 @@ jobs:
           environment-name: mambajs
 
       - name: Install dependencies
-        run: |
-          yarn install
+        run: yarn install
 
       - name: Build mambajs
-        run: |
-          yarn run build
+        run: yarn run build
 
       - name: Run tests
-        run: |
-          npm run test
+        run: yarn run test
