@@ -62,7 +62,10 @@ export async function solve(options: ISolveOptions): Promise<IEnvPackages> {
   let pipPackages: ISolvedPackages = installedPipPackages;
 
   // Run pip install second
-  if (typeof ymlOrSpecs === 'string' || pipSpecs?.length) {
+  if (
+    (typeof ymlOrSpecs === 'string' && hasPipDependencies(ymlOrSpecs)) ||
+    pipSpecs?.length
+  ) {
     if (!pythonVersion) {
       const msg =
         'Cannot install pip dependencies without Python installed in the environment!';
