@@ -411,6 +411,33 @@ export async function waitRunDependencies(Module: any): Promise<void> {
   return promise;
 }
 
+export function showPipPackagesList(
+  installedPackages: ISolvedPackages,
+  logger: ILogger | undefined
+) {
+  if (Object.keys(installedPackages).length) {
+    const sortedPackages = sort(installedPackages);
+
+    const columnWidth = 30;
+
+    logger?.log(
+      `${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}`
+    );
+
+    logger?.log('─'.repeat(2 * columnWidth));
+
+    for (const [, pkg] of sortedPackages) {
+      if (pkg.repo_name !== 'PyPi') {
+        continue;
+      }
+
+      logger?.log(
+        `${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}`
+      );
+    }
+  }
+}
+
 export function showPackagesList(
   installedPackages: ISolvedPackages,
   logger: ILogger | undefined
