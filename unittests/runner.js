@@ -37,10 +37,10 @@ function runTests(dir) {
           console.error(result.stderr);
           process.exitCode = 1;
           nFailures++;
+        } else {
+          nSuccess++;
+          console.log(`✅ Test passed ${testname}`);
         }
-
-        nSuccess++;
-        console.log(`✅ Test passed ${testname}`);
       } catch (err) {
         console.error(`Unexpected error while running ${fullPath}`);
         console.error(err.stack || err.message || err);
