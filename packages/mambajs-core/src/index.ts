@@ -378,7 +378,12 @@ export interface ILoadSharedLibsOptions {
   logger?: ILogger;
 }
 
-export async function loadShareLibs(
+/**
+ * @deprecated Use loadSharedLibs instead
+ */
+export const loadShareLibs = loadSharedLibs;
+
+export async function loadSharedLibs(
   options: ILoadSharedLibsOptions
 ): Promise<void[]> {
   const { sharedLibs, prefix, Module } = options;
