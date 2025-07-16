@@ -55,6 +55,7 @@ export interface IEmpackEnvMeta {
   prefix: string;
   packages: IEmpackEnvMetaPkg[];
   specs?: string[];
+  channels?: string[];
   mounts?: IEmpackEnvMetaMountPoint[];
 }
 
