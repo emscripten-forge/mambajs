@@ -7,6 +7,12 @@ expect(cmd.commands[0].data.type).toEqual('conda');
 expect(cmd.commands[0].type).toEqual('install');
 expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual(['ipycanvas', 'numpy>2']);
 
+cmd = parse('%rattler install ipycanvas numpy>2');
+
+expect(cmd.commands[0].data.type).toEqual('conda');
+expect(cmd.commands[0].type).toEqual('install');
+expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual(['ipycanvas', 'numpy>2']);
+
 cmd = parse('%conda   install   ipycanvas    numpy>2');
 
 expect(cmd.commands[0].data.type).toEqual('conda');

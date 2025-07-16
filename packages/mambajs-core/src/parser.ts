@@ -100,9 +100,10 @@ function parseCommandLine(line: string): IParsedCommand | null {
   }
 
   let command: 'conda' | 'pip' | null = null;
-  if (CONDA_ALIASES.includes(commandLine[0].split('%')[1] as TCondaAliases)) {
+  const alias = commandLine[0].split('%')[1];
+  if (CONDA_ALIASES.includes(alias as TCondaAliases)) {
     command = 'conda';
-  } else if (commandLine[0].split('%')[1] === 'pip') {
+  } else if (alias === 'pip') {
     command = 'pip';
   } else {
     // It's probably an IPython magic, we let it run
@@ -119,11 +120,11 @@ function parseCommandLine(line: string): IParsedCommand | null {
 
   if (command === 'conda') {
     if (!['install', 'remove', 'list'].includes(commandLine[1])) {
-      throw new Error(`Unknown conda command ${commandLine[1]}`);
+      throw new Error(`Unknown ${alias} command '${commandLine[1]}'`);
     }
   } else {
     if (!['install', 'uninstall', 'list'].includes(commandLine[1])) {
-      throw new Error(`Unknown pip command ${commandLine[1]}`);
+      throw new Error(`Unknown ${alias} command '${commandLine[1]}'`);
     }
 
     if (commandLine[1] === 'uninstall') {

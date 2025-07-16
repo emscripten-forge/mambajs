@@ -1,4 +1,4 @@
-import { create, install, ISolvedPackage, pipInstall, pipUninstall, remove } from "../../../packages/mambajs/src";
+import { create, install, pipUninstall, remove } from "../../../packages/mambajs/src";
 import { TestLogger } from "../../helpers";
 import { expect } from 'earl';
 
