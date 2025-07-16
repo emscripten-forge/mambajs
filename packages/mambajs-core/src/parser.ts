@@ -132,8 +132,7 @@ function parseCommandLine(line: string): IParsedCommand | null {
     }
   }
 
-  // TODO Make sub parsers take the list so it doesn't have to re-split
-  const commandParameters = commandLine.slice(2).join(' ');
+  const commandParameters = commandLine.slice(2);
   switch (parsedCommand.type) {
     case 'install': {
       if (parsedCommand.data.type === 'pip') {
@@ -163,27 +162,31 @@ function parseCommandLine(line: string): IParsedCommand | null {
 /**
  * Parses conda installation command
  *
- * @param {string} input - The command line which should be parsed.
+ * @param parameters - The command line which should be parsed.
  * @returns {IInstallationCommandOptions} An object containing:
  *  - channels,
  *  - conda packages for installing,
  *  - pip packages for installing
  */
-function parseCondaInstallCommand(input: string): IInstallationCommandOptions {
-  const parts = input.split(' ');
+function parseCondaInstallCommand(
+  parameters: string[]
+): IInstallationCommandOptions {
   const channels: string[] = [];
   const specs: string[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (part) {
-      const j = i + 1;
+  for (let i = 0; i < parameters.length; i++) {
+    const parameter = parameters[i];
 
-      if (part === '-c' && j < parts.length && !parts[j].startsWith('-')) {
-        channels.push(parts[j]);
-        i++;
-      } else {
-        specs.push(part);
-      }
+    const j = i + 1;
+
+    if (
+      (parameter === '-c' || parameter === '--channel') &&
+      j < parameters.length &&
+      !parameters[j].startsWith('-')
+    ) {
+      channels.push(parameters[j]);
+      i++;
+    } else {
+      specs.push(parameter);
     }
   }
 
@@ -197,28 +200,22 @@ function parseCondaInstallCommand(input: string): IInstallationCommandOptions {
 /**
  * Parses pip installation command
  *
- * @param {string} input - The command line which should be parsed.
+ * @param parameters - The command line which should be parsed.
  * @returns {IInstallationCommandOptions} An object containing:
  *  - channels,
  *  - conda packages for installing,
  *  - pip packages for installing
  */
-
-function parsePipInstallCommand(input: string): IInstallationCommandOptions {
+function parsePipInstallCommand(
+  parameters: string[]
+): IInstallationCommandOptions {
   const limits = ['--index-url', '.whl', 'tar.gz', '--extra-index-url', '-r'];
 
-  const flags = [
-    '--upgrade',
-    '--pre',
-    '--no-cache-dir',
-    '--user',
-    '--upgrade',
-    '--no-deps'
-  ];
+  const flags = ['--upgrade', '--pre', '--no-cache-dir', '--user', '--no-deps'];
 
   return {
     channels: [],
-    specs: getPipSpecs(input, limits, flags),
+    specs: getPipSpecs(parameters, limits, flags),
     type: 'pip'
   };
 }
@@ -226,14 +223,13 @@ function parsePipInstallCommand(input: string): IInstallationCommandOptions {
 /**
  * Parses pip uninstall command
  *
- * @param {string} input - The command line which should be parsed.
+ * @param parameters - The command line which should be parsed.
  * @returns {IUninstallationCommandOptions} An object containing:
  *  - specs is the array of package name that should be removed,
  *  - env which is the name of the environment where packages should be removed from
  */
-
 function getPipUninstallParameters(
-  input: string
+  parameters: string[]
 ): IUninstallationCommandOptions {
   const limits = ['-r'];
 
@@ -244,7 +240,7 @@ function getPipUninstallParameters(
     '--break-system-packages'
   ];
 
-  const specs: string[] = getPipSpecs(input, limits, flags);
+  const specs: string[] = getPipSpecs(parameters, limits, flags);
 
   return {
     specs,
@@ -255,33 +251,30 @@ function getPipUninstallParameters(
 /**
  * Parses pip command and returns pip specs
  *
- * @param {string} input - The command line which should be parsed.
+ * @param parameters - The command line which should be parsed.
  * @param {string[]} limits - Command flags which are not supported for a pip command
  * @param {string[]} flags - Command flags which may be supported
  * @returns {string[]} An array of pip specs
  */
 function getPipSpecs(
-  input: string,
+  parameters: string[],
   limits: string[],
   flags: string[]
 ): string[] {
-  const parts = input.split(' ');
   const specs: string[] = [];
 
-  limits.map((option: string) => {
-    if (input === option) {
-      throw new Error(`Unsupported option ${option}`);
+  parameters.map(parameter => {
+    if (
+      limits.includes(parameter) ||
+      limits.reduce((acc, limit) => !!acc || parameter.includes(limit), false)
+    ) {
+      throw new Error(`Unsupported option '${parameter}'`);
+    }
+
+    if (!flags.includes(parameter)) {
+      specs.push(parameter);
     }
   });
-
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (part) {
-      if (!flags.includes(part)) {
-        specs.push(part);
-      }
-    }
-  }
 
   return specs;
 }
@@ -289,14 +282,13 @@ function getPipSpecs(
 /**
  * Parses conda remove command and returns packages which should be deleted.
  *
- * @param {string} input - The command line which should be parsed.
+ * @param parameters - The command line which should be parsed.
  * @returns {IUninstallationCommandOptions} An object containing:
  *  - parsed specs,
  */
 function getCondaRemoveCommandParameters(
-  input: string
+  parameters: string[]
 ): IUninstallationCommandOptions {
-  const parts = input.split(' ');
   const specs: string[] = [];
 
   const limits = [
@@ -310,17 +302,13 @@ function getCondaRemoveCommandParameters(
     '--dev'
   ];
 
-  limits.map((option: string) => {
-    if (input === option) {
-      throw new Error(`Unsupported option ${option}`);
+  parameters.map(parameter => {
+    if (limits.includes(parameter)) {
+      throw new Error(`Unsupported option ${parameter}`);
     }
-  });
 
-  for (const part of parts) {
-    if (part) {
-      specs.push(part);
-    }
-  }
+    specs.push(parameter);
+  });
 
   return {
     specs,
