@@ -476,7 +476,8 @@ export function getCondaMetaFile(
         const pkgCondaMeta = {
           name: condaPackageInfo.name,
           version: condaPackageInfo.version,
-          build: condaPackageInfo.build
+          build: condaPackageInfo.build,
+          license: condaPackageInfo.license
         };
 
         if (verbose) {
