@@ -188,20 +188,22 @@ async function processRequirement(
     delete installPipPackagesLookup[requirement.package];
     delete installedWheels[requirement.package];
   }
-  pipSolvedPackages[solved.name] = {
-    name: requirement.package,
-    version: solved.version,
-    url: solved.url,
-    repo_name: 'PyPi'
-  };
-  installedWheels[requirement.package] = solved.name;
-  installPipPackagesLookup[requirement.package] =
-    pipSolvedPackages[solved.name];
 
   const requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
   if (!requiresDist) {
     return;
   }
+
+  pipSolvedPackages[solved.name] = {
+    name: requirement.package,
+    version: solved.version,
+    url: solved.url,
+    repo_name: 'PyPi',
+    depends: requiresDist || []
+  };
+  installedWheels[requirement.package] = solved.name;
+  installPipPackagesLookup[requirement.package] =
+    pipSolvedPackages[solved.name];
 
   for (const raw of requiresDist) {
     const [requirements, envMarker] = raw.split(';').map(s => s.trim());
