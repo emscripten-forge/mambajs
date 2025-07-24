@@ -205,6 +205,9 @@ async function processRequirement(
     url: solved.url,
     repo_name: 'PyPi',
     depends: filteredRequiresDist
+      .map(r => r.split(';')[0].trim())
+      .map(spec => packageNameFromSpec(spec))
+      .filter((name): name is string => !!name)
   };
   installedWheels[requirement.package] = solved.name;
   installPipPackagesLookup[requirement.package] =
