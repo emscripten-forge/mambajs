@@ -191,33 +191,31 @@ async function processRequirement(
 
   const requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
 
+  const filteredRequiresDist = (requiresDist || []).filter(raw => {
+    const [, envMarker] = raw.split(';').map(s => s.trim());
+    if (!envMarker) return true;
+    return requirement.extras?.some(extra =>
+      envMarker.includes(`extra == "${extra}"`)
+    );
+  });
+
   pipSolvedPackages[solved.name] = {
     name: requirement.package,
     version: solved.version,
     url: solved.url,
     repo_name: 'PyPi',
-    depends: requiresDist || []
+    depends: filteredRequiresDist
   };
   installedWheels[requirement.package] = solved.name;
   installPipPackagesLookup[requirement.package] =
     pipSolvedPackages[solved.name];
 
-  if (!requiresDist) {
+  if (!filteredRequiresDist) {
     return;
   }
 
-  for (const raw of requiresDist) {
-    const [requirements, envMarker] = raw.split(';').map(s => s.trim());
-
-    // Filter out extras not explicitly requested
-    if (
-      envMarker &&
-      !requirement.extras?.some(extra =>
-        envMarker.includes(`extra == "${extra}"`)
-      )
-    ) {
-      continue;
-    }
+  for (const raw of filteredRequiresDist) {
+    const [requirements] = raw.split(';').map(s => s.trim());
 
     const parsedRequirement = parsePyPiRequirement(requirements);
     if (!parsedRequirement) {
