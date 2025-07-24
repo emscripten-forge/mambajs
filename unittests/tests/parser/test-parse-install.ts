@@ -47,5 +47,6 @@ expect(cmd.commands[0].type).toEqual('install');
 expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual(['ipycanvas', 'numpy>2']);
 expect((cmd.commands[0].data as IInstallationCommandOptions).channels).toEqual(['conda-forge', 'emscripten-forge']);
 
+expect(() => parse('%pip install git+https://github.com/org/repo.git')).toThrow(`Unsupported option 'git+https://github.com/org/repo.git'`);
 expect(() => parse('%pip install pathToWheel.whl')).toThrow(`Unsupported option 'pathToWheel.whl'`);
 expect(() => parse('%pip install --index-url ipycanvas')).toThrow(`Unsupported option '--index-url'`);

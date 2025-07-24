@@ -209,7 +209,7 @@ function parseCondaInstallCommand(
 function parsePipInstallCommand(
   parameters: string[]
 ): IInstallationCommandOptions {
-  const limits = ['--index-url', '.whl', 'tar.gz', '--extra-index-url', '-r'];
+  const limits = ['--index-url', 'git+', '.whl', 'tar.gz', '--extra-index-url', '-r'];
 
   const flags = ['--upgrade', '--pre', '--no-cache-dir', '--user', '--no-deps'];
 
@@ -266,7 +266,7 @@ function getPipSpecs(
   parameters.map(parameter => {
     if (
       limits.includes(parameter) ||
-      limits.reduce((acc, limit) => !!acc || parameter.includes(limit), false)
+      limits.reduce((acc, limit) => acc || parameter.includes(limit), false)
     ) {
       throw new Error(`Unsupported option '${parameter}'`);
     }
