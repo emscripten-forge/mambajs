@@ -19,6 +19,6 @@ solvePip(yml, {}, {}, {}, [], logger).then(result => {
   expect(packageNames).not.toInclude('ipywidgets');
 
   // Check that py2vega has gast as a dependency
-  const py2vega = result['py2vega'];
-  expect(py2vega?.depends).toInclude('gast');
+  const py2vega = Object.values(result).find(pkg => pkg.name === 'py2vega');
+  expect(py2vega!.depends).toInclude('gast');
 });
