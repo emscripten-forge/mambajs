@@ -15,13 +15,71 @@ import {
   ISolvedPackages,
   removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
+  TSharedLibs,
   TSharedLibsMap,
-  untarCondaPackage
+  untarCondaPackage,
+  checkWasmMagicNumber
 } from './helper';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 
 export * from './helper';
 export * from './parser';
+
+class FetchFile {
+  constructor({ url }: { url: string | URL }) {
+    this.url_ = url;
+    // start it
+  }
+
+  async init() {
+    const response = await fetch(this.url_);
+    if (!response.ok) {
+      throw new Error(
+        'Error fetching ' + this.url_ + ' :' + response.statusText
+      );
+    }
+    const filesize = response.headers.get('Content-Length');
+    if (filesize) this.filesize_ = Number(filesize);
+    // only temporarily, we want streaming and chunking!
+    this.data_ = response.bytes();
+    // this.data_.then((data) => console.log('Show downloaded data', data));
+  }
+
+  getProps(Module: any) {
+    if (typeof this.filesize_ === 'undefined')
+      throw new Error('getProps on uninitialized object');
+
+    const props = {
+      size: this.filesize_,
+      callback: async (offset: bigint, buffer: number, size: number) => {
+        const dest = new Uint8Array(Module.HEAPU8.buffer, buffer, size);
+        if (this.data_ instanceof Promise) {
+          this.data_ = await this.data_;
+        }
+        if (!this.data_) return -2; // SQFS IO ERROR
+        const src = new Uint8Array(
+          this.data_.buffer,
+          this.data_?.byteOffset + Number(offset),
+          size
+        );
+        // now we copy
+        dest.set(src);
+        return 0; // success
+      }
+    };
+    return props;
+  }
+
+  // return Emval.toHandle(props);
+
+  private url_: string | URL;
+  private filesize_: undefined | number;
+  private data_: Promise<Uint8Array> | Uint8Array | undefined;
+}
+
+// name of a full environment
+const envSqshfs = 'environment.sqshfs';
+const squashfsFS = []; // I do not like global objects....
 
 /**
  * Given a list of packages from a lock file, get the Python version
@@ -101,7 +159,15 @@ export async function bootstrapEmpackPackedEnvironment(
 
   const solvedPkgs: ISolvedPackages = {};
   for (const empackPkg of empackEnvMeta.packages) {
-    solvedPkgs[empackPkg.filename] = empackPkg;
+    if (empackPkg.filename !== envSqshfs) {
+      solvedPkgs[empackPkg.filename] = empackPkg;
+    } else {
+      solvedPkgs[envSqshfs] = {
+        url: empackPkg.url,
+        name: 'conda_environment',
+        version: '0.0.0'
+      };
+    }
   }
 
   return await installPackagesToEmscriptenFS({
@@ -158,6 +224,12 @@ export interface IInstallMountPointsToEnvOptions
   mountPoints: IEmpackEnvMetaMountPoint[];
 }
 
+interface FileObject {
+  isFolder: boolean;
+  isFile: boolean;
+  isLink: boolean;
+}
+
 /**
  * Install packages into an emscripten FS.
  *
@@ -182,45 +254,196 @@ export async function installPackagesToEmscriptenFS(
     ? options.pythonVersion
     : getPythonVersion(Object.values(packages));
   const paths = {};
+  let squashFSinflight: Promise<void> | undefined;
+  let squashFSinflightRes: (
+    value: void | PromiseLike<void>
+  ) => void | undefined;
 
   await Promise.all(
     Object.keys(packages).map(async filename => {
       const pkg = packages[filename];
       let extractedPackage: FilesData = {};
 
-      // Special case for wheels
-      if (pkg.url?.endsWith('.whl')) {
-        if (!pythonVersion) {
-          const msg = 'Cannot install wheel if Python is not there';
-          console.error(msg);
-          throw msg;
-        }
+      const sharedLibs: TSharedLibs = (sharedLibsMap[pkg.name] = []);
 
-        // TODO Read record properly to know where to put each files
-        const rawData = await fetchByteArray(pkg.url);
-        const rawPackageData = await untarjs.extractData(rawData, false);
-        for (const key of Object.keys(rawPackageData)) {
-          extractedPackage[
-            `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
-          ] = rawPackageData[key];
+      if (filename.endsWith('sqshfs')) {
+        // special case for squashfs
+        // concurrent execution is not allowed, due to asyncify's limitations
+        while (squashFSinflight) {
+          // This simulates a mutex
+          await squashFSinflight;
+        }
+        squashFSinflight = new Promise(
+          resolve => (squashFSinflightRes = resolve)
+        );
+        const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
+        console.log('squashfs url', url);
+        // we need to mount the pkgRoot or other baseURL as single Filesystem
+        let sFS = squashfsFS[url];
+        if (!sFS) {
+          try {
+            // in case it is the first, we need to create the mount point's parent
+            if (Object.entries(squashfsFS).length === 0) {
+              await Module.mkdirAsync('/squashfs', 0o777);
+              console.log(
+                'Diagnosis mkdirAsync',
+                await Module.readDirAsync('/')
+              );
+            }
+            const ff = (squashfsFS[url] = new FetchFile({ url }));
+            await ff.init(); // do the initial downloads
+            const props = ff.getProps(Module);
+
+            const success =
+              await Module.wasmfs_create_squashfs_backend_callback_and_mount(
+                props,
+                '/squashfs/' + filename
+              );
+            if (!success) {
+              throw new Error('Mounting of directory failed for ' + filename);
+            }
+          } catch (error) {
+            console.log(
+              'Problem downloading sqfs of file:',
+              url,
+              'with error:',
+              error
+            );
+          }
+
+          // then we need to symlink the package content into the normal fs
+          const startDirSrc = '/squashfs/' + filename;
+          const startDirDest = ''; // equals to '/'
+          console.log('Diagnosis readir', await Module.readDirAsync('/'));
+          console.log(
+            'Diagnosis readir2',
+            await Module.readDirAsync('/squashfs')
+          );
+          console.log(
+            'Diagnosis readir3',
+            await Module.readDirAsync('/squashfs/')
+          );
+          console.log(
+            'Diagnosis readir4',
+            await Module.readDirAsync(startDirSrc)
+          );
+          paths[filename] = {};
+          const pathTest = ['/lib/python3.13/site-packages/']; // can this be determined programmatically?
+          const doSymLink = async (
+            dirSrc: string,
+            dirDest: string,
+            symlink: boolean
+          ) => {
+            const entries = await Module.readDirAsync(dirSrc);
+            for (const entry of entries) {
+              if (entry === '.' || entry === '..') continue;
+              const srcPath = dirSrc + '/' + entry;
+              const destPath = dirDest + '/' + entry;
+              const srcObj = (await Module.findObjectAsync(
+                srcPath
+              )) as FileObject;
+              const destObj = (await Module.findObjectAsync(
+                destPath
+              )) as FileObject;
+              if (
+                !srcObj.isFolder &&
+                (srcPath.endsWith('.so') || srcPath.includes('.so.'))
+              ) {
+                // should we really link them all beforehand or on demand?
+                const buffer = await Module.readFileSignAsync(srcPath);
+                if (checkWasmMagicNumber(buffer)) {
+                  sharedLibs.push(destPath);
+                }
+              }
+              if (!destObj) {
+                if (srcObj.isFolder) {
+                  // now we need to find out, if we should symlink and exit
+                  let directSymlink = false;
+                  if (
+                    pathTest.some(fragment => {
+                      const indexfrg = srcPath.indexOf(fragment);
+                      if (
+                        indexfrg !== -1 &&
+                        srcPath.length > indexfrg + fragment.length
+                      )
+                        return true;
+                      return false;
+                    })
+                  )
+                    directSymlink = true;
+                  if (directSymlink) {
+                    // direct Symlink is ok
+                    if (symlink) {
+                      await Module.symlinkAsync(srcPath, destPath);
+                      paths[filename][destPath.slice(1)] = destPath;
+                    }
+                    await doSymLink(srcPath, destPath, false); // we need to continue to look for libs
+                  } else {
+                    // in this case we need to create a dir
+                    if (symlink) await Module.mkdirAsync(destPath, 0o777);
+                    // and do a another round
+                    await doSymLink(srcPath, destPath, symlink);
+                  }
+                } else {
+                  // it is a file! We symlink and are done
+                  if (symlink) {
+                    await Module.symlinkAsync(srcPath, destPath);
+                    paths[filename][destPath.slice(1)] = destPath;
+                  }
+                }
+              } else {
+                // destObj exists!
+                if (destObj.isFolder) {
+                  if (!srcObj.isFolder)
+                    throw new Error('Dest/Src type mismatch DF');
+                  // Call me again
+                  await doSymLink(srcPath, destPath, symlink);
+                } else {
+                  // ups a destination file exists, we throw, or should we delete?
+                  if (symlink) throw new Error('Destination file exists: ' + destPath);
+                }
+              }
+            }
+          };
+          await doSymLink(startDirSrc, startDirDest, true);
+          squashFSinflight = undefined;
+          squashFSinflightRes();
         }
       } else {
-        const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
-        extractedPackage = await untarCondaPackage({
-          url,
-          untarjs,
-          verbose: false,
-          generateCondaMeta,
-          pythonVersion
-        });
-      }
+        // Special case for wheels
+        if (pkg.url?.endsWith('.whl')) {
+          if (!pythonVersion) {
+            const msg = 'Cannot install wheel if Python is not there';
+            console.error(msg);
+            throw msg;
+          }
 
-      sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
-      paths[filename] = {};
-      Object.keys(extractedPackage).forEach(filen => {
-        paths[filename][filen] = `/${filen}`;
-      });
-      saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
+          // TODO Read record properly to know where to put each files
+          const rawData = await fetchByteArray(pkg.url);
+          const rawPackageData = await untarjs.extractData(rawData, false);
+          for (const key of Object.keys(rawPackageData)) {
+            extractedPackage[
+              `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
+            ] = rawPackageData[key];
+          }
+        } else {
+          const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
+          extractedPackage = await untarCondaPackage({
+            url,
+            untarjs,
+            verbose: false,
+            generateCondaMeta,
+            pythonVersion
+          });
+        }
+        // TODO for sqshfs
+        sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
+        paths[filename] = {};
+        Object.keys(extractedPackage).forEach(filen => {
+          paths[filename][filen] = `/${filen}`;
+        });
+        saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
+      }
     })
   );
   await waitRunDependencies(Module);
