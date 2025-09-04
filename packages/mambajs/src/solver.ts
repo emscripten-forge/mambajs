@@ -1,4 +1,6 @@
 import {
+  ALIASES,
+  ILock,
   ILogger,
   ISolvedPackages,
   parseEnvYml,
@@ -6,22 +8,12 @@ import {
 } from '@emscripten-forge/mambajs-core';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
 
-const PLATFORMS: Platform[] = ['noarch', 'emscripten-wasm32'];
-const DEFAULT_CHANNELS = [
-  'https://repo.prefix.dev/emscripten-forge-dev',
-  'https://repo.prefix.dev/conda-forge'
-];
-const ALIAS = ['conda-forge', 'emscripten-forge-dev'];
-const CHANNEL_ALIASES = {
-  'emscripten-forge-dev': 'https://repo.prefix.dev/emscripten-forge-dev',
-  'conda-forge': 'https://repo.prefix.dev/conda-forge'
-};
-
 export interface ISolveOptions {
   ymlOrSpecs?: string | string[];
   installedPackages?: ISolvedPackages;
   pipSpecs?: string[];
   channels?: string[];
+  platform?: Platform;
   logger?: ILogger;
 }
 
@@ -29,6 +21,7 @@ const solve = async (
   specs: Array<string>,
   channels: Array<string>,
   installedCondaPackages: ISolvedPackages,
+  platform: Platform = 'emscripten-wasm32',
   logger?: ILogger
 ) => {
   let result: SolvedPackage[] | undefined = undefined;
@@ -61,7 +54,7 @@ const solve = async (
     result = (await simpleSolve(
       specs,
       channels,
-      PLATFORMS,
+      ['noarch', platform],
       installed
     )) as SolvedPackage[];
     const endSolveTime = performance.now();
@@ -106,9 +99,9 @@ const solve = async (
   return solvedPackages;
 };
 
-export const getSolvedPackages = async (
+export const solveConda = async (
   options: ISolveOptions
-): Promise<ISolvedPackages> => {
+): Promise<ILock> => {
   const { ymlOrSpecs, installedPackages, channels, logger } = options;
   let solvedPackages: ISolvedPackages = {};
 
@@ -136,23 +129,16 @@ export const getSolvedPackages = async (
       specs,
       newChannels,
       installedCondaPackages,
+      options.platform ?? 'emscripten-wasm32',
       logger
     );
   } catch (error: any) {
     throw new Error(error.message);
   }
-  return solvedPackages;
-};
 
-const getChannelsAlias = (channelNames: string[]) => {
-  const channels = channelNames.map((channel: string) => {
-    if (CHANNEL_ALIASES[channel]) {
-      channel = CHANNEL_ALIASES[channel];
-    }
-    return channel;
-  });
+  return {
 
-  return channels;
+  };
 };
 
 const formatChannels = (channels?: string[]) => {

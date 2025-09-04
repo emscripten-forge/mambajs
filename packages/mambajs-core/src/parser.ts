@@ -209,7 +209,14 @@ function parseCondaInstallCommand(
 function parsePipInstallCommand(
   parameters: string[]
 ): IInstallationCommandOptions {
-  const limits = ['--index-url', 'git+', '.whl', 'tar.gz', '--extra-index-url', '-r'];
+  const limits = [
+    '--index-url',
+    'git+',
+    '.whl',
+    'tar.gz',
+    '--extra-index-url',
+    '-r'
+  ];
 
   const flags = ['--upgrade', '--pre', '--no-cache-dir', '--user', '--no-deps'];
 

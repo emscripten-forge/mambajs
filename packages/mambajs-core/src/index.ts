@@ -6,6 +6,11 @@ import {
 } from '@emscripten-forge/untarjs';
 import {
   getSharedLibs,
+  removeFilesFromEmscriptenFS,
+  saveFilesIntoEmscriptenFS,
+  untarCondaPackage
+} from './helper';
+import {
   IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaMountPoint,
@@ -13,13 +18,11 @@ import {
   ILogger,
   ISolvedPackage,
   ISolvedPackages,
-  removeFilesFromEmscriptenFS,
-  saveFilesIntoEmscriptenFS,
-  TSharedLibsMap,
-  untarCondaPackage
-} from './helper';
+  TSharedLibsMap
+} from './types';
 import { loadDynlibsFromPackage } from './dynload/dynload';
 
+export * from './types';
 export * from './helper';
 export * from './parser';
 

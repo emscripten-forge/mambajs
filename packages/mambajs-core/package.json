@@ -6,9 +6,10 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
-    "build": "yarn run clean && yarn run build:esbuild && yarn run build:types",
-    "build:types": "tsc --emitDeclarationOnly",
-    "build:esbuild": "node esbuild.config.js"
+    "build": "yarn run clean && yarn run build:schema && yarn run build:esbuild && yarn run build:types",
+    "build:schema": "echo 'Generating TypeScript types from schema...' && json2ts -i schema -o src/_interface --no-unknownAny --unreachableDefinitions && mkdir -p lib/_interface && cp -R ./src/_interface/* ./lib/_interface/.",
+    "build:esbuild": "node esbuild.config.js",
+    "build:types": "tsc --emitDeclarationOnly"
   },
   "files": [
     "lib/*"
@@ -37,6 +38,7 @@
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "esbuild": "^0.24.0",
+    "json-schema-to-typescript": "^15.0.4",
     "rimraf": "^3.0.2",
     "typescript": "^5"
   }

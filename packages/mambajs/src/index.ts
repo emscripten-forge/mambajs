@@ -1,8 +1,7 @@
 import {
   getPythonVersion,
-  IEnv,
-  IEnvPackages,
   ILogger,
+  ILock,
   ISolvedPackages,
   packageNameFromSpec,
   parseEnvYml,
@@ -10,13 +9,13 @@ import {
   showPackagesList,
   splitPipPackages
 } from '@emscripten-forge/mambajs-core';
-import { getSolvedPackages, ISolveOptions } from './solver';
+import { solveConda, ISolveOptions } from './solver';
 import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
 
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
 
-export async function solve(options: ISolveOptions): Promise<IEnvPackages> {
+export async function solve(options: ISolveOptions): Promise<ILock> {
   const { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
   const { installedPipPackages, installedCondaPackages } =
     splitPipPackages(installedPackages);
@@ -34,7 +33,7 @@ export async function solve(options: ISolveOptions): Promise<IEnvPackages> {
   // Run conda solver first
   if (ymlOrSpecs && ymlOrSpecs.length) {
     try {
-      condaPackages = await getSolvedPackages(options);
+      condaPackages = await solveConda(options);
       pythonVersion = getPythonVersion(Object.values(condaPackages));
 
       // Remove pip packages if they are now coming from conda
@@ -98,6 +97,7 @@ export async function solve(options: ISolveOptions): Promise<IEnvPackages> {
     }
   }
 
+  // TODO Add channels and specs
   return {
     condaPackages,
     pipPackages
@@ -110,7 +110,7 @@ export async function solve(options: ISolveOptions): Promise<IEnvPackages> {
  * @param logger the logs handler
  * @returns the solved environment
  */
-export async function create(yml: string, logger?: ILogger): Promise<IEnv> {
+export async function create(yml: string, logger?: ILogger): Promise<ILock> {
   const parsedYml = parseEnvYml(yml);
 
   const packages = await solve({ ymlOrSpecs: yml, logger });
@@ -132,10 +132,10 @@ export async function create(yml: string, logger?: ILogger): Promise<IEnv> {
  */
 export async function install(
   specs: string[],
-  env: IEnv,
+  env: ILock,
   channels?: string[],
   logger?: ILogger
-): Promise<IEnv> {
+): Promise<ILock> {
   // Merge existing channels with new ones
   const newChannels: string[] = env.channels || [
     'https://prefix.dev/emscripten-forge-dev',
@@ -182,9 +182,9 @@ export async function install(
  */
 export async function remove(
   packages: string[],
-  env: IEnv,
+  env: ILock,
   logger?: ILogger
-): Promise<IEnv> {
+): Promise<ILock> {
   // Get packages for which we have specs already
   const specsPackages = new Set(
     env.specs.map(spec => packageNameFromSpec(spec))
@@ -263,9 +263,9 @@ export async function remove(
  */
 export async function pipInstall(
   specs: string[],
-  env: IEnv,
+  env: ILock,
   logger?: ILogger
-): Promise<IEnv> {
+): Promise<ILock> {
   const packages = await solve({
     pipSpecs: specs,
     installedPackages: {
@@ -291,9 +291,9 @@ export async function pipInstall(
  */
 export async function pipUninstall(
   packages: string[],
-  env: IEnv,
+  env: ILock,
   logger?: ILogger
-): Promise<IEnv> {
+): Promise<ILock> {
   const newPipPackages = { ...env.packages.pipPackages };
 
   // Mapping: installed package name -> dist filename

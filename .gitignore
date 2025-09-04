@@ -8,3 +8,5 @@ unittests/packages/
 .yarn
 
 tsconfig.tsbuildinfo
+
+**/_interface
