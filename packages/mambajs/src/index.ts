@@ -1,14 +1,14 @@
 import {
   getPythonVersion,
-  ILogger,
   ILock,
+  ILogger,
   ISolvedPackages,
   packageNameFromSpec,
   parseEnvYml,
   showEnvironmentDiff,
   showPackagesList
 } from '@emscripten-forge/mambajs-core';
-import { solveConda, ISolveOptions } from './solver';
+import { ISolveOptions, solveConda } from './solver';
 import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
 
 // For backward compat

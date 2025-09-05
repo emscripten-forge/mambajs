@@ -12,20 +12,28 @@ export interface ILogger {
 // Some helper types
 export type ISolvedPackage = ILock['packages'][keyof ILock['packages']];
 export type ISolvedPackages = ILock['packages'];
-export type ISolvedPipPackage = ILock['pipPackages'][keyof ILock['pipPackages']];
+export type ISolvedPipPackage =
+  ILock['pipPackages'][keyof ILock['pipPackages']];
 export type ISolvedPipPackages = ILock['pipPackages'];
 
 export const DEFAULT_PLATFORM: ILock['platform'] = 'emscripten-wasm32';
-export const DEFAULT_CHANNEL_PRIORITY: ILock['channel_priority'] = ['emscripten-forge', 'conda-forge'];
+export const DEFAULT_CHANNEL_PRIORITY: ILock['channel_priority'] = [
+  'emscripten-forge',
+  'conda-forge'
+];
 export const DEFAULT_CHANNELS: ILock['channels'] = {
-  'emscripten-forge': [{
-    'url': 'https://prefix.dev/emscripten-forge-dev',
-    'protocol': 'https'
-  }],
-  'conda-forge': [{
-    'url': 'https://prefix.dev/conda-forge',
-    'protocol': 'https'
-  }],
+  'emscripten-forge': [
+    {
+      url: 'https://prefix.dev/emscripten-forge-dev',
+      protocol: 'https'
+    }
+  ],
+  'conda-forge': [
+    {
+      url: 'https://prefix.dev/conda-forge',
+      protocol: 'https'
+    }
+  ]
 };
 
 export interface IEmpackEnvMetaPkg {
@@ -64,7 +72,7 @@ export type TSharedLibs = string[];
 export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
 
 export interface IBootstrapData {
-  lock: ILock,
+  lock: ILock;
   sharedLibs: TSharedLibsMap;
   paths: { [key: string]: string };
   untarjs: IUnpackJSAPI;

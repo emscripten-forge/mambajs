@@ -104,7 +104,7 @@ export async function bootstrapEmpackPackedEnvironment(
     });
   }
 
-  empackEnvMeta.channels
+  empackEnvMeta.channels;
 
   const solvedPkgs: ISolvedPackages = {};
   const solvedPipPkgs: ISolvedPipPackages = {};
@@ -118,8 +118,8 @@ export async function bootstrapEmpackPackedEnvironment(
       };
     } else {
       // TODO !!!
+      // TODO Respect options.pkgRootUrl
       // solvedPkgs[empackPkg.filename] = {
-
       // };
     }
   }
@@ -128,7 +128,7 @@ export async function bootstrapEmpackPackedEnvironment(
     ...options,
     packages: {
       packages: solvedPkgs,
-      pipPackages: solvedPipPkgs,
+      pipPackages: solvedPipPkgs
     }
   });
 }
@@ -137,7 +137,7 @@ export interface IInstallFilesToEnvOptions {
   /**
    * The URL (CDN or similar) from which to download packages
    */
-  pkgRootUrl: string;
+  pkgRootUrl?: string;
 
   /**
    * The Emscripten Module
@@ -171,8 +171,8 @@ export interface IInstallPackagesToEnvOptions
    * The packages to install
    */
   packages: {
-    packages: ISolvedPackages,
-    pipPackages: ISolvedPipPackages
+    packages: ISolvedPackages;
+    pipPackages: ISolvedPipPackages;
   };
 }
 
@@ -211,55 +211,66 @@ export async function installPackagesToEmscriptenFS(
     : getPythonVersion(Object.values(condaPackages));
   const paths = {};
 
-  const processExtractedPackage = (pkg: ISolvedPackage | ISolvedPipPackage, filename: string, extractedPackage: FilesData) => {
+  const processExtractedPackage = (
+    pkg: ISolvedPackage | ISolvedPipPackage,
+    filename: string,
+    extractedPackage: FilesData
+  ) => {
     sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
     paths[filename] = {};
     Object.keys(extractedPackage).forEach(filen => {
       paths[filename][filen] = `/${filen}`;
     });
     saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
-  }
+  };
 
   await Promise.all(
     // Extract and install conda package
-    Object.keys(condaPackages).map(async filename => {
-      const pkg = condaPackages[filename];
-      let extractedPackage: FilesData = {};
+    Object.keys(condaPackages)
+      .map(async filename => {
+        const pkg = condaPackages[filename];
+        let extractedPackage: FilesData = {};
 
-      const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
-      extractedPackage = await untarCondaPackage({
-        url,
-        untarjs,
-        verbose: false,
-        generateCondaMeta,
-        pythonVersion
-      });
+        // TODO Compute urls from channels
 
-      processExtractedPackage(pkg, filename, extractedPackage);
-    })
-    // Extract and install pip wheels
-    .concat(Object.keys(pipPackages).map(async filename => {
-      const pkg = pipPackages[filename];
-      let extractedPackage: FilesData = {};
+        const url = pkgRootUrl ? `${pkgRootUrl}/${filename}` : computeUrl(pkg);
+        extractedPackage = await untarCondaPackage({
+          url,
+          untarjs,
+          verbose: false,
+          generateCondaMeta,
+          pythonVersion
+        });
 
-      // Special case for wheels
-      if (!pythonVersion) {
-        const msg = 'Cannot install wheel if Python is not there';
-        console.error(msg);
-        throw msg;
-      }
+        processExtractedPackage(pkg, filename, extractedPackage);
+      })
+      // Extract and install pip wheels
+      .concat(
+        Object.keys(pipPackages).map(async filename => {
+          const pkg = pipPackages[filename];
+          const extractedPackage: FilesData = {};
 
-      // TODO Read record properly to know where to put each files
-      const rawData = await fetchByteArray(pkg.url);
-      const rawPackageData = await untarjs.extractData(rawData, false);
-      for (const key of Object.keys(rawPackageData)) {
-        extractedPackage[
-          `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
-        ] = rawPackageData[key];
-      }
+          // Special case for wheels
+          if (!pythonVersion) {
+            const msg = 'Cannot install wheel if Python is not there';
+            console.error(msg);
+            throw msg;
+          }
 
-      processExtractedPackage(pkg, filename, extractedPackage);
-    }))
+          // TODO Read record properly to know where to put each files
+          const rawData = await fetchByteArray(
+            pkgRootUrl ? `${pkgRootUrl}/${filename}` : pkg.url
+          );
+          const rawPackageData = await untarjs.extractData(rawData, false);
+          for (const key of Object.keys(rawPackageData)) {
+            extractedPackage[
+              `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
+            ] = rawPackageData[key];
+          }
+
+          processExtractedPackage(pkg, filename, extractedPackage);
+        })
+      )
   );
   await waitRunDependencies(Module);
 
@@ -455,7 +466,7 @@ export async function waitRunDependencies(Module: any): Promise<void> {
 }
 
 export function showPipPackagesList(
-  installedPackages: ISolvedPackages,
+  installedPackages: ISolvedPipPackages,
   logger: ILogger | undefined
 ) {
   if (Object.keys(installedPackages).length) {
@@ -470,10 +481,6 @@ export function showPipPackagesList(
     logger?.log('─'.repeat(2 * columnWidth));
 
     for (const [, pkg] of sortedPackages) {
-      if (pkg.repo_name !== 'PyPi') {
-        continue;
-      }
-
       logger?.log(
         `${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}`
       );
@@ -482,11 +489,19 @@ export function showPipPackagesList(
 }
 
 export function showPackagesList(
-  installedPackages: ISolvedPackages,
+  installedPackages: {
+    packages: ISolvedPackages;
+    pipPackages: ISolvedPipPackages;
+  },
   logger: ILogger | undefined
 ) {
-  if (Object.keys(installedPackages).length) {
-    const sortedPackages = sort(installedPackages);
+  const merged = {
+    ...installedPackages.packages,
+    ...installedPackages.pipPackages
+  };
+
+  if (Object.keys(merged).length) {
+    const sortedPackages = sort(merged);
 
     const columnWidth = 30;
 
@@ -497,8 +512,12 @@ export function showPackagesList(
     logger?.log('─'.repeat(4 * columnWidth));
 
     for (const [, pkg] of sortedPackages) {
-      const buildString = pkg.build_string || 'unknown';
-      const repoName = pkg.repo_name ? pkg.repo_name : '';
+      const buildString = pkg['build_string'] || 'unknown';
+      const repoName = pkg['channel']
+        ? pkg['channel']
+        : pkg['registry']
+          ? pkg['registry']
+          : '';
 
       logger?.log(
         `${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${buildString.padEnd(columnWidth)}${repoName.padEnd(columnWidth)}`
@@ -508,24 +527,42 @@ export function showPackagesList(
 }
 
 export function showEnvironmentDiff(
-  installedPackages: ISolvedPackages,
-  newPackages: ISolvedPackages,
+  installedPackages: {
+    packages: ISolvedPackages;
+    pipPackages: ISolvedPipPackages;
+  },
+  newPackages: {
+    packages: ISolvedPackages;
+    pipPackages: ISolvedPipPackages;
+  },
   logger: ILogger | undefined
 ) {
-  if (Object.keys(newPackages).length) {
-    const previousInstall = new Map<string, ISolvedPackage>();
-    for (const name of Object.keys(installedPackages)) {
+  const mergedNewPackages = {
+    ...newPackages.packages,
+    ...newPackages.pipPackages
+  };
+  const mergedInstalledPackages = {
+    ...installedPackages.packages,
+    ...installedPackages.pipPackages
+  };
+
+  if (Object.keys(mergedNewPackages).length) {
+    const previousInstall = new Map<
+      string,
+      ISolvedPackage | ISolvedPipPackage
+    >();
+    for (const name of Object.keys(mergedInstalledPackages)) {
       previousInstall.set(
-        installedPackages[name].name,
-        installedPackages[name]
+        mergedInstalledPackages[name].name,
+        mergedInstalledPackages[name]
       );
     }
-    const newInstall = new Map<string, ISolvedPackage>();
-    for (const name of Object.keys(newPackages)) {
-      newInstall.set(newPackages[name].name, newPackages[name]);
+    const newInstall = new Map<string, ISolvedPackage | ISolvedPipPackage>();
+    for (const name of Object.keys(mergedNewPackages)) {
+      newInstall.set(mergedNewPackages[name].name, mergedNewPackages[name]);
     }
 
-    const sortedPackages = sort(newPackages);
+    const sortedPackages = sort(mergedNewPackages);
 
     const columnWidth = 30;
 
@@ -546,7 +583,7 @@ export function showEnvironmentDiff(
       if (
         prevPkg &&
         prevPkg.version === pkg.version &&
-        prevPkg.build_string === pkg.build_string
+        prevPkg['build_string'] === pkg['build_string']
       ) {
         continue;
       }
@@ -565,16 +602,19 @@ export function showEnvironmentDiff(
       if (!prevPkg) {
         prefix = '\x1b[0;32m+';
         versionDiff = pkg.version;
-        buildStringDiff = pkg.build_string || '';
-        channelDiff = pkg.repo_name || '';
+        buildStringDiff = pkg['build_string'] || 'unknown';
+        channelDiff = pkg['channel'] || pkg['registry'] || '';
       } else {
+        const oldChannel = prevPkg['channel'] || prevPkg['registry'] || '';
+        const newChannel = prevPkg['channel'] || prevPkg['registry'] || '';
+
         prefix = '\x1b[38;5;208m~';
         versionDiff = `${prevPkg.version} -> ${pkg.version}`;
-        buildStringDiff = `${prevPkg.build_string || 'unknown'} -> ${pkg.build_string || 'unknown'}`;
+        buildStringDiff = `${prevPkg['build_string'] || 'unknown'} -> ${pkg['build_string'] || 'unknown'}`;
         channelDiff =
-          prevPkg.repo_name === pkg.repo_name
-            ? pkg.repo_name || ''
-            : `${prevPkg.repo_name} -> ${pkg.repo_name}`;
+          oldChannel === newChannel
+            ? oldChannel || ''
+            : `${oldChannel} -> ${newChannel}`;
       }
 
       logger?.log(
@@ -584,7 +624,7 @@ export function showEnvironmentDiff(
 
     // Displaying removed packages
     for (const [name, pkg] of previousInstall) {
-      if (pkg.repo_name !== 'PyPi' && !newInstall.has(name)) {
+      if (!newInstall.has(name)) {
         if (!loggedHeader) {
           logHeader();
 
@@ -592,7 +632,7 @@ export function showEnvironmentDiff(
         }
 
         logger?.log(
-          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${pkg.build_string?.padEnd(columnWidth)}${pkg.repo_name?.padEnd(columnWidth)}`
+          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${(pkg['build_string'] || 'unknown')?.padEnd(columnWidth)}${(pkg['channel'] || pkg['registry'])?.padEnd(columnWidth)}`
         );
       }
     }
@@ -603,7 +643,9 @@ export function showEnvironmentDiff(
   }
 }
 
-export function sort(installed: ISolvedPackages): Map<string, ISolvedPackage> {
+export function sort(installed: {
+  [key: string]: ISolvedPackage | ISolvedPipPackage;
+}): Map<string, ISolvedPackage | ISolvedPipPackage> {
   const sorted = Object.entries(installed).sort((a, b) => {
     const packageA: any = a[1];
     const packageB: any = b[1];

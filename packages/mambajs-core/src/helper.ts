@@ -1,6 +1,11 @@
 import { FilesData, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import { parse } from 'yaml';
-import { DEFAULT_CHANNEL_PRIORITY, DEFAULT_CHANNELS, ILock, TSharedLibs } from './types';
+import {
+  DEFAULT_CHANNEL_PRIORITY,
+  DEFAULT_CHANNELS,
+  ILock,
+  TSharedLibs
+} from './types';
 
 export function parseEnvYml(envYml: string) {
   const data = parse(envYml);
@@ -450,7 +455,9 @@ export function getCondaMetaFile(
   return {};
 }
 
-export function formatChannels(channels?: string[]): Pick<ILock, 'channels' | 'channel_priority'> {
+export function formatChannels(
+  channels?: string[]
+): Pick<ILock, 'channels' | 'channel_priority'> {
   if (!channels || !channels.length) {
     return {
       channels: DEFAULT_CHANNELS,
@@ -464,9 +471,11 @@ export function formatChannels(channels?: string[]): Pick<ILock, 'channels' | 'c
   };
 
   // Returns the default channel name if it's a default one, otherwise null
-  const getDefaultChannel = (urlOrName: string): {
-    name: string,
-    channel: ILock['channels'][keyof ILock['channels']]
+  const getDefaultChannel = (
+    urlOrName: string
+  ): {
+    name: string;
+    channel: ILock['channels'][keyof ILock['channels']];
   } | null => {
     // Check if it's a known channel alias
     if (DEFAULT_CHANNEL_PRIORITY.includes(urlOrName)) {
@@ -484,13 +493,13 @@ export function formatChannels(channels?: string[]): Pick<ILock, 'channels' | 'c
           return {
             name,
             channel: mirrors
-          }
+          };
         }
       });
     });
 
     return null;
-  }
+  };
 
   const pushChannel = (channel: string) => {
     // Cleanup trailing url slash
@@ -504,19 +513,25 @@ export function formatChannels(channels?: string[]): Pick<ILock, 'channels' | 'c
 
     // If it's one of the default channels and it's not included yet, add it
     const asDefaultChannel = getDefaultChannel(channel);
-    if (asDefaultChannel && !formattedChannels.channel_priority.includes(asDefaultChannel.name)) {
+    if (
+      asDefaultChannel &&
+      !formattedChannels.channel_priority.includes(asDefaultChannel.name)
+    ) {
       formattedChannels.channel_priority.push(asDefaultChannel.name);
-      formattedChannels.channels[asDefaultChannel.name] = asDefaultChannel.channel;
+      formattedChannels.channels[asDefaultChannel.name] =
+        asDefaultChannel.channel;
       return;
     }
 
     // Otherwise, add it if it's not included yet
     if (!formattedChannels.channel_priority.includes(channel)) {
       formattedChannels.channel_priority.push(channel);
-      formattedChannels.channels[channel] = [{url: channel, protocol: 'https'}];
+      formattedChannels.channels[channel] = [
+        { url: channel, protocol: 'https' }
+      ];
       return;
     }
-  }
+  };
 
   channels?.forEach(pushChannel);
 

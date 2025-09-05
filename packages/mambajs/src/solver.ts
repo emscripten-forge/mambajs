@@ -1,7 +1,7 @@
 import {
-  formatChannels,
   cleanUrl,
   DEFAULT_PLATFORM,
+  formatChannels,
   ILock,
   ILogger,
   ISolvedPackages,
@@ -13,8 +13,8 @@ import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
 export interface ISolveOptions {
   ymlOrSpecs?: string | string[];
   installedPackages?: {
-    packages: ISolvedPackages,
-    pipPackages: ISolvedPipPackages
+    packages: ISolvedPackages;
+    pipPackages: ISolvedPipPackages;
   };
   pipSpecs?: string[];
   channels?: string[];
@@ -106,16 +106,14 @@ const solve = async (
   return solvedPackages;
 };
 
-export const solveConda = async (
-  options: ISolveOptions
-): Promise<ILock> => {
+export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   const { ymlOrSpecs, installedPackages, channels, logger } = options;
   let condaPackages: ISolvedPackages = {};
 
   let specs: string[] = [],
     formattedChannels: Pick<ILock, 'channels' | 'channel_priority'> = {
-      'channel_priority': [],
-      'channels': {},
+      channel_priority: [],
+      channels: {}
     };
   let installedCondaPackages: ISolvedPackages = {};
 
@@ -137,7 +135,7 @@ export const solveConda = async (
   try {
     condaPackages = await solve(
       specs,
-      formattedChannels.channel_priority.map((channelName) => {
+      formattedChannels.channel_priority.map(channelName => {
         // TODO Support picking mirror
         // Always picking the first mirror for now
         return formattedChannels.channels[channelName][0].url;
@@ -156,15 +154,23 @@ export const solveConda = async (
     const pkg = condaPackages[filename];
 
     let channel = '';
-    if (pkg.repo_name && formattedChannels.channel_priority.includes(pkg.repo_name)) {
+    if (
+      pkg.repo_name &&
+      formattedChannels.channel_priority.includes(pkg.repo_name)
+    ) {
       channel = pkg.repo_name;
     }
-    if (pkg.repo_url && formattedChannels.channel_priority.includes(cleanUrl(pkg.repo_url))) {
+    if (
+      pkg.repo_url &&
+      formattedChannels.channel_priority.includes(cleanUrl(pkg.repo_url))
+    ) {
       channel = pkg.repo_url;
     }
 
     if (!channel) {
-      throw new Error(`Failed to detect channel from ${pkg}, with know channels ${formattedChannels.channel_priority}`);
+      throw new Error(
+        `Failed to detect channel from ${pkg}, with know channels ${formattedChannels.channel_priority}`
+      );
     }
 
     packages[filename] = {
@@ -174,7 +180,7 @@ export const solveConda = async (
       version: pkg.version,
       subdir: pkg.subdir,
       channel
-    }
+    };
   });
 
   return {
