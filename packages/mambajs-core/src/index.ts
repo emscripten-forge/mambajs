@@ -18,6 +18,8 @@ import {
   ILogger,
   ISolvedPackage,
   ISolvedPackages,
+  ISolvedPipPackage,
+  ISolvedPipPackages,
   TSharedLibsMap
 } from './types';
 import { loadDynlibsFromPackage } from './dynload/dynload';
@@ -102,14 +104,32 @@ export async function bootstrapEmpackPackedEnvironment(
     });
   }
 
+  empackEnvMeta.channels
+
   const solvedPkgs: ISolvedPackages = {};
+  const solvedPipPkgs: ISolvedPipPackages = {};
   for (const empackPkg of empackEnvMeta.packages) {
-    solvedPkgs[empackPkg.filename] = empackPkg;
+    if (empackPkg.filename.endsWith('.whl')) {
+      solvedPipPkgs[empackPkg.filename] = {
+        name: empackPkg.name,
+        version: empackPkg.version,
+        url: empackPkg.url,
+        registry: 'PyPi'
+      };
+    } else {
+      // TODO !!!
+      // solvedPkgs[empackPkg.filename] = {
+
+      // };
+    }
   }
 
   return await installPackagesToEmscriptenFS({
-    packages: solvedPkgs,
-    ...options
+    ...options,
+    packages: {
+      packages: solvedPkgs,
+      pipPackages: solvedPipPkgs,
+    }
   });
 }
 
@@ -150,7 +170,10 @@ export interface IInstallPackagesToEnvOptions
   /**
    * The packages to install
    */
-  packages: ISolvedPackages;
+  packages: {
+    packages: ISolvedPackages,
+    pipPackages: ISolvedPipPackages
+  };
 }
 
 export interface IInstallMountPointsToEnvOptions
@@ -171,6 +194,8 @@ export async function installPackagesToEmscriptenFS(
   options: IInstallPackagesToEnvOptions
 ): Promise<IBootstrapData> {
   const { packages, pkgRootUrl, Module, generateCondaMeta } = options;
+  const condaPackages = packages.packages;
+  const pipPackages = packages.pipPackages;
 
   let untarjs: IUnpackJSAPI;
   if (options.untarjs) {
@@ -183,48 +208,58 @@ export async function installPackagesToEmscriptenFS(
   const sharedLibsMap: TSharedLibsMap = {};
   const pythonVersion = options.pythonVersion
     ? options.pythonVersion
-    : getPythonVersion(Object.values(packages));
+    : getPythonVersion(Object.values(condaPackages));
   const paths = {};
 
+  const processExtractedPackage = (pkg: ISolvedPackage | ISolvedPipPackage, filename: string, extractedPackage: FilesData) => {
+    sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
+    paths[filename] = {};
+    Object.keys(extractedPackage).forEach(filen => {
+      paths[filename][filen] = `/${filen}`;
+    });
+    saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
+  }
+
   await Promise.all(
-    Object.keys(packages).map(async filename => {
-      const pkg = packages[filename];
+    // Extract and install conda package
+    Object.keys(condaPackages).map(async filename => {
+      const pkg = condaPackages[filename];
+      let extractedPackage: FilesData = {};
+
+      const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
+      extractedPackage = await untarCondaPackage({
+        url,
+        untarjs,
+        verbose: false,
+        generateCondaMeta,
+        pythonVersion
+      });
+
+      processExtractedPackage(pkg, filename, extractedPackage);
+    })
+    // Extract and install pip wheels
+    .concat(Object.keys(pipPackages).map(async filename => {
+      const pkg = pipPackages[filename];
       let extractedPackage: FilesData = {};
 
       // Special case for wheels
-      if (pkg.url?.endsWith('.whl')) {
-        if (!pythonVersion) {
-          const msg = 'Cannot install wheel if Python is not there';
-          console.error(msg);
-          throw msg;
-        }
-
-        // TODO Read record properly to know where to put each files
-        const rawData = await fetchByteArray(pkg.url);
-        const rawPackageData = await untarjs.extractData(rawData, false);
-        for (const key of Object.keys(rawPackageData)) {
-          extractedPackage[
-            `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
-          ] = rawPackageData[key];
-        }
-      } else {
-        const url = pkg?.url ? pkg.url : `${pkgRootUrl}/${filename}`;
-        extractedPackage = await untarCondaPackage({
-          url,
-          untarjs,
-          verbose: false,
-          generateCondaMeta,
-          pythonVersion
-        });
+      if (!pythonVersion) {
+        const msg = 'Cannot install wheel if Python is not there';
+        console.error(msg);
+        throw msg;
       }
 
-      sharedLibsMap[pkg.name] = getSharedLibs(extractedPackage, '');
-      paths[filename] = {};
-      Object.keys(extractedPackage).forEach(filen => {
-        paths[filename][filen] = `/${filen}`;
-      });
-      saveFilesIntoEmscriptenFS(Module.FS, extractedPackage, '');
-    })
+      // TODO Read record properly to know where to put each files
+      const rawData = await fetchByteArray(pkg.url);
+      const rawPackageData = await untarjs.extractData(rawData, false);
+      for (const key of Object.keys(rawPackageData)) {
+        extractedPackage[
+          `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
+        ] = rawPackageData[key];
+      }
+
+      processExtractedPackage(pkg, filename, extractedPackage);
+    }))
   );
   await waitRunDependencies(Module);
 

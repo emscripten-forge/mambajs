@@ -2,7 +2,7 @@
   "title": "ILockV1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["lock.version", "platform", "specs", "channels", "channel_priority", "packages"],
+  "required": ["lock.version", "platform", "specs", "channels", "channel_priority", "packages", "pipPackages"],
   "properties": {
     "lock.version": {
       "type": "string",

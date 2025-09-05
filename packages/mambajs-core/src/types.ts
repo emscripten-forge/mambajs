@@ -9,8 +9,11 @@ export interface ILogger {
   error(...msg: any[]): void;
 }
 
+// Some helper types
 export type ISolvedPackage = ILock['packages'][keyof ILock['packages']];
 export type ISolvedPackages = ILock['packages'];
+export type ISolvedPipPackage = ILock['pipPackages'][keyof ILock['pipPackages']];
+export type ISolvedPipPackages = ILock['pipPackages'];
 
 export const DEFAULT_PLATFORM: ILock['platform'] = 'emscripten-wasm32';
 export const DEFAULT_CHANNEL_PRIORITY: ILock['channel_priority'] = ['emscripten-forge', 'conda-forge'];
@@ -61,6 +64,7 @@ export type TSharedLibs = string[];
 export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
 
 export interface IBootstrapData {
+  lock: ILock,
   sharedLibs: TSharedLibsMap;
   paths: { [key: string]: string };
   untarjs: IUnpackJSAPI;

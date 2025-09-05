@@ -1,24 +1,28 @@
 import {
-  DEFAULT_CHANNEL_PRIORITY,
-  DEFAULT_CHANNELS,
+  formatChannels,
+  cleanUrl,
   DEFAULT_PLATFORM,
   ILock,
   ILogger,
   ISolvedPackages,
-  parseEnvYml,
-  splitPipPackages
+  ISolvedPipPackages,
+  parseEnvYml
 } from '@emscripten-forge/mambajs-core';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
 
 export interface ISolveOptions {
   ymlOrSpecs?: string | string[];
-  installedPackages?: ISolvedPackages;
+  installedPackages?: {
+    packages: ISolvedPackages,
+    pipPackages: ISolvedPipPackages
+  };
   pipSpecs?: string[];
   channels?: string[];
   platform?: Platform;
   logger?: ILogger;
 }
 
+// TODO GET RID OF THIS STUPID WRAPPER
 const solve = async (
   specs: Array<string>,
   channels: Array<string>,
@@ -78,6 +82,7 @@ const solve = async (
         depends,
         subdir
       } = item;
+      // TODO WAT THE F
       solvedPackages[filename] = {
         name: packageName,
         repo_url: repoName,
@@ -182,80 +187,3 @@ export const solveConda = async (
     pipPackages: {}
   };
 };
-
-const formatChannels = (channels?: string[]): Pick<ILock, 'channels' | 'channel_priority'> => {
-  if (!channels || !channels.length) {
-    return {
-      channels: DEFAULT_CHANNELS,
-      channel_priority: DEFAULT_CHANNEL_PRIORITY
-    };
-  }
-
-  const formattedChannels: Pick<ILock, 'channels' | 'channel_priority'> = {
-    channels: {},
-    channel_priority: []
-  };
-
-  // Returns the default channel name if it's a default one, otherwise null
-  const getDefaultChannel = (urlOrName: string): {
-    name: string,
-    channel: ILock['channels'][keyof ILock['channels']]
-  } | null => {
-    // Check if it's a known channel alias
-    if (DEFAULT_CHANNEL_PRIORITY.includes(urlOrName)) {
-      return {
-        name: urlOrName,
-        channel: DEFAULT_CHANNELS[urlOrName]
-      };
-    }
-
-    // If it's a url, check if it matches a default channel mirror
-    Object.keys(DEFAULT_CHANNELS).forEach(name => {
-      const mirrors = DEFAULT_CHANNELS[name];
-      mirrors.forEach(mirror => {
-        if (urlOrName === mirror.url) {
-          return {
-            name,
-            channel: mirrors
-          }
-        }
-      });
-    });
-
-    return null;
-  }
-
-  const pushChannel = (channel: string) => {
-    // Cleanup trailing url slash
-    channel = cleanUrl(channel);
-
-    // If it's defaults, push all default channels
-    if (channel === 'defaults') {
-      DEFAULT_CHANNEL_PRIORITY.forEach(pushChannel);
-      return;
-    }
-
-    // If it's one of the default channels and it's not included yet, add it
-    const asDefaultChannel = getDefaultChannel(channel);
-    if (asDefaultChannel && !formattedChannels.channel_priority.includes(asDefaultChannel.name)) {
-      formattedChannels.channel_priority.push(asDefaultChannel.name);
-      formattedChannels.channels[asDefaultChannel.name] = asDefaultChannel.channel;
-      return;
-    }
-
-    // Otherwise, add it if it's not included yet
-    if (!formattedChannels.channel_priority.includes(channel)) {
-      formattedChannels.channel_priority.push(channel);
-      formattedChannels.channels[channel] = [{url: channel, protocol: 'https'}];
-      return;
-    }
-  }
-
-  channels?.forEach(pushChannel);
-
-  return formattedChannels;
-}
-
-function cleanUrl(url: string): string {
-  return url.replace(/[\/\s]+$/, '');
-}

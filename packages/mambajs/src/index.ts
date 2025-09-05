@@ -6,8 +6,7 @@ import {
   packageNameFromSpec,
   parseEnvYml,
   showEnvironmentDiff,
-  showPackagesList,
-  splitPipPackages
+  showPackagesList
 } from '@emscripten-forge/mambajs-core';
 import { solveConda, ISolveOptions } from './solver';
 import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
