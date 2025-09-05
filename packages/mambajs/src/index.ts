@@ -20,6 +20,7 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
   const { installedPipPackages, installedCondaPackages } =
     splitPipPackages(installedPackages);
   let condaPackages: ISolvedPackages = installedCondaPackages;
+  let newLock: ILock;
 
   // Create a wheel -> package name lookup table
   const installedWheels: { [name: string]: string } = {};
@@ -33,7 +34,8 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
   // Run conda solver first
   if (ymlOrSpecs && ymlOrSpecs.length) {
     try {
-      condaPackages = await solveConda(options);
+      newLock = await solveConda(options);
+      condaPackages = newLock.packages;
       pythonVersion = getPythonVersion(Object.values(condaPackages));
 
       // Remove pip packages if they are now coming from conda

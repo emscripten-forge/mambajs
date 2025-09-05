@@ -1,6 +1,7 @@
 import type { IUnpackJSAPI } from '@emscripten-forge/untarjs';
+import { ILock } from './types';
 
-export { ILockV1 as ILock } from './_interface/lock.v1.0.0';
+export type { ILockV1 as ILock } from './_interface/lock.v1.0.0';
 
 export interface ILogger {
   log(...msg: any[]): void;
@@ -8,26 +9,20 @@ export interface ILogger {
   error(...msg: any[]): void;
 }
 
-export interface ISolvedPackage {
-  name: string;
-  version: string;
-  repo_url?: string;
-  url: string;
-  build_number?: number;
-  repo_name?: string;
-  build_string?: string;
-  subdir?: string;
-  depends?: string[];
-}
+export type ISolvedPackage = ILock['packages'][keyof ILock['packages']];
+export type ISolvedPackages = ILock['packages'];
 
-export interface ISolvedPackages {
-  [key: string]: ISolvedPackage;
-}
-
-export const DEFAULT_CHANNELS = ['emscripten-forge', 'conda-forge'];
-export const ALIASES = {
-  'emscripten-forge': 'https://prefix.dev/emscripten-forge-dev',
-  'conda-forge': 'https://prefix.dev/conda-forge'
+export const DEFAULT_PLATFORM: ILock['platform'] = 'emscripten-wasm32';
+export const DEFAULT_CHANNEL_PRIORITY: ILock['channel_priority'] = ['emscripten-forge', 'conda-forge'];
+export const DEFAULT_CHANNELS: ILock['channels'] = {
+  'emscripten-forge': [{
+    'url': 'https://prefix.dev/emscripten-forge-dev',
+    'protocol': 'https'
+  }],
+  'conda-forge': [{
+    'url': 'https://prefix.dev/conda-forge',
+    'protocol': 'https'
+  }],
 };
 
 export interface IEmpackEnvMetaPkg {

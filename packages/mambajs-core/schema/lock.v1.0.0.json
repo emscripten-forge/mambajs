@@ -2,7 +2,7 @@
   "title": "ILockV1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["lock.version", "platform", "specs", "channels", "packages"],
+  "required": ["lock.version", "platform", "specs", "channels", "channel_priority", "packages"],
   "properties": {
     "lock.version": {
       "type": "string",
@@ -70,61 +70,61 @@
       "additionalProperties": false
     },
     "packages": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "patternProperties": {
-          ".*": {
-            "type": "object",
-            "required": ["name", "build_string", "version", "subdir", "channel"],
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "build_string": {
-                "type": "string"
-              },
-              "version": {
-                "type": "string"
-              },
-              "subdir": {
-                "type": "string"
-              },
-              "channel": {
-                "type": "string"
-              }
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "required": ["name", "version", "channel"],
+          "properties": {
+            "name": {
+              "type": "string"
             },
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      }
+            "build_number": {
+              "type": "number"
+            },
+            "build_string": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "subdir": {
+              "type": "string"
+            },
+            "channel": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
     "pipPackages": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "patternProperties": {
-          ".*": {
-            "type": "object",
-            "required": ["name", "version", "url"],
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "version": {
-                "type": "string"
-              },
-              "url": {
-                "type": "string",
-                "format": "uri"
-              }
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "required": ["name", "version", "url", "registry"],
+          "properties": {
+            "name": {
+              "type": "string"
             },
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      }
+            "version": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "registry": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

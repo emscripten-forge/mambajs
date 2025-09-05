@@ -3,7 +3,7 @@
   "version": "0.15.7",
   "description": "Mambajs core utilities",
   "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "types": "lib/**",
   "scripts": {
     "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
     "build": "yarn run clean && yarn run build:schema && yarn run build:esbuild && yarn run build:types",
@@ -12,7 +12,7 @@
     "build:types": "tsc --emitDeclarationOnly"
   },
   "files": [
-    "lib/*"
+    "lib/**"
   ],
   "publishConfig": {
     "access": "public"
