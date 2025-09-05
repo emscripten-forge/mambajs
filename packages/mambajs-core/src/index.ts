@@ -5,6 +5,8 @@ import {
   IUnpackJSAPI
 } from '@emscripten-forge/untarjs';
 import {
+  computePackageUrl,
+  formatChannels,
   getSharedLibs,
   removeFilesFromEmscriptenFS,
   saveFilesIntoEmscriptenFS,
@@ -15,6 +17,7 @@ import {
   IEmpackEnvMeta,
   IEmpackEnvMetaMountPoint,
   IEmpackEnvMetaPkg,
+  ILock,
   ILogger,
   ISolvedPackage,
   ISolvedPackages,
@@ -104,7 +107,7 @@ export async function bootstrapEmpackPackedEnvironment(
     });
   }
 
-  empackEnvMeta.channels;
+  const formattedChannels = formatChannels(empackEnvMeta.channels);
 
   const solvedPkgs: ISolvedPackages = {};
   const solvedPipPkgs: ISolvedPipPackages = {};
@@ -124,13 +127,16 @@ export async function bootstrapEmpackPackedEnvironment(
     }
   }
 
-  return await installPackagesToEmscriptenFS({
+  const installed = await installPackagesToEmscriptenFS({
     ...options,
+    channels: formattedChannels.channels,
     packages: {
       packages: solvedPkgs,
       pipPackages: solvedPipPkgs
     }
   });
+
+  return installed;
 }
 
 export interface IInstallFilesToEnvOptions {
@@ -168,12 +174,17 @@ export interface IInstallFilesToEnvOptions {
 export interface IInstallPackagesToEnvOptions
   extends IInstallFilesToEnvOptions {
   /**
-   * The packages to install
+   * The lock file containing packages to install
    */
   packages: {
     packages: ISolvedPackages;
     pipPackages: ISolvedPipPackages;
   };
+
+  /**
+   * The channel from where to install the package
+   */
+  channels: ILock['channels'];
 }
 
 export interface IInstallMountPointsToEnvOptions
@@ -231,9 +242,7 @@ export async function installPackagesToEmscriptenFS(
         const pkg = condaPackages[filename];
         let extractedPackage: FilesData = {};
 
-        // TODO Compute urls from channels
-
-        const url = pkgRootUrl ? `${pkgRootUrl}/${filename}` : computeUrl(pkg);
+        const url = pkgRootUrl ? `${pkgRootUrl}/${filename}` : computePackageUrl(pkg, filename, options.channels);
         extractedPackage = await untarCondaPackage({
           url,
           untarjs,

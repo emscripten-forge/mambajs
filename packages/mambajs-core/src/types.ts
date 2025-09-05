@@ -71,9 +71,12 @@ export type TSharedLibs = string[];
  */
 export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
 
-export interface IBootstrapData {
-  lock: ILock;
+export interface IInstalledData {
   sharedLibs: TSharedLibsMap;
   paths: { [key: string]: string };
   untarjs: IUnpackJSAPI;
+}
+
+export interface IBootstrapData extends IInstalledData {
+  lock: ILock;
 }

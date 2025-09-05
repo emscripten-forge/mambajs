@@ -4,6 +4,7 @@ import {
   DEFAULT_CHANNEL_PRIORITY,
   DEFAULT_CHANNELS,
   ILock,
+  ISolvedPackage,
   TSharedLibs
 } from './types';
 
@@ -536,6 +537,27 @@ export function formatChannels(
   channels?.forEach(pushChannel);
 
   return formattedChannels;
+}
+
+export function computePackageUrl(pkg: ISolvedPackage, filename: string, channels: ILock['channels']) {
+  if (!channels[pkg.channel]) {
+    throw new Error(`Unknown conda channel ${pkg.channel} for package ${pkg.name}. Known channels are ${channels}`);
+  }
+
+  return join(channels[pkg.channel][0].url, pkg.subdir ?? '', filename);
+}
+
+export function join(...parts: string[]) {
+  return parts
+    .map((part, i) => {
+      if (i === 0) {
+        return part.replace(/\/+$/, ''); // trim trailing slashes
+      } else {
+        return part.replace(/^\/+|\/+$/g, ''); // trim leading/trailing slashes
+      }
+    })
+    .filter(Boolean)
+    .join('/');
 }
 
 export function cleanUrl(url: string): string {
