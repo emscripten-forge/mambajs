@@ -242,7 +242,9 @@ export async function installPackagesToEmscriptenFS(
         const pkg = condaPackages[filename];
         let extractedPackage: FilesData = {};
 
-        const url = pkgRootUrl ? `${pkgRootUrl}/${filename}` : computePackageUrl(pkg, filename, options.channels);
+        const url = pkgRootUrl
+          ? `${pkgRootUrl}/${filename}`
+          : computePackageUrl(pkg, filename, options.channels);
         extractedPackage = await untarCondaPackage({
           url,
           untarjs,

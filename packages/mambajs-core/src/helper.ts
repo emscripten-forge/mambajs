@@ -539,9 +539,15 @@ export function formatChannels(
   return formattedChannels;
 }
 
-export function computePackageUrl(pkg: ISolvedPackage, filename: string, channels: ILock['channels']) {
+export function computePackageUrl(
+  pkg: ISolvedPackage,
+  filename: string,
+  channels: ILock['channels']
+) {
   if (!channels[pkg.channel]) {
-    throw new Error(`Unknown conda channel ${pkg.channel} for package ${pkg.name}. Known channels are ${channels}`);
+    throw new Error(
+      `Unknown conda channel ${pkg.channel} for package ${pkg.name}. Known channels are ${channels}`
+    );
   }
 
   return join(channels[pkg.channel][0].url, pkg.subdir ?? '', filename);
