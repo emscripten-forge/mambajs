@@ -13,10 +13,12 @@ import {
   untarCondaPackage
 } from './helper';
 import {
+  DEFAULT_PLATFORM,
   IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaMountPoint,
   IEmpackEnvMetaPkg,
+  IInstalledData,
   ILock,
   ILogger,
   ISolvedPackage,
@@ -120,10 +122,13 @@ export async function bootstrapEmpackPackedEnvironment(
         registry: 'PyPi'
       };
     } else {
-      // TODO !!!
-      // TODO Respect options.pkgRootUrl
-      // solvedPkgs[empackPkg.filename] = {
-      // };
+      solvedPkgs[empackPkg.filename] = {
+        name: empackPkg.name,
+        version: empackPkg.version,
+        channel: empackPkg.channel ? empackPkg.channel : '',
+        build_string: empackPkg.build,
+        subdir: empackPkg.subdir ? empackPkg.subdir : ''
+      };
     }
   }
 
@@ -136,7 +141,18 @@ export async function bootstrapEmpackPackedEnvironment(
     }
   });
 
-  return installed;
+  return {
+    ...installed,
+    lock: {
+      'lock.version': '1.0.0',
+      specs: empackEnvMeta.specs ?? [],
+      platform: DEFAULT_PLATFORM,
+      channels: formattedChannels.channels,
+      channel_priority: formattedChannels.channel_priority,
+      packages: solvedPkgs,
+      pipPackages: solvedPipPkgs
+    }
+  };
 }
 
 export interface IInstallFilesToEnvOptions {
@@ -203,7 +219,7 @@ export interface IInstallMountPointsToEnvOptions
  */
 export async function installPackagesToEmscriptenFS(
   options: IInstallPackagesToEnvOptions
-): Promise<IBootstrapData> {
+): Promise<IInstalledData> {
   const { packages, pkgRootUrl, Module, generateCondaMeta } = options;
   const condaPackages = packages.packages;
   const pipPackages = packages.pipPackages;
