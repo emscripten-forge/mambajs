@@ -3,6 +3,7 @@ import {
   ILock,
   ILogger,
   ISolvedPackages,
+  ISolvedPipPackages,
   packageNameFromSpec,
   parseEnvYml,
   showEnvironmentDiff,
@@ -14,10 +15,11 @@ import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
 
-export async function solve(options: ISolveOptions): Promise<ILock> {
-  const { logger, ymlOrSpecs, pipSpecs, installedPackages } = options;
-  const { installedPipPackages, installedCondaPackages } =
-    splitPipPackages(installedPackages);
+export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
+  const { logger, ymlOrSpecs, pipSpecs, currentLock } = options;
+  const installedCondaPackages = currentLock?.packages ?? {};
+  const installedPipPackages = currentLock?.pipPackages ?? {};
+
   let condaPackages: ISolvedPackages = installedCondaPackages;
   let newLock: ILock;
 
@@ -49,17 +51,17 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
         }
       }
 
-      if (!installedPackages) {
-        showPackagesList(condaPackages, logger);
+      if (!currentLock) {
+        showPackagesList({ packages: condaPackages, pipPackages: {} }, logger);
       } else {
-        showEnvironmentDiff(installedPackages, condaPackages, logger);
+        showEnvironmentDiff(currentLock, { packages: condaPackages, pipPackages: {} }, logger);
       }
     } catch (error: any) {
       throw new Error(error.message);
     }
   }
 
-  let pipPackages: ISolvedPackages = installedPipPackages;
+  let pipPackages: ISolvedPipPackages = installedPipPackages;
 
   // Run pip install second
   if (
@@ -114,7 +116,7 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
 export async function create(yml: string, logger?: ILogger): Promise<ILock> {
   const parsedYml = parseEnvYml(yml);
 
-  const packages = await solve({ ymlOrSpecs: yml, logger });
+  const packages = await solveEnvironment({ ymlOrSpecs: yml, logger });
 
   return {
     channels: parsedYml.channels,
@@ -157,7 +159,7 @@ export async function install(
   logger?.log(`Channels: ${newChannels.join(', ')}`);
   logger?.log('');
 
-  const packages = await solve({
+  const packages = await solveEnvironment({
     ymlOrSpecs: newSpecs,
     channels: newChannels,
     installedPackages: {
@@ -238,7 +240,7 @@ export async function remove(
   logger?.log(`Channels: ${env.channels.join(', ')}`);
   logger?.log('');
 
-  const newEnvPackages = await solve({
+  const newEnvPackages = await solveEnvironment({
     ymlOrSpecs: newSpecs,
     installedPackages: {
       ...env.packages.condaPackages,
@@ -267,7 +269,7 @@ export async function pipInstall(
   env: ILock,
   logger?: ILogger
 ): Promise<ILock> {
-  const packages = await solve({
+  const packages = await solveEnvironment({
     pipSpecs: specs,
     installedPackages: {
       ...env.packages.condaPackages,

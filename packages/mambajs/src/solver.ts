@@ -5,24 +5,18 @@ import {
   ILock,
   ILogger,
   ISolvedPackages,
-  ISolvedPipPackages,
   parseEnvYml
 } from '@emscripten-forge/mambajs-core';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
 
 export interface ISolveOptions {
   ymlOrSpecs?: string | string[];
-  installedPackages?: {
-    packages: ISolvedPackages;
-    pipPackages: ISolvedPipPackages;
-  };
   pipSpecs?: string[];
-  channels?: string[];
   platform?: Platform;
+  currentLock?: ILock;
   logger?: ILogger;
 }
 
-// TODO GET RID OF THIS STUPID WRAPPER
 const solve = async (
   specs: Array<string>,
   channels: Array<string>,
@@ -41,10 +35,10 @@ const solve = async (
           const tmpPkg = {
             ...installedPkg,
             packageName: installedPkg.name,
-            repoName: installedPkg.repo_name,
-            build: installedPkg.build_string,
-            buildNumber: installedPkg.build_number
-              ? BigInt(installedPkg.build_number)
+            repoName: installedPkg.channel,
+            build: installedPkg.build,
+            buildNumber: installedPkg.buildNumber
+              ? BigInt(installedPkg.buildNumber)
               : undefined,
             filename
           };
@@ -86,11 +80,11 @@ const solve = async (
       solvedPackages[filename] = {
         name: packageName,
         repo_url: repoName,
-        build_string: build,
+        build: build,
         url: url,
         version: version,
         repo_name: repoName,
-        build_number:
+        buildNumber:
           buildNumber && buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
             ? Number(buildNumber)
             : undefined,
@@ -107,24 +101,24 @@ const solve = async (
 };
 
 export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
-  const { ymlOrSpecs, installedPackages, channels, logger } = options;
+  const { ymlOrSpecs, currentLock, logger } = options;
   let condaPackages: ISolvedPackages = {};
 
   let specs: string[] = [],
-    formattedChannels: Pick<ILock, 'channels' | 'channel_priority'> = {
-      channel_priority: [],
+    formattedChannels: Pick<ILock, 'channels' | 'channelPriority'> = {
+      channelPriority: [],
       channels: {}
     };
   let installedCondaPackages: ISolvedPackages = {};
 
+  // It's an environment creation from environment definition, currentLock is not a thing
   if (typeof ymlOrSpecs === 'string') {
     const ymlData = parseEnvYml(ymlOrSpecs);
     specs = ymlData.specs;
     formattedChannels = formatChannels(ymlData.channels);
   } else {
-    const pkgs = splitPipPackages(installedPackages);
-    installedCondaPackages = pkgs.installedCondaPackages;
-    formattedChannels = formatChannels(channels);
+    installedCondaPackages = currentLock?.packages ?? {};
+    formattedChannels = currentLock!;
     specs = ymlOrSpecs as string[];
   }
 
@@ -135,7 +129,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   try {
     condaPackages = await solve(
       specs,
-      formattedChannels.channel_priority.map(channelName => {
+      formattedChannels.channelPriority.map(channelName => {
         // TODO Support picking mirror
         // Always picking the first mirror for now
         return formattedChannels.channels[channelName][0].url;
@@ -155,28 +149,22 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
 
     let channel = '';
     if (
-      pkg.repo_name &&
-      formattedChannels.channel_priority.includes(pkg.repo_name)
+      pkg.channel &&
+      formattedChannels.channelPriority.includes(pkg.channel)
     ) {
-      channel = pkg.repo_name;
-    }
-    if (
-      pkg.repo_url &&
-      formattedChannels.channel_priority.includes(cleanUrl(pkg.repo_url))
-    ) {
-      channel = pkg.repo_url;
+      channel = pkg.channel;
     }
 
     if (!channel) {
       throw new Error(
-        `Failed to detect channel from ${pkg}, with know channels ${formattedChannels.channel_priority}`
+        `Failed to detect channel from ${pkg}, with known channels ${formattedChannels.channelPriority}`
       );
     }
 
     packages[filename] = {
       name: pkg.name,
-      build_number: pkg.build_number,
-      build_string: pkg.build_string,
+      buildNumber: pkg.buildNumber,
+      build: pkg.build,
       version: pkg.version,
       subdir: pkg.subdir,
       channel
@@ -188,7 +176,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     platform: options.platform as ILock['platform'],
     specs,
     channels: formattedChannels.channels,
-    channel_priority: formattedChannels.channel_priority,
+    channelPriority: formattedChannels.channelPriority,
     packages,
     pipPackages: {}
   };

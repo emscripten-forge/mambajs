@@ -126,7 +126,7 @@ export async function bootstrapEmpackPackedEnvironment(
         name: empackPkg.name,
         version: empackPkg.version,
         channel: empackPkg.channel ? empackPkg.channel : '',
-        build_string: empackPkg.build,
+        build: empackPkg.build,
         subdir: empackPkg.subdir ? empackPkg.subdir : ''
       };
     }
@@ -148,7 +148,7 @@ export async function bootstrapEmpackPackedEnvironment(
       specs: empackEnvMeta.specs ?? [],
       platform: DEFAULT_PLATFORM,
       channels: formattedChannels.channels,
-      channel_priority: formattedChannels.channel_priority,
+      channelPriority: formattedChannels.channelPriority,
       packages: solvedPkgs,
       pipPackages: solvedPipPkgs
     }
@@ -366,7 +366,7 @@ export const removePackagesFromEmscriptenFS = async (
   const removedPackagesMap: { [name: string]: string } = {};
   Object.keys(removedPackages).forEach(filename => {
     const removedPkg = removedPackages[filename];
-    const pkg = `${removedPkg.name}-${removedPkg.version}-${removedPkg.build_string}`;
+    const pkg = `${removedPkg.name}-${removedPkg.version}-${removedPkg.build}`;
     removedPackagesMap[filename] = pkg;
   });
 
@@ -539,7 +539,7 @@ export function showPackagesList(
     logger?.log('─'.repeat(4 * columnWidth));
 
     for (const [, pkg] of sortedPackages) {
-      const buildString = pkg['build_string'] || 'unknown';
+      const buildString = pkg['build'] || 'unknown';
       const repoName = pkg['channel']
         ? pkg['channel']
         : pkg['registry']
@@ -610,7 +610,7 @@ export function showEnvironmentDiff(
       if (
         prevPkg &&
         prevPkg.version === pkg.version &&
-        prevPkg['build_string'] === pkg['build_string']
+        prevPkg['build'] === pkg['build']
       ) {
         continue;
       }
@@ -629,7 +629,7 @@ export function showEnvironmentDiff(
       if (!prevPkg) {
         prefix = '\x1b[0;32m+';
         versionDiff = pkg.version;
-        buildStringDiff = pkg['build_string'] || 'unknown';
+        buildStringDiff = pkg['build'] || 'unknown';
         channelDiff = pkg['channel'] || pkg['registry'] || '';
       } else {
         const oldChannel = prevPkg['channel'] || prevPkg['registry'] || '';
@@ -637,7 +637,7 @@ export function showEnvironmentDiff(
 
         prefix = '\x1b[38;5;208m~';
         versionDiff = `${prevPkg.version} -> ${pkg.version}`;
-        buildStringDiff = `${prevPkg['build_string'] || 'unknown'} -> ${pkg['build_string'] || 'unknown'}`;
+        buildStringDiff = `${prevPkg['build'] || 'unknown'} -> ${pkg['build'] || 'unknown'}`;
         channelDiff =
           oldChannel === newChannel
             ? oldChannel || ''
@@ -659,7 +659,7 @@ export function showEnvironmentDiff(
         }
 
         logger?.log(
-          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${(pkg['build_string'] || 'unknown')?.padEnd(columnWidth)}${(pkg['channel'] || pkg['registry'])?.padEnd(columnWidth)}`
+          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${(pkg['build'] || 'unknown')?.padEnd(columnWidth)}${(pkg['channel'] || pkg['registry'])?.padEnd(columnWidth)}`
         );
       }
     }

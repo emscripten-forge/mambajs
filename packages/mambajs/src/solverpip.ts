@@ -3,8 +3,9 @@
 import { parse } from 'yaml';
 import {
   ILogger,
-  ISolvedPackage,
   ISolvedPackages,
+  ISolvedPipPackage,
+  ISolvedPipPackages,
   packageNameFromSpec,
   parseEnvYml
 } from '@emscripten-forge/mambajs-core';
@@ -116,7 +117,7 @@ function parsePyPiRequirement(requirement: string): ISpec | null {
 function getSuitableVersion(
   pkgInfo: any,
   constraints: string | null
-): ISolvedPackage | undefined {
+): ISolvedPipPackage | undefined {
   const availableVersions = Object.keys(pkgInfo.releases);
 
   let version: string | undefined = undefined;
@@ -139,7 +140,7 @@ function getSuitableVersion(
     // none: no compiled code
     // any: noarch package
     if (url.filename.endsWith('none-any.whl')) {
-      return { url: url.url, name: url.filename, version };
+      return { url: url.url, name: url.filename, version, registry: 'PyPi' };
     }
   }
 }
@@ -147,10 +148,10 @@ function getSuitableVersion(
 async function processRequirement(
   requirement: ISpec,
   warnedPackages: Set<string>,
-  pipSolvedPackages: ISolvedPackages,
+  pipSolvedPackages: ISolvedPipPackages,
   installedCondaPackagesNames: Set<string>,
   installedWheels: { [name: string]: string },
-  installPipPackagesLookup: ISolvedPackages,
+  installPipPackagesLookup: ISolvedPipPackages,
   logger?: ILogger,
   required = false
 ) {
@@ -203,11 +204,7 @@ async function processRequirement(
     name: requirement.package,
     version: solved.version,
     url: solved.url,
-    repo_name: 'PyPi',
-    depends: filteredRequiresDist
-      .map(r => r.split(';')[0].trim())
-      .map(spec => packageNameFromSpec(spec))
-      .filter((name): name is string => !!name)
+    registry: 'PyPi'
   };
   installedWheels[requirement.package] = solved.name;
   installPipPackagesLookup[requirement.package] =
@@ -271,10 +268,10 @@ export async function solvePip(
   yml: string,
   installedCondaPackages: ISolvedPackages,
   installedWheels: { [name: string]: string },
-  installedPipPackages: ISolvedPackages,
+  installedPipPackages: ISolvedPipPackages,
   packageNames: Array<string> = [],
   logger?: ILogger
-): Promise<ISolvedPackages> {
+): Promise<ISolvedPipPackages> {
   let specs: ISpec[] = [];
 
   if (yml) {
@@ -294,13 +291,13 @@ export async function solvePip(
   }
 
   // Create pip package lookup we can more easily use (index by package name, not wheel name)
-  const installPipPackagesLookup: ISolvedPackages = {};
+  const installPipPackagesLookup: ISolvedPipPackages = {};
   for (const installedPackage of Object.values(installedPipPackages)) {
     installPipPackagesLookup[installedPackage.name] = installedPackage;
   }
 
   const warnedPackages = new Set<string>();
-  const pipSolvedPackages: ISolvedPackages = { ...installedPipPackages };
+  const pipSolvedPackages: ISolvedPipPackages = { ...installedPipPackages };
   for (const spec of specs) {
     // Ignoring already installed package via conda
     if (installedCondaPackagesNames.has(spec.package)) {
@@ -334,7 +331,7 @@ export async function solvePip(
     );
   }
 
-  const oldPackagesLookup: ISolvedPackages = {};
+  const oldPackagesLookup: ISolvedPipPackages = {};
   for (const pkg of Object.values(installedPipPackages)) {
     oldPackagesLookup[pkg.name] = pkg;
   }

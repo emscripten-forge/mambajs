@@ -2,7 +2,7 @@
   "title": "ILockV1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["lock.version", "platform", "specs", "channels", "channel_priority", "packages", "pipPackages"],
+  "required": ["lock.version", "platform", "specs", "channels", "channelPriority", "packages", "pipPackages"],
   "properties": {
     "lock.version": {
       "type": "string",
@@ -39,7 +39,7 @@
         "type": "string"
       }
     },
-    "channel_priority": {
+    "channelPriority": {
       "type": "array",
       "items": {
         "type": "string"
@@ -79,10 +79,10 @@
             "name": {
               "type": "string"
             },
-            "build_number": {
+            "buildNumber": {
               "type": "number"
             },
-            "build_string": {
+            "build": {
               "type": "string"
             },
             "version": {
