@@ -3,7 +3,7 @@
   "version": "0.15.7",
   "description": "Mambajs core utilities",
   "main": "lib/index.js",
-  "types": "lib/**",
+  "types": "lib/**.d.ts",
   "scripts": {
     "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
     "build": "yarn run clean && yarn run build:schema && yarn run build:esbuild && yarn run build:types",
