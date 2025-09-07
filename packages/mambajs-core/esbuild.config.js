@@ -1,32 +1,34 @@
-const esbuild = require('esbuild');
+import esbuild from 'esbuild';
+import inlineWorkerPlugin from 'esbuild-plugin-inline-worker';
 
-const { NodeModulesPolyfillPlugin } = require("@esbuild-plugins/node-modules-polyfill");
-const { NodeGlobalsPolyfillPlugin } = require("@esbuild-plugins/node-globals-polyfill");
+import { NodeModulesPolyfillPlugin } from "@esbuild-plugins/node-modules-polyfill";
+import { NodeGlobalsPolyfillPlugin } from "@esbuild-plugins/node-globals-polyfill";
 
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
 
 (async () => {
   try {
     await esbuild
-  .build({
-    entryPoints: ['./src/index.ts'],
-    bundle: true,
-    outdir: './lib',
-    format: 'esm',
-    loader: {
-      '.wasm': 'file'
-    },
-    plugins: [
-      NodeModulesPolyfillPlugin(),
-      NodeGlobalsPolyfillPlugin({
-        buffer: true,
-        process: true,
-      }),
-    ],
-  });
-  console.log('Build succeeded!');
-} catch (err) {
-  console.error('Build failed:', err.message);
-}
+      .build({
+        entryPoints: ['./src/index.ts'],
+        bundle: true,
+        outdir: './lib',
+        format: 'esm',
+        loader: {
+          '.wasm': 'file'
+        },
+        plugins: [
+          inlineWorkerPlugin(),
+          NodeModulesPolyfillPlugin(),
+          NodeGlobalsPolyfillPlugin({
+            buffer: true,
+            process: true,
+          }),
+        ],
+      });
+    console.log('Build succeeded!');
+  } catch (err) {
+    console.error('Build failed:', err.message);
+  }
 })();

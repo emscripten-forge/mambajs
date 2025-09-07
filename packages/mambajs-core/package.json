@@ -31,12 +31,15 @@
   "license": "MIT",
   "dependencies": {
     "@emscripten-forge/untarjs": "^5.3.0",
+    "@lumino/coreutils": "^2",
     "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "add": "^2.0.6",
     "esbuild": "^0.24.0",
+    "esbuild-plugin-inline-worker": "^0.1.1",
     "rimraf": "^3.0.2",
     "typescript": "^5"
   }
