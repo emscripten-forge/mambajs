@@ -1,5 +1,5 @@
 import {
-  cleanUrl,
+  computePackageChannel,
   computePackageUrl,
   DEFAULT_PLATFORM,
   formatChannels,
@@ -116,13 +116,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   Object.keys(condaPackages).forEach(filename => {
     const pkg = condaPackages[filename];
 
-    let channel = '';
-    if (
-      pkg.channel &&
-      formattedChannels.channelPriority.includes(cleanUrl(pkg.channel))
-    ) {
-      channel = cleanUrl(pkg.channel);
-    }
+    const channel = computePackageChannel(pkg, formattedChannels);
 
     if (!channel) {
       throw new Error(

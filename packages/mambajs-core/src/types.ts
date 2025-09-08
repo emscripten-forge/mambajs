@@ -17,7 +17,7 @@ export type ISolvedPipPackage =
 export type ISolvedPipPackages = ILock['pipPackages'];
 
 export const DEFAULT_PLATFORM: ILock['platform'] = 'emscripten-wasm32';
-export const DEFAULT_channelPriority: ILock['channelPriority'] = [
+export const DEFAULT_CHANNEL_PRIORITY: ILock['channelPriority'] = [
   'emscripten-forge',
   'conda-forge'
 ];

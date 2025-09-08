@@ -1,7 +1,7 @@
 import { FilesData, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import { parse } from 'yaml';
 import {
-  DEFAULT_channelPriority,
+  DEFAULT_CHANNEL_PRIORITY,
   DEFAULT_CHANNELS,
   ILock,
   ISolvedPackage,
@@ -462,7 +462,7 @@ export function formatChannels(
   if (!channels || !channels.length) {
     return {
       channels: DEFAULT_CHANNELS,
-      channelPriority: DEFAULT_channelPriority
+      channelPriority: DEFAULT_CHANNEL_PRIORITY
     };
   }
 
@@ -479,7 +479,7 @@ export function formatChannels(
     channel: ILock['channels'][keyof ILock['channels']];
   } | null => {
     // Check if it's a known channel alias
-    if (DEFAULT_channelPriority.includes(urlOrName)) {
+    if (DEFAULT_CHANNEL_PRIORITY.includes(urlOrName)) {
       return {
         name: urlOrName,
         channel: DEFAULT_CHANNELS[urlOrName]
@@ -508,7 +508,7 @@ export function formatChannels(
 
     // If it's defaults, push all default channels
     if (channel === 'defaults') {
-      DEFAULT_channelPriority.forEach(pushChannel);
+      DEFAULT_CHANNEL_PRIORITY.forEach(pushChannel);
       return;
     }
 
@@ -537,6 +537,27 @@ export function formatChannels(
   channels?.forEach(pushChannel);
 
   return formattedChannels;
+}
+
+export function computePackageChannel(
+  pkg: ISolvedPackage,
+  formattedChannels: Pick<ILock, 'channels' | 'channelPriority'>
+) {
+  if (formattedChannels.channelPriority.includes(cleanUrl(pkg.channel))) {
+    return cleanUrl(pkg.channel);
+  }
+
+  for (const channel of Object.keys(formattedChannels.channels)) {
+    for (const mirror of formattedChannels.channels[channel]) {
+      if (mirror.url === cleanUrl(pkg.channel)) {
+        return channel;
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channelPriority}`
+  );
 }
 
 export function computePackageUrl(
