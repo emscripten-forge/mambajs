@@ -4,6 +4,7 @@ import {
   ILock,
   ILogger,
   ISolvedPackages,
+  cleanUrl,
   parseEnvYml
 } from '@emscripten-forge/mambajs-core';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
@@ -140,14 +141,14 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     let channel = '';
     if (
       pkg.channel &&
-      formattedChannels.channelPriority.includes(pkg.channel)
+      formattedChannels.channelPriority.includes(cleanUrl(pkg.channel))
     ) {
-      channel = pkg.channel;
+      channel = cleanUrl(pkg.channel);
     }
 
     if (!channel) {
       throw new Error(
-        `Failed to detect channel from ${pkg}, with known channels ${formattedChannels.channelPriority}`
+        `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channelPriority}`
       );
     }
 

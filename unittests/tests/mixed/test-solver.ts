@@ -1,4 +1,4 @@
-import { ISolvedPackage, solve } from "../../../packages/mambajs/src";
+import { ISolvedPackage, ISolvedPipPackage, solve } from "../../../packages/mambajs/src";
 import { TestLogger } from "../../helpers";
 import { expect } from 'earl';
 
@@ -18,16 +18,16 @@ dependencies:
 `;
 
 solve({ymlOrSpecs: yml, logger}).then(async result => {
-  const condaPackageNames = Object.values(result.condaPackages).map(pkg => pkg.name);
+  const condaPackageNames = Object.values(result.packages).map(pkg => pkg.name);
   const pipPackageNames = Object.values(result.pipPackages).map(pkg => pkg.name);
 
   // Index by package name for convenienve
   const condaPackages: { [key: string]: ISolvedPackage } = {};
-  Object.keys(result.condaPackages).map(filename => {
-    condaPackages[result.condaPackages[filename].name] =
-      result.condaPackages[filename];
+  Object.keys(result.packages).map(filename => {
+    condaPackages[result.packages[filename].name] =
+      result.packages[filename];
   });
-  const pipPackages: { [key: string]: ISolvedPackage } = {};
+  const pipPackages: { [key: string]: ISolvedPipPackage } = {};
   Object.keys(result.pipPackages).map(filename => {
     pipPackages[result.pipPackages[filename].name] =
       result.pipPackages[filename];

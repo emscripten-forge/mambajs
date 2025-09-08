@@ -14,7 +14,7 @@ import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
 
-export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
+export async function solve(options: ISolveOptions): Promise<ILock> {
   const { logger, ymlOrSpecs, pipSpecs, currentLock } = options;
   const installedCondaPackages = currentLock?.packages ?? {};
   const installedPipPackages = currentLock?.pipPackages ?? {};
@@ -115,7 +115,7 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
  * @returns the solved environment
  */
 export async function create(yml: string, logger?: ILogger): Promise<ILock> {
-  return await solveEnvironment({ ymlOrSpecs: yml, logger });
+  return await solve({ ymlOrSpecs: yml, logger });
 }
 
 /**
@@ -149,7 +149,7 @@ export async function install(
   logger?.log(`Channels: ${newChannels.channelPriority.join(', ')}`);
   logger?.log('');
 
-  return await solveEnvironment({
+  return await solve({
     ymlOrSpecs: newSpecs,
     currentLock: env,
     logger
@@ -218,7 +218,7 @@ export async function remove(
   logger?.log(`Channels: ${env.channelPriority.join(', ')}`);
   logger?.log('');
 
-  return await solveEnvironment({
+  return await solve({
     ymlOrSpecs: newSpecs,
     currentLock: env,
     logger
@@ -237,7 +237,7 @@ export async function pipInstall(
   env: ILock,
   logger?: ILogger
 ): Promise<ILock> {
-  return await solveEnvironment({
+  return await solve({
     pipSpecs: specs,
     currentLock: env,
     logger
