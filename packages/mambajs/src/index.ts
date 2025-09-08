@@ -135,10 +135,10 @@ export async function install(
   // Merge existing channels with new ones
   const newChannels = formatChannels(channels);
 
-  for (const channel of newChannels.channelPriority) {
-    if (!env.channelPriority.includes(channel)) {
-      env.channelPriority.push(channel);
-      env.channels[channel] = newChannels.channels[channel];
+  for (const channel of newChannels.channels) {
+    if (!env.channels.includes(channel)) {
+      env.channels.push(channel);
+      env.channelInfo[channel] = newChannels.channelInfo[channel];
     }
   }
 
@@ -146,7 +146,7 @@ export async function install(
   const newSpecs = Array.from(new Set([...env.specs, ...(specs || [])]));
 
   logger?.log(`Specs: ${newSpecs.join(', ')}`);
-  logger?.log(`Channels: ${newChannels.channelPriority.join(', ')}`);
+  logger?.log(`Channels: ${newChannels.channels.join(', ')}`);
   logger?.log('');
 
   return await solve({
@@ -215,7 +215,7 @@ export async function remove(
   );
 
   logger?.log(`Specs: ${newSpecs.join(', ')}`);
-  logger?.log(`Channels: ${env.channelPriority.join(', ')}`);
+  logger?.log(`Channels: ${env.channels.join(', ')}`);
   logger?.log('');
 
   return await solve({

@@ -134,7 +134,7 @@ export async function bootstrapEmpackPackedEnvironment(
 
   const installed = await installPackagesToEmscriptenFS({
     ...options,
-    channels: formattedChannels.channels,
+    channels: formattedChannels.channelInfo,
     packages: {
       packages: solvedPkgs,
       pipPackages: solvedPipPkgs
@@ -148,7 +148,7 @@ export async function bootstrapEmpackPackedEnvironment(
       specs: empackEnvMeta.specs ?? [],
       platform: DEFAULT_PLATFORM,
       channels: formattedChannels.channels,
-      channelPriority: formattedChannels.channelPriority,
+      channelInfo: formattedChannels.channelInfo,
       packages: solvedPkgs,
       pipPackages: solvedPipPkgs
     }
@@ -200,7 +200,7 @@ export interface IInstallPackagesToEnvOptions
   /**
    * The channel from where to install the package
    */
-  channels: ILock['channels'];
+  channels: ILock['channelInfo'];
 }
 
 export interface IInstallMountPointsToEnvOptions

@@ -27,8 +27,8 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   const condaPackages: ISolvedPackages = {};
 
   let specs: string[] = [],
-    formattedChannels: Pick<ILock, 'channels' | 'channelPriority'> = {
-      channelPriority: [],
+    formattedChannels: Pick<ILock, 'channels' | 'channels'> = {
+      channels: [],
       channels: {}
     };
   let installedCondaPackages: ISolvedPackages = {};
@@ -53,7 +53,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
 
     const result = (await simpleSolve(
       specs,
-      formattedChannels.channelPriority.map(channelName => {
+      formattedChannels.channels.map(channelName => {
         // TODO Support picking mirror
         // Always picking the first mirror for now
         return formattedChannels.channels[channelName][0].url;
@@ -136,7 +136,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
 
     if (!channel) {
       throw new Error(
-        `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channelPriority}`
+        `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channels}`
       );
     }
 
@@ -155,7 +155,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     platform,
     specs,
     channels: formattedChannels.channels,
-    channelPriority: formattedChannels.channelPriority,
+    channels: formattedChannels.channels,
     packages,
     pipPackages: currentLock?.pipPackages ?? {}
   };

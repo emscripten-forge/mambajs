@@ -1,8 +1,8 @@
 import { FilesData, IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import { parse } from 'yaml';
 import {
-  DEFAULT_CHANNEL_PRIORITY,
   DEFAULT_CHANNELS,
+  DEFAULT_CHANNELS_INFO,
   ILock,
   ISolvedPackage,
   TSharedLibs
@@ -458,17 +458,17 @@ export function getCondaMetaFile(
 
 export function formatChannels(
   channels?: string[]
-): Pick<ILock, 'channels' | 'channelPriority'> {
+): Pick<ILock, 'channelInfo' | 'channels'> {
   if (!channels || !channels.length) {
     return {
-      channels: DEFAULT_CHANNELS,
-      channelPriority: DEFAULT_CHANNEL_PRIORITY
+      channels: DEFAULT_CHANNELS_INFO,
+      channels: DEFAULT_CHANNELS
     };
   }
 
-  const formattedChannels: Pick<ILock, 'channels' | 'channelPriority'> = {
+  const formattedChannels: Pick<ILock, 'channelInfo | 'channels'> = {
     channels: {},
-    channelPriority: []
+    channels: []
   };
 
   // Returns the default channel name if it's a default one, otherwise null
@@ -476,19 +476,19 @@ export function formatChannels(
     urlOrName: string
   ): {
     name: string;
-    channel: ILock['channels'][keyof ILock['channels']];
+    channel: ILock['channelInfo'][keyof ILock['channelInfo']];
   } | null => {
     // Check if it's a known channel alias
-    if (DEFAULT_CHANNEL_PRIORITY.includes(urlOrName)) {
+    if (DEFAULT_CHANNELS.includes(urlOrName)) {
       return {
         name: urlOrName,
-        channel: DEFAULT_CHANNELS[urlOrName]
+        channel: DEFAULT_CHANNELS_INFO[urlOrName]
       };
     }
 
     // If it's a url, check if it matches a default channel mirror
-    Object.keys(DEFAULT_CHANNELS).forEach(name => {
-      const mirrors = DEFAULT_CHANNELS[name];
+    Object.keys(DEFAULT_CHANNELS_INFO).forEach(name => {
+      const mirrors = DEFAULT_CHANNELS_INFO[name];
       mirrors.forEach(mirror => {
         if (urlOrName === mirror.url) {
           return {
@@ -508,7 +508,7 @@ export function formatChannels(
 
     // If it's defaults, push all default channels
     if (channel === 'defaults') {
-      DEFAULT_CHANNEL_PRIORITY.forEach(pushChannel);
+      DEFAULT_CHANNELS.forEach(pushChannel);
       return;
     }
 
@@ -516,17 +516,17 @@ export function formatChannels(
     const asDefaultChannel = getDefaultChannel(channel);
     if (
       asDefaultChannel &&
-      !formattedChannels.channelPriority.includes(asDefaultChannel.name)
+      !formattedChannels.channels.includes(asDefaultChannel.name)
     ) {
-      formattedChannels.channelPriority.push(asDefaultChannel.name);
+      formattedChannels.channels.push(asDefaultChannel.name);
       formattedChannels.channels[asDefaultChannel.name] =
         asDefaultChannel.channel;
       return;
     }
 
     // Otherwise, add it if it's not included yet
-    if (!formattedChannels.channelPriority.includes(channel)) {
-      formattedChannels.channelPriority.push(channel);
+    if (!formattedChannels.channels.includes(channel)) {
+      formattedChannels.channels.push(channel);
       formattedChannels.channels[channel] = [
         { url: channel, protocol: 'https' }
       ];
@@ -541,9 +541,9 @@ export function formatChannels(
 
 export function computePackageChannel(
   pkg: ISolvedPackage,
-  formattedChannels: Pick<ILock, 'channels' | 'channelPriority'>
+  formattedChannels: Pick<ILock, 'channelInfo | 'channels'>
 ) {
-  if (formattedChannels.channelPriority.includes(cleanUrl(pkg.channel))) {
+  if (formattedChannels.channels.includes(cleanUrl(pkg.channel))) {
     return cleanUrl(pkg.channel);
   }
 
@@ -556,14 +556,14 @@ export function computePackageChannel(
   }
 
   throw new Error(
-    `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channelPriority}`
+    `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channels}`
   );
 }
 
 export function computePackageUrl(
   pkg: ISolvedPackage,
   filename: string,
-  channels: ILock['channels']
+  channels: ILock['channelInfo']
 ) {
   if (!channels[pkg.channel]) {
     throw new Error(

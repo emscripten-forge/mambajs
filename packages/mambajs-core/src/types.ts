@@ -17,11 +17,11 @@ export type ISolvedPipPackage =
 export type ISolvedPipPackages = ILock['pipPackages'];
 
 export const DEFAULT_PLATFORM: ILock['platform'] = 'emscripten-wasm32';
-export const DEFAULT_CHANNEL_PRIORITY: ILock['channelPriority'] = [
+export const DEFAULT_CHANNELS: ILock['channels'] = [
   'emscripten-forge',
   'conda-forge'
 ];
-export const DEFAULT_CHANNELS: ILock['channels'] = {
+export const DEFAULT_CHANNELS_INFO: ILock['channelInfo'] = {
   'emscripten-forge': [
     {
       url: 'https://prefix.dev/emscripten-forge-dev',
