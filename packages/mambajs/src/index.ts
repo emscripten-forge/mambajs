@@ -53,7 +53,11 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
       if (!currentLock) {
         showPackagesList({ packages: condaPackages, pipPackages: {} }, logger);
       } else {
-        showEnvironmentDiff(currentLock, { packages: condaPackages, pipPackages: {} }, logger);
+        showEnvironmentDiff(
+          currentLock,
+          { packages: condaPackages, pipPackages: {} },
+          logger
+        );
       }
     } catch (error: any) {
       throw new Error(error.message);
@@ -172,13 +176,11 @@ export async function remove(
   // Mapping: installed package name -> dist filename
   const installedPipPackagesNames: { [key: string]: string } = {};
   Object.keys(env.pipPackages).map(filename => {
-    installedPipPackagesNames[env.pipPackages[filename].name] =
-      filename;
+    installedPipPackagesNames[env.pipPackages[filename].name] = filename;
   });
   const installedCondaPackagesNames: { [key: string]: string } = {};
   Object.keys(env.packages).map(filename => {
-    installedCondaPackagesNames[env.packages[filename].name] =
-      filename;
+    installedCondaPackagesNames[env.packages[filename].name] = filename;
   });
 
   const toRemove = new Set(
@@ -259,13 +261,11 @@ export async function pipUninstall(
   // Mapping: installed package name -> dist filename
   const installedPipPackagesNames: { [key: string]: string } = {};
   Object.keys(env.pipPackages).map(filename => {
-    installedPipPackagesNames[env.pipPackages[filename].name] =
-      filename;
+    installedPipPackagesNames[env.pipPackages[filename].name] = filename;
   });
   const installedCondaPackagesNames: { [key: string]: string } = {};
   Object.keys(env.packages).map(filename => {
-    installedCondaPackagesNames[env.packages[filename].name] =
-      filename;
+    installedCondaPackagesNames[env.packages[filename].name] = filename;
   });
 
   packages.forEach((pkg: string) => {
