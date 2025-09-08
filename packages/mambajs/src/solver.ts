@@ -147,6 +147,6 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     channels: formattedChannels.channels,
     channelPriority: formattedChannels.channelPriority,
     packages,
-    pipPackages: {}
+    pipPackages: currentLock?.pipPackages ?? {}
   };
 };
