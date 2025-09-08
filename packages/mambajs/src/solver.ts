@@ -1,10 +1,11 @@
 import {
+  cleanUrl,
+  computePackageUrl,
   DEFAULT_PLATFORM,
   formatChannels,
   ILock,
   ILogger,
   ISolvedPackages,
-  cleanUrl,
   parseEnvYml
 } from '@emscripten-forge/mambajs-core';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
@@ -17,83 +18,11 @@ export interface ISolveOptions {
   logger?: ILogger;
 }
 
-const solve = async (
-  specs: Array<string>,
-  channels: Array<string>,
-  installedCondaPackages: ISolvedPackages,
-  platform: Platform = DEFAULT_PLATFORM,
-  logger?: ILogger
-) => {
-  let result: SolvedPackage[] | undefined = undefined;
-  const solvedPackages: ISolvedPackages = {};
-  try {
-    let installed: any = [];
-    if (Object.keys(installedCondaPackages).length) {
-      Object.keys(installedCondaPackages).map((filename: string) => {
-        const installedPkg = installedCondaPackages[filename];
-        const tmpPkg = {
-          ...installedPkg,
-          packageName: installedPkg.name,
-          repoName: installedPkg.channel,
-          buildNumber: installedPkg.buildNumber
-            ? BigInt(installedPkg.buildNumber)
-            : undefined,
-          filename
-        };
-
-        installed.push(tmpPkg);
-      });
-    } else {
-      installed = undefined;
-    }
-
-    const startSolveTime = performance.now();
-    result = (await simpleSolve(
-      specs,
-      channels,
-      ['noarch', platform],
-      installed
-    )) as SolvedPackage[];
-    const endSolveTime = performance.now();
-    if (logger) {
-      logger.log(
-        `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
-      );
-    }
-
-    result.map(item => {
-      const {
-        filename,
-        packageName,
-        repoName,
-        version,
-        build,
-        buildNumber,
-        subdir
-      } = item;
-      solvedPackages[filename] = {
-        name: packageName,
-        build: build,
-        version: version,
-        channel: repoName ?? '',
-        buildNumber:
-          buildNumber && buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
-            ? Number(buildNumber)
-            : undefined,
-        subdir
-      };
-    });
-  } catch (error) {
-    logger?.error(error);
-    throw new Error(error as string);
-  }
-
-  return solvedPackages;
-};
-
 export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   const { ymlOrSpecs, currentLock, logger } = options;
-  let condaPackages: ISolvedPackages = {};
+  const platform = options.platform ?? DEFAULT_PLATFORM;
+
+  const condaPackages: ISolvedPackages = {};
 
   let specs: string[] = [],
     formattedChannels: Pick<ILock, 'channels' | 'channelPriority'> = {
@@ -118,18 +47,67 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   }
 
   try {
-    condaPackages = await solve(
+    const startSolveTime = performance.now();
+
+    const result = (await simpleSolve(
       specs,
       formattedChannels.channelPriority.map(channelName => {
         // TODO Support picking mirror
         // Always picking the first mirror for now
         return formattedChannels.channels[channelName][0].url;
       }),
-      installedCondaPackages,
-      options.platform ?? 'emscripten-wasm32',
-      logger
-    );
+      ['noarch', platform],
+      Object.keys(installedCondaPackages).map((filename: string) => {
+        // Turn mambajs lock definition into what rattler expects
+        const installedPkg = installedCondaPackages[filename];
+        return {
+          ...installedPkg,
+          packageName: installedPkg.name,
+          repoName: installedPkg.channel,
+          buildNumber: installedPkg.buildNumber
+            ? BigInt(installedPkg.buildNumber)
+            : undefined,
+          filename,
+          url: computePackageUrl(
+            installedPkg,
+            filename,
+            formattedChannels.channels
+          )
+        };
+      })
+    )) as SolvedPackage[];
+
+    const endSolveTime = performance.now();
+    if (logger) {
+      logger.log(
+        `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
+      );
+    }
+
+    result.map(item => {
+      const {
+        filename,
+        packageName,
+        repoName,
+        version,
+        build,
+        buildNumber,
+        subdir
+      } = item;
+      condaPackages[filename] = {
+        name: packageName,
+        build: build,
+        version: version,
+        channel: repoName ?? '',
+        buildNumber:
+          buildNumber && buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
+            ? Number(buildNumber)
+            : undefined,
+        subdir
+      };
+    });
   } catch (error: any) {
+    logger?.error(error);
     throw new Error(error.message);
   }
 
