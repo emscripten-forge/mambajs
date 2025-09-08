@@ -2,9 +2,9 @@
   "title": "ILockV1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["lock.version", "platform", "specs", "channels", "channelPriority", "packages", "pipPackages"],
+  "required": ["lockVersion", "platform", "specs", "channels", "channelPriority", "packages", "pipPackages"],
   "properties": {
-    "lock.version": {
+    "lockVersion": {
       "type": "string",
       "enum": ["1.0.0"]
     },
