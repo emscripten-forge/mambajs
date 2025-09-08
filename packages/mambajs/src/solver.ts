@@ -118,6 +118,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
 
     if (message.includes('error sending request')) {
       if (nRetries !== 0) {
+        logger?.warn(message);
         return solveConda({ ...options, nRetries: nRetries - 1 });
       }
     }
