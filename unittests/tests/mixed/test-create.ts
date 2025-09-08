@@ -33,6 +33,8 @@ create(yml, logger).then(async result => {
       result.pipPackages[filename];
   });
 
+  expect(result.platform).toEqual('emscripten-wasm32');
+
   expect(condaPackageNames).toInclude('xeus-python', 'xeus-python-shell', 'pandas', 'ipycanvas', 'ipywidgets');
   expect(pipPackageNames).toInclude('bqplot', 'ipydatagrid');
 

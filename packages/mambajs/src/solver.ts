@@ -136,7 +136,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
 
   return {
     'lock.version': '1.0.0',
-    platform: options.platform as ILock['platform'],
+    platform,
     specs,
     channels: formattedChannels.channels,
     channelPriority: formattedChannels.channelPriority,
