@@ -1,5 +1,4 @@
 import {
-  cleanUrl,
   DEFAULT_PLATFORM,
   formatChannels,
   ILock,
@@ -31,20 +30,17 @@ const solve = async (
     if (Object.keys(installedCondaPackages).length) {
       Object.keys(installedCondaPackages).map((filename: string) => {
         const installedPkg = installedCondaPackages[filename];
-        if (installedPkg.url) {
-          const tmpPkg = {
-            ...installedPkg,
-            packageName: installedPkg.name,
-            repoName: installedPkg.channel,
-            build: installedPkg.build,
-            buildNumber: installedPkg.buildNumber
-              ? BigInt(installedPkg.buildNumber)
-              : undefined,
-            filename
-          };
+        const tmpPkg = {
+          ...installedPkg,
+          packageName: installedPkg.name,
+          repoName: installedPkg.channel,
+          buildNumber: installedPkg.buildNumber
+            ? BigInt(installedPkg.buildNumber)
+            : undefined,
+          filename
+        };
 
-          installed.push(tmpPkg);
-        }
+        installed.push(tmpPkg);
       });
     } else {
       installed = undefined;
@@ -69,26 +65,20 @@ const solve = async (
         filename,
         packageName,
         repoName,
-        url,
         version,
         build,
         buildNumber,
-        depends,
         subdir
       } = item;
-      // TODO WAT THE F
       solvedPackages[filename] = {
         name: packageName,
-        repo_url: repoName,
         build: build,
-        url: url,
         version: version,
-        repo_name: repoName,
+        channel: repoName ?? '',
         buildNumber:
           buildNumber && buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
             ? Number(buildNumber)
             : undefined,
-        depends,
         subdir
       };
     });
