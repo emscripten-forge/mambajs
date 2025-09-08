@@ -16,11 +16,13 @@ export interface ISolveOptions {
   platform?: Platform;
   currentLock?: ILock;
   logger?: ILogger;
+  nRetries?: number;
 }
 
 export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   const { ymlOrSpecs, currentLock, logger } = options;
   const platform = options.platform ?? DEFAULT_PLATFORM;
+  const nRetries = options.nRetries ?? 3;
 
   const condaPackages: ISolvedPackages = {};
 
@@ -106,9 +108,22 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         subdir
       };
     });
-  } catch (error: any) {
-    logger?.error(error);
-    throw new Error(error.message);
+  } catch (error) {
+    let message: string = 'Unknown error';
+    if (typeof error === 'string') {
+      message = error;
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
+
+    if (message.includes('error sending request')) {
+      if (nRetries !== 0) {
+        return solveConda({ ...options, nRetries: nRetries - 1 });
+      }
+    }
+
+    logger?.error(message);
+    throw new Error(message);
   }
 
   // Turn the rattler result into what the lock expects
