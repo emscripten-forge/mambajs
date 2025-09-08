@@ -1,11 +1,10 @@
 import {
+  formatChannels,
   getPythonVersion,
   ILock,
   ILogger,
   ISolvedPackages,
-  ISolvedPipPackages,
   packageNameFromSpec,
-  parseEnvYml,
   showEnvironmentDiff,
   showPackagesList
 } from '@emscripten-forge/mambajs-core';
@@ -21,7 +20,7 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
   const installedPipPackages = currentLock?.pipPackages ?? {};
 
   let condaPackages: ISolvedPackages = installedCondaPackages;
-  let newLock: ILock;
+  let newLock: ILock | undefined = undefined;
 
   // Create a wheel -> package name lookup table
   const installedWheels: { [name: string]: string } = {};
@@ -61,7 +60,9 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
     }
   }
 
-  let pipPackages: ISolvedPipPackages = installedPipPackages;
+  if (!newLock) {
+    throw new Error('Failed to solve');
+  }
 
   // Run pip install second
   if (
@@ -79,7 +80,7 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
       logger?.log('');
       logger?.log('Process pip requirements ...\n');
 
-      pipPackages = await solvePip(
+      newLock.pipPackages = await solvePip(
         ymlOrSpecs,
         condaPackages,
         installedWheels,
@@ -89,7 +90,7 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
       );
     } else {
       logger?.log('Process pip requirements ...\n');
-      pipPackages = await solvePip(
+      newLock.pipPackages = await solvePip(
         '',
         condaPackages,
         installedWheels,
@@ -100,11 +101,7 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
     }
   }
 
-  // TODO Add channels and specs
-  return {
-    condaPackages,
-    pipPackages
-  };
+  return newLock;
 }
 
 /**
@@ -114,22 +111,14 @@ export async function solveEnvironment(options: ISolveOptions): Promise<ILock> {
  * @returns the solved environment
  */
 export async function create(yml: string, logger?: ILogger): Promise<ILock> {
-  const parsedYml = parseEnvYml(yml);
-
-  const packages = await solveEnvironment({ ymlOrSpecs: yml, logger });
-
-  return {
-    channels: parsedYml.channels,
-    specs: parsedYml.specs,
-    packages
-  };
+  return await solveEnvironment({ ymlOrSpecs: yml, logger });
 }
 
 /**
  * Install conda packages in an existing environment
  * @param specs the new specs
  * @param channels the channels to use
- * @param env the current environment
+ * @param env the current environment lock
  * @param logger the logs handler
  * @returns the solved environment
  */
@@ -140,15 +129,12 @@ export async function install(
   logger?: ILogger
 ): Promise<ILock> {
   // Merge existing channels with new ones
-  const newChannels: string[] = env.channels || [
-    'https://prefix.dev/emscripten-forge-dev',
-    'https://prefix.dev/conda-forge'
-  ];
-  if (channels) {
-    for (const channel of channels) {
-      if (!newChannels.includes(channel)) {
-        newChannels.push(channel);
-      }
+  const newChannels = formatChannels(channels);
+
+  for (const channel of newChannels.channelPriority) {
+    if (!env.channelPriority.includes(channel)) {
+      env.channelPriority.push(channel);
+      env.channels[channel] = newChannels.channels[channel];
     }
   }
 
@@ -156,24 +142,14 @@ export async function install(
   const newSpecs = Array.from(new Set([...env.specs, ...(specs || [])]));
 
   logger?.log(`Specs: ${newSpecs.join(', ')}`);
-  logger?.log(`Channels: ${newChannels.join(', ')}`);
+  logger?.log(`Channels: ${newChannels.channelPriority.join(', ')}`);
   logger?.log('');
 
-  const packages = await solveEnvironment({
+  return await solveEnvironment({
     ymlOrSpecs: newSpecs,
-    channels: newChannels,
-    installedPackages: {
-      ...env.packages.condaPackages,
-      ...env.packages.pipPackages
-    },
+    currentLock: env,
     logger
   });
-
-  return {
-    channels: newChannels,
-    specs: newSpecs,
-    packages
-  };
 }
 
 /**
@@ -195,13 +171,13 @@ export async function remove(
 
   // Mapping: installed package name -> dist filename
   const installedPipPackagesNames: { [key: string]: string } = {};
-  Object.keys(env.packages.pipPackages).map(filename => {
-    installedPipPackagesNames[env.packages.pipPackages[filename].name] =
+  Object.keys(env.pipPackages).map(filename => {
+    installedPipPackagesNames[env.pipPackages[filename].name] =
       filename;
   });
   const installedCondaPackagesNames: { [key: string]: string } = {};
-  Object.keys(env.packages.condaPackages).map(filename => {
-    installedCondaPackagesNames[env.packages.condaPackages[filename].name] =
+  Object.keys(env.packages).map(filename => {
+    installedCondaPackagesNames[env.packages[filename].name] =
       filename;
   });
 
@@ -237,24 +213,14 @@ export async function remove(
   );
 
   logger?.log(`Specs: ${newSpecs.join(', ')}`);
-  logger?.log(`Channels: ${env.channels.join(', ')}`);
+  logger?.log(`Channels: ${env.channelPriority.join(', ')}`);
   logger?.log('');
 
-  const newEnvPackages = await solveEnvironment({
+  return await solveEnvironment({
     ymlOrSpecs: newSpecs,
-    installedPackages: {
-      ...env.packages.condaPackages,
-      ...env.packages.pipPackages
-    },
-    channels: env.channels,
+    currentLock: env,
     logger
   });
-
-  return {
-    channels: env.channels,
-    specs: newSpecs,
-    packages: newEnvPackages
-  };
 }
 
 /**
@@ -269,20 +235,11 @@ export async function pipInstall(
   env: ILock,
   logger?: ILogger
 ): Promise<ILock> {
-  const packages = await solveEnvironment({
+  return await solveEnvironment({
     pipSpecs: specs,
-    installedPackages: {
-      ...env.packages.condaPackages,
-      ...env.packages.pipPackages
-    },
+    currentLock: env,
     logger
   });
-
-  return {
-    channels: env.channels,
-    specs: env.specs,
-    packages
-  };
 }
 
 /**
@@ -297,17 +254,17 @@ export async function pipUninstall(
   env: ILock,
   logger?: ILogger
 ): Promise<ILock> {
-  const newPipPackages = { ...env.packages.pipPackages };
+  const newPipPackages = { ...env.pipPackages };
 
   // Mapping: installed package name -> dist filename
   const installedPipPackagesNames: { [key: string]: string } = {};
-  Object.keys(env.packages.pipPackages).map(filename => {
-    installedPipPackagesNames[env.packages.pipPackages[filename].name] =
+  Object.keys(env.pipPackages).map(filename => {
+    installedPipPackagesNames[env.pipPackages[filename].name] =
       filename;
   });
   const installedCondaPackagesNames: { [key: string]: string } = {};
-  Object.keys(env.packages.condaPackages).map(filename => {
-    installedCondaPackagesNames[env.packages.condaPackages[filename].name] =
+  Object.keys(env.packages).map(filename => {
+    installedCondaPackagesNames[env.packages[filename].name] =
       filename;
   });
 
@@ -330,12 +287,7 @@ export async function pipUninstall(
     logger?.log(`Successfully uninstalled ${pkg}`);
   });
 
-  return {
-    channels: env.channels,
-    specs: env.specs,
-    packages: {
-      condaPackages: env.packages.condaPackages,
-      pipPackages: newPipPackages
-    }
-  };
+  env.pipPackages = newPipPackages;
+
+  return env;
 }

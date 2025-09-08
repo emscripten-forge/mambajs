@@ -16,8 +16,8 @@ dependencies:
 create(yml, logger).then(async env => {
   env = await install(['ipycanvas', 'bqplot'], env);
 
-  let condaPackageNames = Object.values(env.packages.condaPackages).map(pkg => pkg.name);
-  let pipPackageNames = Object.values(env.packages.pipPackages).map(pkg => pkg.name);
+  let condaPackageNames = Object.values(env.packages).map(pkg => pkg.name);
+  let pipPackageNames = Object.values(env.pipPackages).map(pkg => pkg.name);
 
   expect(condaPackageNames).toInclude('xeus-python', 'xeus-python-shell', 'pandas', 'ipycanvas', 'bqplot', 'ipywidgets');
   expect(pipPackageNames).toBeEmpty();
@@ -26,9 +26,9 @@ create(yml, logger).then(async env => {
 
   // Index by package name for convenienve
   const condaPackages: { [key: string]: ISolvedPackage } = {};
-  Object.keys(env.packages.condaPackages).map(filename => {
-    condaPackages[env.packages.condaPackages[filename].name] =
-      env.packages.condaPackages[filename];
+  Object.keys(env.packages).map(filename => {
+    condaPackages[env.packages[filename].name] =
+      env.packages[filename];
   });
 
   expect(condaPackages['ipycanvas'].version).toEqual('0.13.2');
@@ -36,8 +36,8 @@ create(yml, logger).then(async env => {
 
   env = await pipInstall(['ipydatagrid'], env, logger);
 
-  condaPackageNames = Object.values(env.packages.condaPackages).map(pkg => pkg.name);
-  pipPackageNames = Object.values(env.packages.pipPackages).map(pkg => pkg.name);
+  condaPackageNames = Object.values(env.packages).map(pkg => pkg.name);
+  pipPackageNames = Object.values(env.pipPackages).map(pkg => pkg.name);
 
   expect(pipPackageNames).toInclude('ipydatagrid');
   expect(condaPackageNames).not.toInclude('ipydatagrid');
