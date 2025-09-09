@@ -461,13 +461,13 @@ export function formatChannels(
 ): Pick<ILock, 'channelInfo' | 'channels'> {
   if (!channels || !channels.length) {
     return {
-      channels: DEFAULT_CHANNELS_INFO,
+      channelInfo: DEFAULT_CHANNELS_INFO,
       channels: DEFAULT_CHANNELS
     };
   }
 
-  const formattedChannels: Pick<ILock, 'channelInfo | 'channels'> = {
-    channels: {},
+  const formattedChannels: Pick<ILock, 'channelInfo' | 'channels'> = {
+    channelInfo: {},
     channels: []
   };
 
@@ -479,7 +479,7 @@ export function formatChannels(
     channel: ILock['channelInfo'][keyof ILock['channelInfo']];
   } | null => {
     // Check if it's a known channel alias
-    if (DEFAULT_CHANNELS.includes(urlOrName)) {
+    if (DEFAULT_CHANNELS_INFO[urlOrName]) {
       return {
         name: urlOrName,
         channel: DEFAULT_CHANNELS_INFO[urlOrName]
@@ -541,7 +541,7 @@ export function formatChannels(
 
 export function computePackageChannel(
   pkg: ISolvedPackage,
-  formattedChannels: Pick<ILock, 'channelInfo | 'channels'>
+  formattedChannels: Pick<ILock, 'channelInfo' | 'channels'>
 ) {
   if (formattedChannels.channels.includes(cleanUrl(pkg.channel))) {
     return cleanUrl(pkg.channel);

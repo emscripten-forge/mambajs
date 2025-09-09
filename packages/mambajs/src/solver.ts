@@ -27,9 +27,9 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   const condaPackages: ISolvedPackages = {};
 
   let specs: string[] = [],
-    formattedChannels: Pick<ILock, 'channels' | 'channels'> = {
+    formattedChannels: Pick<ILock, 'channels' | 'channelInfo'> = {
       channels: [],
-      channels: {}
+      channelInfo: {}
     };
   let installedCondaPackages: ISolvedPackages = {};
 
@@ -73,7 +73,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
           url: computePackageUrl(
             installedPkg,
             filename,
-            formattedChannels.channels
+            formattedChannels.channelInfo
           )
         };
       })
@@ -155,7 +155,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     platform,
     specs,
     channels: formattedChannels.channels,
-    channels: formattedChannels.channels,
+    channelInfo: formattedChannels.channelInfo,
     packages,
     pipPackages: currentLock?.pipPackages ?? {}
   };
