@@ -54,7 +54,7 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
     } else {
       showEnvironmentDiff(
         currentLock,
-        { packages: condaPackages, pipPackages: {} },
+        { packages: condaPackages, pipPackages: currentLock.pipPackages },
         logger
       );
     }
