@@ -332,7 +332,10 @@ export interface IRemovePackagesFromEnvOptions {
   /**
    * The packages which should be removed
    */
-  removedPackages: ISolvedPackages;
+  removedPackages: {
+    packages: ISolvedPackages;
+    pipPackages: ISolvedPipPackages;
+  };
 
   /**
    * The Emscripten Module
@@ -357,16 +360,20 @@ export interface IRemovePackagesFromEnvOptions {
  * @param options
  * @returns void
  */
-export const removePackagesFromEmscriptenFS = async (
+export async function removePackagesFromEmscriptenFS(
   options: IRemovePackagesFromEnvOptions
-): Promise<{ [key: string]: string }> => {
-  const { removedPackages, Module, paths } = options;
+): Promise<{ [key: string]: string }> {
+  const { Module, paths } = options;
+  const removedPackages = {
+    ...options.removedPackages.packages,
+    ...options.removedPackages.pipPackages
+  };
   const newPath = { ...paths };
 
   const removedPackagesMap: { [name: string]: string } = {};
   Object.keys(removedPackages).forEach(filename => {
     const removedPkg = removedPackages[filename];
-    const pkg = `${removedPkg.name}-${removedPkg.version}-${removedPkg.build}`;
+    const pkg = `${removedPkg.name}-${removedPkg.version}-${removedPkg['build'] ? removedPkg['build'] : removedPkg['registry']}`;
     removedPackagesMap[filename] = pkg;
   });
 
@@ -389,7 +396,193 @@ export const removePackagesFromEmscriptenFS = async (
     delete newPath[filename];
   });
   return newPath;
-};
+}
+
+export interface IUpdatePackagesOptions extends IInstallPackagesToEnvOptions {
+  /**
+   * The old lock
+   */
+  oldLock: ILock;
+
+  /**
+   * The new lock
+   */
+  newLock: ILock;
+
+  /**
+   * The Emscripten Module
+   */
+  Module: any;
+
+  /**
+   * Paths where previous installed package files have been saved
+   */
+  paths: { [key: string]: string };
+}
+
+/**
+ * Update packages in an Emscripten FS, given the old and new locks
+ *
+ * @param options
+ * @returns void
+ */
+export async function updatePackagesInEmscriptenFS(
+  options: IUpdatePackagesOptions
+): Promise<{ path: { [key: string]: string }; sharedLibs: TSharedLibsMap }> {
+  const {
+    newLock,
+    oldLock,
+    Module,
+    logger,
+    untarjs,
+    pythonVersion,
+    pkgRootUrl,
+    channels
+  } = options;
+  const oldPaths = options.paths;
+
+  const pipPackageDiff = computePipPackagesDiff({ oldLock, newLock });
+  const condaPackageDiff = computeCondaPackagesDiff({ oldLock, newLock });
+
+  const newPath = await removePackagesFromEmscriptenFS({
+    removedPackages: {
+      pipPackages: pipPackageDiff.removedPackages,
+      packages: condaPackageDiff.removedPackages
+    },
+    Module,
+    paths: oldPaths,
+    logger
+  });
+
+  const { sharedLibs, paths } = await installPackagesToEmscriptenFS({
+    packages: {
+      pipPackages: pipPackageDiff.newPackages,
+      packages: condaPackageDiff.newPackages
+    },
+    channels,
+    pkgRootUrl,
+    pythonVersion,
+    Module,
+    untarjs,
+    logger
+  });
+
+  return { path: { ...newPath, ...paths }, sharedLibs };
+}
+
+export function computePipPackagesDiff(options: {
+  oldLock: ILock;
+  newLock: ILock;
+}): { removedPackages: ISolvedPipPackages; newPackages: ISolvedPipPackages } {
+  const { oldLock, newLock } = options;
+
+  const removedPackages: ISolvedPipPackages = {};
+  const newPackages: ISolvedPipPackages = {};
+
+  // First create structures we can quickly inspect
+  const newInstalledPackagesMap: ISolvedPipPackages = {};
+  for (const newInstalledPkg of Object.values(newLock.pipPackages)) {
+    newInstalledPackagesMap[newInstalledPkg.name] = newInstalledPkg;
+  }
+  const oldInstalledPackagesMap: ISolvedPipPackages = {};
+  for (const oldInstalledPkg of Object.values(oldLock.pipPackages)) {
+    oldInstalledPackagesMap[oldInstalledPkg.name] = oldInstalledPkg;
+  }
+
+  // Compare old installed packages with new ones
+  for (const filename of Object.keys(oldLock.pipPackages)) {
+    const installedPkg = oldLock.pipPackages[filename];
+
+    // Exact same build of the package already installed
+    if (
+      installedPkg.name in newInstalledPackagesMap &&
+      installedPkg.version ===
+        newInstalledPackagesMap[installedPkg.name].version
+    ) {
+      continue;
+    }
+
+    removedPackages[filename] = installedPkg;
+  }
+
+  // Compare new installed packages with old ones
+  for (const filename of Object.keys(newLock.pipPackages)) {
+    const newPkg = newLock.pipPackages[filename];
+
+    // Exact same build of the package already installed
+    if (
+      newPkg.name in oldInstalledPackagesMap &&
+      newPkg.version === oldInstalledPackagesMap[newPkg.name].version
+    ) {
+      continue;
+    }
+
+    newPackages[filename] = newPkg;
+  }
+
+  return {
+    removedPackages,
+    newPackages
+  };
+}
+
+export function computeCondaPackagesDiff(options: {
+  oldLock: ILock;
+  newLock: ILock;
+}): { removedPackages: ISolvedPackages; newPackages: ISolvedPackages } {
+  const { oldLock, newLock } = options;
+
+  const removedPackages: ISolvedPackages = {};
+  const newPackages: ISolvedPackages = {};
+
+  // First create structures we can quickly inspect
+  const newInstalledPackagesMap: ISolvedPackages = {};
+  for (const newInstalledPkg of Object.values(newLock.packages)) {
+    newInstalledPackagesMap[newInstalledPkg.name] = newInstalledPkg;
+  }
+  const oldInstalledPackagesMap: ISolvedPackages = {};
+  for (const oldInstalledPkg of Object.values(oldLock.packages)) {
+    oldInstalledPackagesMap[oldInstalledPkg.name] = oldInstalledPkg;
+  }
+
+  // Compare old installed packages with new ones
+  for (const filename of Object.keys(oldLock.packages)) {
+    const installedPkg = oldLock.packages[filename];
+
+    // Exact same build of the package already installed
+    if (
+      installedPkg.name in newInstalledPackagesMap &&
+      installedPkg.build === newInstalledPackagesMap[installedPkg.name].build &&
+      installedPkg.version ===
+        newInstalledPackagesMap[installedPkg.name].version
+    ) {
+      continue;
+    }
+
+    removedPackages[filename] = installedPkg;
+  }
+
+  // Compare new installed packages with old ones
+  for (const filename of Object.keys(newLock.packages)) {
+    const newPkg = newLock.packages[filename];
+
+    // Exact same build of the package already installed
+    if (
+      newPkg.name in oldInstalledPackagesMap &&
+      newPkg.build === oldInstalledPackagesMap[newPkg.name].build &&
+      newPkg.version === oldInstalledPackagesMap[newPkg.name].version
+    ) {
+      continue;
+    }
+
+    newPackages[filename] = newPkg;
+  }
+
+  return {
+    removedPackages,
+    newPackages
+  };
+}
 
 export interface IBootstrapPythonOptions {
   /**
