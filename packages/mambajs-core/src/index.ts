@@ -731,7 +731,7 @@ export function showPackagesList(
     logger?.log('─'.repeat(4 * columnWidth));
 
     for (const [, pkg] of sortedPackages) {
-      const buildString = pkg['build'] || 'unknown';
+      const buildString = pkg['build'] || 'none';
       const repoName = pkg['channel']
         ? pkg['channel']
         : pkg['registry']
@@ -821,15 +821,15 @@ export function showEnvironmentDiff(
       if (!prevPkg) {
         prefix = '\x1b[0;32m+';
         versionDiff = pkg.version;
-        buildStringDiff = pkg['build'] || 'unknown';
+        buildStringDiff = pkg['build'] || 'none';
         channelDiff = pkg['channel'] || pkg['registry'] || '';
       } else {
-        const oldChannel = prevPkg['channel'] || prevPkg['registry'] || '';
-        const newChannel = prevPkg['channel'] || prevPkg['registry'] || '';
+        const oldChannel = prevPkg['channel'] ?? prevPkg['registry'] ?? '';
+        const newChannel = pkg['channel'] ?? pkg['registry'] ?? '';
 
         prefix = '\x1b[38;5;208m~';
         versionDiff = `${prevPkg.version} -> ${pkg.version}`;
-        buildStringDiff = `${prevPkg['build'] || 'unknown'} -> ${pkg['build'] || 'unknown'}`;
+        buildStringDiff = `${prevPkg['build'] || 'none'} -> ${pkg['build'] || 'none'}`;
         channelDiff =
           oldChannel === newChannel
             ? oldChannel || ''
@@ -851,7 +851,7 @@ export function showEnvironmentDiff(
         }
 
         logger?.log(
-          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${(pkg['build'] || 'unknown')?.padEnd(columnWidth)}${(pkg['channel'] || pkg['registry'])?.padEnd(columnWidth)}`
+          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${(pkg['build'] || 'none')?.padEnd(columnWidth)}${(pkg['channel'] || pkg['registry'])?.padEnd(columnWidth)}`
         );
       }
     }

@@ -28,7 +28,7 @@ create(yml, logger).then(async env => {
   let pipDiff = computePipPackagesDiff({ oldLock, newLock });
   let condaDiff = computeCondaPackagesDiff({ oldLock, newLock });
   expect(Object.keys(pipDiff.newPackages)).toBeEmpty();
-  expect(Object.keys(pipDiff.removedPackages)).toBeEmpty();
+  expect(Object.keys(pipDiff.removedPackages).length).toBeGreaterThanOrEqual(2) // at least traittypes and bqplot are now coming from conda;
   expect(Object.keys(condaDiff.newPackages).length).toBeGreaterThanOrEqual(2); // at least ipycanvas and bqplot new versions
   expect(Object.keys(condaDiff.removedPackages).length).toEqual(1); // ipycanvas old version
 

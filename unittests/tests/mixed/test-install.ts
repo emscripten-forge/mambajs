@@ -42,6 +42,6 @@ create(yml, logger).then(async env => {
   expect(pipPackageNames).toInclude('ipydatagrid');
   expect(condaPackageNames).not.toInclude('ipydatagrid');
   // ipywidgets still installed with conda, pip doesn't take over
-  expect(condaPackageNames).toInclude('ipywidgets');
+  expect(condaPackageNames).toInclude('xeus-python', 'xeus-python-shell', 'ipywidgets');
   expect(pipPackageNames).not.toInclude('ipywidgets');
 });

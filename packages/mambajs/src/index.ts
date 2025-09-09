@@ -17,7 +17,9 @@ export * from '@emscripten-forge/mambajs-core';
 export async function solve(options: ISolveOptions): Promise<ILock> {
   const { logger, ymlOrSpecs, pipSpecs, currentLock } = options;
   const installedCondaPackages = currentLock?.packages ?? {};
-  const installedPipPackages = currentLock?.pipPackages ?? {};
+  const installedPipPackages = currentLock?.pipPackages
+    ? { ...currentLock.pipPackages }
+    : {};
 
   let condaPackages: ISolvedPackages = installedCondaPackages;
   let newLock: ILock | undefined = currentLock;
@@ -49,14 +51,12 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
       }
     }
 
+    newLock.pipPackages = installedPipPackages;
+
     if (!currentLock) {
-      showPackagesList({ packages: condaPackages, pipPackages: {} }, logger);
+      showPackagesList(newLock, logger);
     } else {
-      showEnvironmentDiff(
-        currentLock,
-        { packages: condaPackages, pipPackages: currentLock.pipPackages },
-        logger
-      );
+      showEnvironmentDiff(currentLock, newLock, logger);
     }
   }
 
