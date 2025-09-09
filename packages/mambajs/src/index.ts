@@ -283,7 +283,8 @@ export async function pipUninstall(
     logger?.log(`Successfully uninstalled ${pkg}`);
   });
 
-  env.pipPackages = newPipPackages;
-
-  return env;
+  return {
+    ...env,
+    pipPackages: newPipPackages
+  };
 }
