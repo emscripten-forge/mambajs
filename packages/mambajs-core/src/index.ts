@@ -5,6 +5,7 @@ import {
   IUnpackJSAPI
 } from '@emscripten-forge/untarjs';
 import {
+  cleanUrl,
   computePackageUrl,
   formatChannels,
   getSharedLibs,
@@ -110,6 +111,33 @@ export async function bootstrapEmpackPackedEnvironment(
   }
 
   const formattedChannels = formatChannels(empackEnvMeta.channels);
+  const channelCache: { [url: string]: string } = {};
+
+  const getChannel = (empackChannel: string) => {
+    empackChannel = cleanUrl(empackChannel);
+
+    if (channelCache[empackChannel]) {
+      return channelCache[empackChannel];
+    }
+
+    if (formattedChannels.channels.includes(empackChannel)) {
+      return empackChannel;
+    }
+
+    for (const name of Object.keys(formattedChannels.channelInfo)) {
+      const mirrors = formattedChannels.channelInfo[name];
+      for (const mirror of mirrors) {
+        if (empackChannel.trim() === mirror.url.trim()) {
+          channelCache[empackChannel] = name;
+          return name;
+        }
+      }
+    }
+
+    throw new Error(
+      `Failed to detect channel from ${empackChannel} with known channels ${formattedChannels.channels}`
+    );
+  };
 
   const solvedPkgs: ISolvedPackages = {};
   const solvedPipPkgs: ISolvedPipPackages = {};
@@ -125,7 +153,7 @@ export async function bootstrapEmpackPackedEnvironment(
       solvedPkgs[empackPkg.filename] = {
         name: empackPkg.name,
         version: empackPkg.version,
-        channel: empackPkg.channel ? empackPkg.channel : '',
+        channel: getChannel(empackPkg.channel ?? ''),
         build: empackPkg.build,
         subdir: empackPkg.subdir ? empackPkg.subdir : ''
       };
