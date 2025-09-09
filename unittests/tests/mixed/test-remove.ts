@@ -17,7 +17,7 @@ dependencies:
 `;
 
 create(yml, logger).then(async env => {
-  env = await install(['ipycanvas=0.13.2', 'bqplot<1'], env);
+  env = await install(['ipycanvas=0.13.2', 'bqplot<1'], env, [], logger);
 
   let condaPackageNames = Object.values(env.packages).map(pkg => pkg.name);
   let pipPackageNames = Object.values(env.pipPackages).map(pkg => pkg.name);
