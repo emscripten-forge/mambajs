@@ -487,17 +487,17 @@ export function formatChannels(
     }
 
     // If it's a url, check if it matches a default channel mirror
-    Object.keys(DEFAULT_CHANNELS_INFO).forEach(name => {
+    for (const name of Object.keys(DEFAULT_CHANNELS_INFO)) {
       const mirrors = DEFAULT_CHANNELS_INFO[name];
-      mirrors.forEach(mirror => {
-        if (urlOrName === mirror.url) {
+      for (const mirror of mirrors) {
+        if (urlOrName.trim() === mirror.url.trim()) {
           return {
             name,
             channel: mirrors
           };
         }
-      });
-    });
+      }
+    }
 
     return null;
   };
