@@ -56,7 +56,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
       formattedChannels.channels.map(channelName => {
         // TODO Support picking mirror
         // Always picking the first mirror for now
-        return formattedChannels.channels[channelName][0].url;
+        return formattedChannels.channelInfo[channelName][0].url;
       }),
       ['noarch', platform],
       Object.keys(installedCondaPackages).map((filename: string) => {
@@ -116,6 +116,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
       message = error.message;
     }
 
+    // Retry 3 times on flaky request error
     if (message.includes('error sending request')) {
       if (nRetries !== 0) {
         logger?.warn(message);

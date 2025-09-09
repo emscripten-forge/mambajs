@@ -479,7 +479,7 @@ export function formatChannels(
     channel: ILock['channelInfo'][keyof ILock['channelInfo']];
   } | null => {
     // Check if it's a known channel alias
-    if (DEFAULT_CHANNELS_INFO[urlOrName]) {
+    if (DEFAULT_CHANNELS.includes(urlOrName)) {
       return {
         name: urlOrName,
         channel: DEFAULT_CHANNELS_INFO[urlOrName]
@@ -519,7 +519,7 @@ export function formatChannels(
       !formattedChannels.channels.includes(asDefaultChannel.name)
     ) {
       formattedChannels.channels.push(asDefaultChannel.name);
-      formattedChannels.channels[asDefaultChannel.name] =
+      formattedChannels.channelInfo[asDefaultChannel.name] =
         asDefaultChannel.channel;
       return;
     }
@@ -527,7 +527,7 @@ export function formatChannels(
     // Otherwise, add it if it's not included yet
     if (!formattedChannels.channels.includes(channel)) {
       formattedChannels.channels.push(channel);
-      formattedChannels.channels[channel] = [
+      formattedChannels.channelInfo[channel] = [
         { url: channel, protocol: 'https' }
       ];
       return;
@@ -547,8 +547,8 @@ export function computePackageChannel(
     return cleanUrl(pkg.channel);
   }
 
-  for (const channel of Object.keys(formattedChannels.channels)) {
-    for (const mirror of formattedChannels.channels[channel]) {
+  for (const channel of Object.keys(formattedChannels.channelInfo)) {
+    for (const mirror of formattedChannels.channelInfo[channel]) {
       if (mirror.url === cleanUrl(pkg.channel)) {
         return channel;
       }
