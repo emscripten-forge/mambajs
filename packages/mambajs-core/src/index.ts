@@ -114,7 +114,7 @@ export async function bootstrapEmpackPackedEnvironment(
   const solvedPkgs: ISolvedPackages = {};
   const solvedPipPkgs: ISolvedPipPackages = {};
   for (const empackPkg of empackEnvMeta.packages) {
-    if (empackPkg.filename.endsWith('.whl')) {
+    if (empackPkg.filename.endsWith('.whl') || empackPkg.channel === 'PyPi') {
       solvedPipPkgs[empackPkg.filename] = {
         name: empackPkg.name,
         version: empackPkg.version,
