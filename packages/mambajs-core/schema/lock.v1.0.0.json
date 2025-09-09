@@ -90,6 +90,19 @@
             },
             "channel": {
               "type": "string"
+            },
+            "hash": {
+              "type": "object",
+              "required": ["md5", "sha256"],
+              "properties": {
+                "md5": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
