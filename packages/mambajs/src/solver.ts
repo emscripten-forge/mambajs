@@ -66,9 +66,6 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
           ...installedPkg,
           packageName: installedPkg.name,
           repoName: installedPkg.channel,
-          buildNumber: installedPkg.buildNumber
-            ? BigInt(installedPkg.buildNumber)
-            : undefined,
           filename,
           url: computePackageUrl(
             installedPkg,
@@ -93,7 +90,6 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         repoName,
         version,
         build,
-        buildNumber,
         subdir
       } = item;
       condaPackages[filename] = {
@@ -101,10 +97,6 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         build: build,
         version: version,
         channel: repoName ?? '',
-        buildNumber:
-          buildNumber && buildNumber <= BigInt(Number.MAX_SAFE_INTEGER)
-            ? Number(buildNumber)
-            : undefined,
         subdir
       };
     });
@@ -143,7 +135,6 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
 
     packages[filename] = {
       name: pkg.name,
-      buildNumber: pkg.buildNumber,
       build: pkg.build,
       version: pkg.version,
       subdir: pkg.subdir,

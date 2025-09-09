@@ -79,9 +79,6 @@
             "name": {
               "type": "string"
             },
-            "buildNumber": {
-              "type": "number"
-            },
             "build": {
               "type": "string"
             },
