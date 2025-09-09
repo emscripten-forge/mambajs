@@ -26,11 +26,19 @@ export const DEFAULT_CHANNELS_INFO: ILock['channelInfo'] = {
     {
       url: 'https://prefix.dev/emscripten-forge-dev',
       protocol: 'https'
+    },
+    {
+      url: 'https://repo.prefix.dev/emscripten-forge-dev',
+      protocol: 'https'
     }
   ],
   'conda-forge': [
     {
       url: 'https://prefix.dev/conda-forge',
+      protocol: 'https'
+    },
+    {
+      url: 'https://repo.prefix.dev/conda-forge',
       protocol: 'https'
     }
   ]

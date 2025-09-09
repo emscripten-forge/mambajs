@@ -6,8 +6,8 @@ const logger = new TestLogger();
 
 const yml = `
 channels:
-  - https://prefix.dev/emscripten-forge-dev
-  - https://prefix.dev/conda-forge
+  - https://repo.prefix.dev/emscripten-forge-dev
+  - https://repo.prefix.dev/conda-forge
 dependencies:
   - pandas
   - xeus-python
