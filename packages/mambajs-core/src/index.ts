@@ -398,7 +398,7 @@ export async function removePackagesFromEmscriptenFS(
   return newPath;
 }
 
-export interface IUpdatePackagesOptions extends IInstallPackagesToEnvOptions {
+export interface IUpdatePackagesOptions extends IInstallFilesToEnvOptions {
   /**
    * The old lock
    */
@@ -428,7 +428,7 @@ export interface IUpdatePackagesOptions extends IInstallPackagesToEnvOptions {
  */
 export async function updatePackagesInEmscriptenFS(
   options: IUpdatePackagesOptions
-): Promise<{ path: { [key: string]: string }; sharedLibs: TSharedLibsMap }> {
+): Promise<{ paths: { [key: string]: string }; sharedLibs: TSharedLibsMap }> {
   const {
     newLock,
     oldLock,
@@ -436,15 +436,14 @@ export async function updatePackagesInEmscriptenFS(
     logger,
     untarjs,
     pythonVersion,
-    pkgRootUrl,
-    channels
+    pkgRootUrl
   } = options;
   const oldPaths = options.paths;
 
   const pipPackageDiff = computePipPackagesDiff({ oldLock, newLock });
   const condaPackageDiff = computeCondaPackagesDiff({ oldLock, newLock });
 
-  const newPath = await removePackagesFromEmscriptenFS({
+  const newPaths = await removePackagesFromEmscriptenFS({
     removedPackages: {
       pipPackages: pipPackageDiff.removedPackages,
       packages: condaPackageDiff.removedPackages
@@ -459,7 +458,7 @@ export async function updatePackagesInEmscriptenFS(
       pipPackages: pipPackageDiff.newPackages,
       packages: condaPackageDiff.newPackages
     },
-    channels,
+    channels: newLock.channelInfo,
     pkgRootUrl,
     pythonVersion,
     Module,
@@ -467,7 +466,7 @@ export async function updatePackagesInEmscriptenFS(
     logger
   });
 
-  return { path: { ...newPath, ...paths }, sharedLibs };
+  return { paths: { ...newPaths, ...paths }, sharedLibs };
 }
 
 export function computePipPackagesDiff(options: {
