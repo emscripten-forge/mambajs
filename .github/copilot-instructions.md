@@ -17,13 +17,10 @@ yarn install
 # 3. Build the project (12-15 seconds)  
 yarn run build
 
-# 4. Validate functionality works
-node -e "import('./packages/mambajs-core/lib/index.js').then(m => console.log('✅ Setup complete, core works:', m.packageNameFromSpec('python=3.11')))"
-
-# 5. Run tests (8-12 seconds, some network failures expected)
+# 4. Run tests (8-12 seconds)
 yarn run test
 
-# 6. Check linting (1-2 seconds)
+# 5. Check linting (1-2 seconds)
 yarn run lint:check
 ```
 
@@ -36,41 +33,17 @@ yarn run lint:check
 
 ### Build Process
 - **Full build**: `yarn run build` -- takes 12-15 seconds. NEVER CANCEL. Set timeout to 2+ minutes.
-- **Individual package builds**:
-  - `cd packages/mambajs-core && yarn run build` -- includes schema generation, esbuild, and TypeScript types
-  - `cd packages/mambajs && yarn run build` -- esbuild and TypeScript types only
 
 ### Testing
 - **Run all tests**: `yarn run test` -- takes 8-12 seconds. NEVER CANCEL. Set timeout to 5+ minutes.
-- **Expected test behavior**: 8 out of 15 tests typically fail due to network connectivity issues ("error sending request"). This is normal in CI/sandboxed environments.
-- **Passing tests**: Parser tests and pip solver tests should pass consistently.
+- **Expected test behavior**: All tests should pass consistently.
 - **Test compilation**: Tests are TypeScript compiled to `unittests/testlib/` then executed with Node.js.
 
 ### Linting and Code Quality
 - **Check linting**: `yarn run lint:check` -- takes 1-2 seconds. NEVER CANCEL. Set timeout to 1+ minute.
-  - Runs both `yarn run eslint:check` and `yarn run prettier:check`
 - **Fix linting**: `yarn run lint` -- takes 3-5 seconds. NEVER CANCEL. Set timeout to 1+ minute.
-  - Runs both `yarn run eslint` and `yarn run prettier`
-- **Individual commands**:
-  - ESLint check: `yarn run eslint:check` -- <1 second
-  - Prettier check: `yarn run prettier:check` -- ~1 second
-  - ESLint fix: `yarn run eslint` -- ~2 seconds  
-  - Prettier fix: `yarn run prettier` -- ~2 seconds
 
 ## Validation
-
-### Manual Testing
-- **Basic functionality test**: After building, test imports work correctly:
-  ```javascript
-  import { packageNameFromSpec } from './packages/mambajs-core/lib/index.js';
-  console.log(packageNameFromSpec('python=3.11')); // Should output: 'python'
-  ```
-- **Quick validation command**: Create a simple test file to verify functionality:
-  ```bash
-  node -e "import('./packages/mambajs-core/lib/index.js').then(m => console.log('✅ Core import works:', m.packageNameFromSpec('python=3.11')))"
-  ```
-- **Network-dependent tests**: Will fail in sandboxed environments - this is expected behavior.
-- **Always run lint checks**: `yarn run lint:check` before committing or the CI (`.github/workflows/main.yml`) will fail.
 
 ### CI Pipeline Validation
 - Always run the complete CI sequence locally before pushing:
@@ -114,14 +87,13 @@ The repository root contains:
 ### Expected Warnings (Non-Breaking)
 - **TypeScript version warning**: ESLint may warn about unsupported TypeScript version - this is non-breaking
 - **Module type warnings**: Node.js may warn about module types when running tests - this is non-breaking
-- **Network test failures**: Tests requiring internet access fail in CI environments - this is expected
 
 ### Timing Expectations
 - **Environment creation**: 2-3 minutes (includes downloading packages)
 - **Dependency installation**: 30-35 seconds (yarn install)
 - **Full build**: 12-15 seconds (both packages)
 - **Linting**: 1-5 seconds depending on operation
-- **Test suite**: 8-12 seconds (regardless of pass/fail ratio)
+- **Test suite**: 8-12 seconds
 
 ### Dependencies
 - **Conda/micromamba**: Required for nodejs and yarn from conda-forge
@@ -138,7 +110,6 @@ The repository root contains:
 - For schema generation issues, check `packages/mambajs-core/schema/` files
 
 ### Test Issues  
-- Network test failures are expected in CI environments
 - If parser tests fail, check TypeScript compilation errors
 - Test output files are in `unittests/testlib/` - clean with `rimraf unittests/testlib`
 
