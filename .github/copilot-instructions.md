@@ -48,7 +48,7 @@ yarn run lint:check
 ### CI Pipeline Validation
 - Always run the complete CI sequence locally before pushing:
   1. `yarn install`
-  2. `yarn run eslint:check` 
+  2. `yarn run lint:check` 
   3. `yarn run build`
   4. `yarn run test`
 
