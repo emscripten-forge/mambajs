@@ -129,7 +129,6 @@ const installedData = await installPackagesToEmscriptenFS({
     pipPackages: lock.pipPackages
   },
   channels: lock.channelInfo,
-  pkgRootUrl: 'https://cdn.example.com',
   Module: EmscriptenModule,
   logger: console
 });
