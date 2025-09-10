@@ -10,3 +10,6 @@ unittests/packages/
 tsconfig.tsbuildinfo
 
 **/_interface
+
+# Temporary micromamba binary (if downloaded for setup)
+bin/micromamba
