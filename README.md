@@ -34,7 +34,7 @@ Backed by [rattler](https://github.com/conda-incubator/rattler) for conda packag
 ## What Mambajs is NOT (yet)
 
 - **Not a replacement** for micromamba or rattler CLIs
-- **Lock file focused**: The `install`/`remove`/`pipUninstall` functions manipulate conda lock definitions (lock input → lock output). They don't actually install/uninstall packages - it's up to you to handle the actual package installation where and how you want.
+- **Lock file focused**: The `install`/`remove`/`pipInstall`/`pipUninstall` functions manipulate conda lock definitions (lock input → lock output). They don't actually install/uninstall packages - it's up to you to handle the actual package installation where and how you want.
 
 ## Installation
 
@@ -73,24 +73,7 @@ const lock = await create(yml);
 console.log('Created environment with packages:', Object.keys(lock.packages));
 ```
 
-### Solving Dependencies
 
-```typescript
-import { solve } from '@emscripten-forge/mambajs';
-
-// Solve for specific packages
-const result = await solve({
-  ymlOrSpecs: ['python=3.11', 'numpy', 'pandas'],
-  logger: console // Optional logger
-});
-
-// Solve with pip packages
-const resultWithPip = await solve({
-  ymlOrSpecs: ['python=3.11'],
-  pipSpecs: ['matplotlib', 'ipywidgets==8.0.0'],
-  logger: console
-});
-```
 
 ### Managing Existing Environments
 
@@ -114,7 +97,7 @@ const envAfterRemoval = await remove(
 
 // Install pip packages
 const envWithPip = await pipInstall(
-  ['requests>=2.28.0', 'flask'],
+  ['requests>=2.28.0', 'bqplot'],
   currentLock,
   console
 );
@@ -137,14 +120,7 @@ import {
   installPackagesToEmscriptenFS 
 } from '@emscripten-forge/mambajs';
 
-// Bootstrap from empack environment metadata
-const bootstrapData = await bootstrapEmpackPackedEnvironment({
-  empackEnvMeta: envMeta,           // Environment metadata
-  pkgRootUrl: 'https://cdn.example.com', // Package CDN URL
-  Module: EmscriptenModule,         // Emscripten Module
-  generateCondaMeta: true,          // Generate conda-meta files
-  logger: console
-});
+
 
 // Install packages to filesystem
 const installedData = await installPackagesToEmscriptenFS({
@@ -312,7 +288,7 @@ npm publish
 Mambajs is designed primarily for WebAssembly/Emscripten environments but can work in Node.js for lock file manipulation.
 
 **Default Platform**: `emscripten-wasm32`  
-**Default Channels**: `emscripten-forge`, `conda-forge`
+**Default Channels**: `emscripten-forge` (https://prefix.dev/emscripten-forge-dev), `conda-forge` (https://prefix.dev/conda-forge)
 
 ## License
 
