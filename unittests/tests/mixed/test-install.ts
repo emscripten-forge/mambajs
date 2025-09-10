@@ -1,4 +1,4 @@
-import { create, install, ISolvedPackage, pipInstall } from "../../../packages/mambajs/src";
+import { computePipPackagesDiff, create, install, ISolvedPackage, pipInstall } from "../../../packages/mambajs/src";
 import { TestLogger } from "../../helpers";
 import { expect } from 'earl';
 
@@ -34,7 +34,14 @@ create(yml, logger).then(async env => {
   expect(condaPackages['ipycanvas'].version).toEqual('0.13.2');
   expect(condaPackages['bqplot'].version).toEqual('0.12.42');
 
+  const oldLock = env;
   env = await pipInstall(['ipydatagrid'], env, logger);
+  const newLock = env;
+
+  // Test diff helper function
+  const pipDiff = computePipPackagesDiff({ oldLock, newLock });
+  expect(Object.keys(pipDiff.newPackages).length).toBeGreaterThanOrEqual(1);
+  expect(Object.keys(pipDiff.removedPackages)).toBeEmpty();
 
   condaPackageNames = Object.values(env.packages).map(pkg => pkg.name);
   pipPackageNames = Object.values(env.pipPackages).map(pkg => pkg.name);

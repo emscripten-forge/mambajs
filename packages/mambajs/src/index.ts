@@ -22,7 +22,7 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
     : {};
 
   let condaPackages: ISolvedPackages = installedCondaPackages;
-  let newLock: ILock | undefined = currentLock;
+  let newLock: ILock | undefined = currentLock ? { ...currentLock } : undefined;
 
   // Create a wheel -> package name lookup table
   const installedWheels: { [name: string]: string } = {};
