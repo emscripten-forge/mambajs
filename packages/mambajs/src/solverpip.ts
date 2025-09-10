@@ -144,25 +144,14 @@ function getSuitableVersion(
   try {
     if (constraints) {
       version = resolveVersion(availableVersions, constraints);
-      // If we had constraints but couldn't resolve a version, don't fall back
-      if (!version) {
-        return undefined;
-      }
     }
   } catch {
-    // If constraint parsing failed, don't fall back
-    if (constraints) {
-      return undefined;
-    }
+    // We'll pick the latest version
   }
 
-  // Pick latest stable version only if no constraints were specified
-  if (!version && !constraints) {
-    version = availableVersions.filter(isStable).sort(rcompare).reverse()[0];
-  }
-
+  // Pick latest stable version
   if (!version) {
-    return undefined;
+    version = availableVersions.filter(isStable).sort(rcompare).reverse()[0];
   }
 
   const urls = pkgInfo.releases[version];
@@ -200,34 +189,59 @@ async function processRequirement(
     throw new Error(msg);
   }
 
-  const availableVersions = Object.keys(pkgMetadata.releases)
-    .sort(rcompare)
-    .reverse();
   const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
   if (!solved) {
     const requirementSpec =
       requirement.package + (requirement.constraints || '');
 
-    // If we have constraints but no matching version, show pip-style error
+    // Check if constraint resolution failed vs wheel availability issue
     if (requirement.constraints) {
-      const versionsStr = availableVersions.join(', ');
-      const msg = `ERROR: Could not find a version that satisfies the requirement ${requirementSpec} (from versions: ${versionsStr})`;
-      const notFoundMsg = `ERROR: No matching distribution found for ${requirementSpec}`;
-
-      // Package is a direct requirement requested by the user, we throw an error
-      if (required) {
-        logger?.error(msg);
-        logger?.error(notFoundMsg);
-        throw new Error(msg);
+      // Check if constraint resolution succeeded
+      const availableVersions = Object.keys(pkgMetadata.releases);
+      let constraintResolutionFailed = false;
+      
+      try {
+        const resolvedVersion = resolveVersion(availableVersions, requirement.constraints);
+        constraintResolutionFailed = !resolvedVersion;
+      } catch {
+        constraintResolutionFailed = true;
       }
+      
+      if (constraintResolutionFailed) {
+        // Constraint resolution failed - show pip-style error
+        const versionsStr = availableVersions.join(', ');
+        const msg = `ERROR: Could not find a version that satisfies the requirement ${requirementSpec} (from versions: ${versionsStr})`;
+        const notFoundMsg = `ERROR: No matching distribution found for ${requirementSpec}`;
 
-      if (!warnedPackages.has(requirement.package)) {
-        logger?.error(msg);
-        logger?.error(notFoundMsg);
-        warnedPackages.add(requirement.package);
+        // Package is a direct requirement requested by the user, we throw an error
+        if (required) {
+          logger?.error(msg);
+          logger?.error(notFoundMsg);
+          throw new Error(msg);
+        }
+
+        if (!warnedPackages.has(requirement.package)) {
+          logger?.error(msg);
+          logger?.error(notFoundMsg);
+          warnedPackages.add(requirement.package);
+        }
+      } else {
+        // Constraint resolution succeeded but no compatible wheel - show original message
+        const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "%conda install ${requirement.package}"`;
+
+        // Package is a direct requirement requested by the user, we throw an error
+        if (required) {
+          logger?.error(msg);
+          throw new Error(msg);
+        }
+
+        if (!warnedPackages.has(requirement.package)) {
+          logger?.warn(msg);
+          warnedPackages.add(requirement.package);
+        }
       }
     } else {
-      // For packages without specific constraints that can't be installed (e.g., no compatible wheel)
+      // No constraints - show original message
       const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "%conda install ${requirement.package}"`;
 
       // Package is a direct requirement requested by the user, we throw an error
