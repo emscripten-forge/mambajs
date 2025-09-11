@@ -18,7 +18,6 @@ import {
   IBootstrapData,
   IEmpackEnvMeta,
   IEmpackEnvMetaMountPoint,
-  IEmpackEnvMetaPkg,
   IInstalledData,
   ILock,
   ILogger,
@@ -39,7 +38,13 @@ export * from './parser';
  * @param lock representation
  * @returns The Python version as a list of numbers if it is there
  */
-export function getPythonVersion(lock: Pick<ILock, 'packages'>): number[] | undefined {
+export function getPythonVersion(
+  lock?: Pick<ILock, 'packages'>
+): number[] | undefined {
+  if (!lock) {
+    return undefined;
+  }
+
   let pythonPackage: ISolvedPackage | undefined = undefined;
   for (const pkg of Object.values(lock.packages)) {
     if (pkg.name == 'python') {
