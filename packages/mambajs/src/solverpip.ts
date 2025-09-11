@@ -46,7 +46,7 @@ function satisfies(version: string, constraint: string) {
   const constraints = constraint.split(',').map(c => c.trim());
 
   return constraints.every(c => {
-    const match = c.match(/(~=|>=|<=|>|<|==)?\s*([\w.]+)/);
+    const match = c.match(/(=|~=|>=|<=|>|<|==)?\s*([\w.]+)/);
     if (!match) {
       return false;
     }
@@ -58,6 +58,10 @@ function satisfies(version: string, constraint: string) {
     );
 
     switch (operator) {
+      case '=':
+        throw new Error(
+          `ERROR: Invalid requirement: '${c}': Hint: = is not a valid operator. Did you mean == ?`
+        );
       case '>':
         return cmp > 0;
       case '>=':
@@ -136,20 +140,26 @@ function parsePyPiRequirement(requirement: string): ISpec | null {
 
 function getSuitableVersion(
   pkgInfo: any,
-  constraints: string | null
+  constraints: string | null,
+  logger?: ILogger
 ): ISolvedPipPackage | undefined {
   const availableVersions = Object.keys(pkgInfo.releases);
 
   let version: string | undefined = undefined;
-  try {
-    if (constraints) {
-      version = resolveVersion(availableVersions, constraints);
+  if (constraints) {
+    version = resolveVersion(availableVersions, constraints);
+
+    if (!version) {
+      const versionsStr = availableVersions.join(', ');
+      const msg = `ERROR: Could not find a version that satisfies the requirement ${pkgInfo.info.name}${constraints} (from versions: ${versionsStr})`;
+      const notFoundMsg = `ERROR: No matching distribution found for ${constraints}`;
+
+      logger?.error(msg);
+      logger?.error(notFoundMsg);
+      throw new Error(msg);
     }
-  } catch {
-    // We'll pick the latest version
   }
 
-  // Pick latest stable version
   if (!version) {
     version = availableVersions.filter(isStable).sort(rcompare).reverse()[0];
   }
@@ -189,7 +199,11 @@ async function processRequirement(
     throw new Error(msg);
   }
 
-  const solved = getSuitableVersion(pkgMetadata, requirement.constraints);
+  const solved = getSuitableVersion(
+    pkgMetadata,
+    requirement.constraints,
+    logger
+  );
   if (!solved) {
     const requirementSpec =
       requirement.package + (requirement.constraints || '');
@@ -199,32 +213,26 @@ async function processRequirement(
       // Check if constraint resolution succeeded
       const availableVersions = Object.keys(pkgMetadata.releases);
       let constraintResolutionFailed = false;
-      
+
       try {
-        const resolvedVersion = resolveVersion(availableVersions, requirement.constraints);
+        const resolvedVersion = resolveVersion(
+          availableVersions,
+          requirement.constraints
+        );
         constraintResolutionFailed = !resolvedVersion;
       } catch {
         constraintResolutionFailed = true;
       }
-      
+
       if (constraintResolutionFailed) {
         // Constraint resolution failed - show pip-style error
         const versionsStr = availableVersions.join(', ');
         const msg = `ERROR: Could not find a version that satisfies the requirement ${requirementSpec} (from versions: ${versionsStr})`;
         const notFoundMsg = `ERROR: No matching distribution found for ${requirementSpec}`;
 
-        // Package is a direct requirement requested by the user, we throw an error
-        if (required) {
-          logger?.error(msg);
-          logger?.error(notFoundMsg);
-          throw new Error(msg);
-        }
-
-        if (!warnedPackages.has(requirement.package)) {
-          logger?.error(msg);
-          logger?.error(notFoundMsg);
-          warnedPackages.add(requirement.package);
-        }
+        logger?.error(msg);
+        logger?.error(notFoundMsg);
+        throw new Error(msg);
       } else {
         // Constraint resolution succeeded but no compatible wheel - show original message
         const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "%conda install ${requirement.package}"`;

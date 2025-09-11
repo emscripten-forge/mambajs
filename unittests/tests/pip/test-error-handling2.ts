@@ -7,7 +7,7 @@ const logger = new TestLogger();
 const ymlInvalidVersion = `
 dependencies:
   - pip:
-    - setuptools==99.99.99  # Use a version that definitely doesn't exist
+    - ipycanvas=0.14.1
 `;
 
-expect(() => solvePip(ymlInvalidVersion, {}, {}, {}, [], logger)).toBeRejectedWith(/ERROR: Could not find a version that satisfies the requirement setuptools/);
+expect(() => solvePip(ymlInvalidVersion, {}, {}, {}, [], logger)).toBeRejectedWith(/ERROR: Invalid requirement/);
