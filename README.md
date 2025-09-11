@@ -240,7 +240,7 @@ showEnvironmentDiff(oldEnv, newEnv, console);
 
 - **`bootstrapPython(options)`**: Bootstrap Python runtime
 - **`loadSharedLibs(options)`**: Load shared libraries
-- **`getPythonVersion(packages)`**: Extract Python version from packages
+- **`getPythonVersion(lock)`**: Extract Python version from the lock
 
 ### Utilities
 

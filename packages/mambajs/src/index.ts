@@ -31,13 +31,13 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
   }
 
   // Get installed Python version
-  let pythonVersion = getPythonVersion(Object.values(condaPackages));
+  let pythonVersion = getPythonVersion(currentLock);
 
   // Run conda solver first
   if (ymlOrSpecs && ymlOrSpecs.length) {
     newLock = await solveConda(options);
     condaPackages = newLock.packages;
-    pythonVersion = getPythonVersion(Object.values(condaPackages));
+    pythonVersion = getPythonVersion(newLock);
 
     // Remove pip packages if they are now coming from conda
     // Here we try our best given the possible mismatches between pip package names and conda names
