@@ -152,7 +152,7 @@ function getSuitableVersion(
     if (!version) {
       const versionsStr = availableVersions.join(', ');
       const msg = `ERROR: Could not find a version that satisfies the requirement ${pkgInfo.info.name}${constraints} (from versions: ${versionsStr})`;
-      const notFoundMsg = `ERROR: No matching distribution found for ${constraints}`;
+      const notFoundMsg = `ERROR: No matching distribution found for ${pkgInfo.info.name}${constraints}`;
 
       logger?.error(msg);
       logger?.error(notFoundMsg);
