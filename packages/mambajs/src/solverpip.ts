@@ -147,7 +147,13 @@ function getSuitableVersion(
 
   let version: string | undefined = undefined;
   if (constraints) {
-    version = resolveVersion(availableVersions, constraints);
+    try {
+      version = resolveVersion(availableVersions, constraints);
+    } catch (e: any) {
+      const msg = e.message ? e.message : e;
+      logger?.error(msg);
+      throw new Error(msg);
+    }
 
     if (!version) {
       const versionsStr = availableVersions.join(', ');
