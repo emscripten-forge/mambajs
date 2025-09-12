@@ -5,7 +5,8 @@
     "lib": ["ES2020", "DOM"],
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "module": "commonjs"
+    "module": "commonjs",
+    "resolveJsonModule": true
   },
   "include": ["tests/**/*.ts", "tests/*.ts"],
   "exclude": []

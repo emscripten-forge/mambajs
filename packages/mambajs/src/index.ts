@@ -10,12 +10,16 @@ import {
 } from '@emscripten-forge/mambajs-core';
 import { ISolveOptions, solveConda } from './solver';
 import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
+import { version } from '../package.json';
 
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
 
 export async function solve(options: ISolveOptions): Promise<ILock> {
   const { logger, ymlOrSpecs, pipSpecs, currentLock } = options;
+
+  logger?.log(`mambajs ${version}`);
+
   const installedCondaPackages = currentLock?.packages ?? {};
   const installedPipPackages = currentLock?.pipPackages
     ? { ...currentLock.pipPackages }
