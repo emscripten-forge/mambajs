@@ -10,4 +10,4 @@ dependencies:
     - pandas
 `;
 
-expect(solvePip(yml, {}, {}, {}, [], logger)).toBeRejectedWith('Cannot install pandas from PyPi')
+expect(solvePip(yml, {}, {}, {}, [], logger)).toBeRejectedWith('binary built package that is not compatible with WASM');

@@ -240,8 +240,13 @@ async function processRequirement(
         logger?.error(notFoundMsg);
         throw new Error(msg);
       } else {
-        // Constraint resolution succeeded but no compatible wheel - show original message
-        const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "%conda install ${requirement.package}"`;
+        // Constraint resolution succeeded but no compatible wheel - show improved message
+        const msg =
+          `Cannot install '${requirement.package}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
+          `To resolve this issue, you can: ` +
+          `1) Install it from conda-forge or emscripten-forge instead: "%conda install ${requirement.package}" ` +
+          `2) Contribute a WASM-compatible version to emscripten-forge: https://github.com/emscripten-forge/recipes ` +
+          `3) Request packaging of this package: https://github.com/emscripten-forge/recipes/issues`;
 
         // Package is a direct requirement requested by the user, we throw an error
         if (required) {
@@ -255,8 +260,13 @@ async function processRequirement(
         }
       }
     } else {
-      // No constraints - show original message
-      const msg = `Cannot install ${requirement.package} from PyPi. Please make sure to install it from conda-forge or emscripten-forge! e.g. "%conda install ${requirement.package}"`;
+      // No constraints - show improved message
+      const msg =
+        `Cannot install '${requirement.package}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
+        `To resolve this issue, you can: ` +
+        `1) Install it from conda-forge or emscripten-forge instead: "%conda install ${requirement.package}" ` +
+        `2) Contribute a WASM-compatible version to emscripten-forge: https://github.com/emscripten-forge/recipes ` +
+        `3) Request packaging of this package: https://github.com/emscripten-forge/recipes/issues`;
 
       // Package is a direct requirement requested by the user, we throw an error
       if (required) {
