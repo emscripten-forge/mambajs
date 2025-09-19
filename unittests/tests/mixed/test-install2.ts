@@ -15,7 +15,7 @@ dependencies:
     - ipycanvas
 `;
 
-create(yml, logger).then(async env => {
+create({yml, logger}).then(async env => {
   env = await install(['ipycanvas', 'bqplot'], env, [], logger);
 
   const condaPackageNames = Object.values(env.packages).map(pkg => pkg.name);

@@ -69,7 +69,7 @@ dependencies:
 `;
 
 // Create environment from YAML definition
-const lock = await create(yml);
+const lock = await create({yml});
 console.log('Created environment with packages:', Object.keys(lock.packages));
 ```
 
@@ -164,7 +164,7 @@ await loadSharedLibs({
 import { ILock, ISolvedPackage } from '@emscripten-forge/mambajs';
 
 // Access package information
-const lock: ILock = await create(yml);
+const lock: ILock = await create({yml});
 
 // Iterate through conda packages
 for (const [filename, pkg] of Object.entries(lock.packages)) {
@@ -211,8 +211,8 @@ const result = await solve({
 ```typescript
 import { showEnvironmentDiff } from '@emscripten-forge/mambajs';
 
-const oldEnv = await create(oldYml);
-const newEnv = await create(newYml);
+const oldEnv = await create({yml: oldYml});
+const newEnv = await create({yml: newYml});
 
 // Show what changed between environments
 showEnvironmentDiff(oldEnv, newEnv, console);
@@ -223,7 +223,7 @@ showEnvironmentDiff(oldEnv, newEnv, console);
 ### Core Functions
 
 - **`solve(options)`**: Core solving function with full control
-- **`create(yml, logger?)`**: Create environment from environment.yml
+- **`create({yml, platform?, logger?})`**: Create environment from environment.yml
 - **`install(specs, env, channels?, logger?)`**: Install conda packages
 - **`remove(packages, env, logger?)`**: Remove conda packages
 - **`pipInstall(specs, env, logger?)`**: Install pip packages

@@ -17,7 +17,7 @@ dependencies:
     - bqplot ==0.12.42
 `;
 
-create(yml, logger).then(async result => {
+create({yml, logger}).then(async result => {
   const condaPackageNames = Object.values(result.packages).map(pkg => pkg.name);
   const pipPackageNames = Object.values(result.pipPackages).map(pkg => pkg.name);
 

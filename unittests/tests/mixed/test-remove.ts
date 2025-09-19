@@ -17,7 +17,7 @@ dependencies:
     - ipydatagrid
 `;
 
-create(yml, logger).then(async env => {
+create({yml, logger}).then(async env => {
   let oldLock = env;
   let newLock: ILockV1;
 

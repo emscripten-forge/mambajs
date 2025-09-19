@@ -11,6 +11,7 @@ import {
 import { ISolveOptions, solveConda } from './solver';
 import { getPipPackageName, hasPipDependencies, solvePip } from './solverpip';
 import { version } from '../package.json';
+import { Platform } from '@conda-org/rattler';
 
 // For backward compat
 export * from '@emscripten-forge/mambajs-core';
@@ -114,13 +115,16 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
 /**
  * Create an environment from an environment.yml definition
  * @param yml the environment.yml file content
+ * @param platform the target environment platform (defaults to emscripten-wasm32)
  * @param logger the logs handler
  * @returns the solved environment
  */
-export async function create(yml: string, logger?: ILogger): Promise<ILock> {
+export async function create(options: {yml: string, platform?: Platform, logger?: ILogger}): Promise<ILock> {
+  const { logger, yml, platform } = options;
+
   logBanner(logger);
 
-  return await solve({ ymlOrSpecs: yml, logger });
+  return await solve({ ymlOrSpecs: yml, logger, platform: platform ?? 'emscripten-wasm32' });
 }
 
 /**
