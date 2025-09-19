@@ -1,4 +1,4 @@
-import { create, ISolvedPackage, ISolvedPipPackage } from "../../../packages/mambajs/src";
+import { create, ISolvedPackage } from "../../../packages/mambajs/src";
 import { TestLogger } from "../../helpers";
 import { expect } from 'earl';
 

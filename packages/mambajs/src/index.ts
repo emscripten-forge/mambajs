@@ -119,12 +119,20 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
  * @param logger the logs handler
  * @returns the solved environment
  */
-export async function create(options: {yml: string, platform?: Platform, logger?: ILogger}): Promise<ILock> {
+export async function create(options: {
+  yml: string;
+  platform?: Platform;
+  logger?: ILogger;
+}): Promise<ILock> {
   const { logger, yml, platform } = options;
 
   logBanner(logger);
 
-  return await solve({ ymlOrSpecs: yml, logger, platform: platform ?? 'emscripten-wasm32' });
+  return await solve({
+    ymlOrSpecs: yml,
+    logger,
+    platform: platform ?? 'emscripten-wasm32'
+  });
 }
 
 /**
