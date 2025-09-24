@@ -141,7 +141,8 @@ function parsePyPiRequirement(requirement: string): ISpec | null {
 function getSuitableVersion(
   pkgInfo: any,
   constraints: string | null,
-  logger?: ILogger
+  logger?: ILogger,
+  platform?: string
 ): ISolvedPipPackage | undefined {
   const availableVersions = Object.keys(pkgInfo.releases);
 
@@ -171,12 +172,128 @@ function getSuitableVersion(
   }
 
   const urls = pkgInfo.releases[version];
+
+  // Helper function to convert conda platform to pip wheel platform tags
+  const getPlatformTags = (platform?: string): string[] => {
+    if (!platform) {
+      return ['none-any'];
+    }
+
+    const tags: string[] = ['none-any']; // Always include pure Python packages
+
+    switch (platform) {
+      case 'linux-64':
+        tags.push(
+          'linux_x86_64',
+          'manylinux1_x86_64',
+          'manylinux2010_x86_64',
+          'manylinux2014_x86_64',
+          'manylinux_2_17_x86_64',
+          'manylinux_2_24_x86_64',
+          'manylinux_2_28_x86_64'
+        );
+        break;
+      case 'linux-32':
+        tags.push(
+          'linux_i686',
+          'manylinux1_i686',
+          'manylinux2010_i686',
+          'manylinux2014_i686'
+        );
+        break;
+      case 'linux-aarch64':
+        tags.push(
+          'linux_aarch64',
+          'manylinux2014_aarch64',
+          'manylinux_2_17_aarch64',
+          'manylinux_2_24_aarch64',
+          'manylinux_2_28_aarch64'
+        );
+        break;
+      case 'linux-armv6l':
+        tags.push('linux_armv6l');
+        break;
+      case 'linux-armv7l':
+        tags.push('linux_armv7l');
+        break;
+      case 'linux-ppc64le':
+        tags.push(
+          'linux_ppc64le',
+          'manylinux2014_ppc64le',
+          'manylinux_2_17_ppc64le'
+        );
+        break;
+      case 'linux-ppc64':
+        tags.push('linux_ppc64');
+        break;
+      case 'linux-s390x':
+        tags.push('linux_s390x', 'manylinux2014_s390x', 'manylinux_2_17_s390x');
+        break;
+      case 'osx-64':
+        tags.push(
+          'macosx_10_6_x86_64',
+          'macosx_10_9_x86_64',
+          'macosx_10_12_x86_64',
+          'macosx_10_13_x86_64',
+          'macosx_10_14_x86_64',
+          'macosx_10_15_x86_64',
+          'macosx_11_0_x86_64',
+          'macosx_12_0_x86_64'
+        );
+        break;
+      case 'osx-arm64':
+        tags.push(
+          'macosx_11_0_arm64',
+          'macosx_12_0_arm64',
+          'macosx_13_0_arm64',
+          'macosx_14_0_arm64'
+        );
+        break;
+      case 'win-64':
+        tags.push('win_amd64');
+        break;
+      case 'win-32':
+        tags.push('win32');
+        break;
+      case 'win-arm64':
+        tags.push('win_arm64');
+        break;
+      case 'emscripten-wasm32':
+      case 'wasi-wasm32':
+        // These platforms typically only support pure Python packages
+        break;
+    }
+
+    return tags;
+  };
+
+  const platformTags = getPlatformTags(platform);
+
   for (const url of urls) {
-    // Needs to finish with:
-    // none: no compiled code
-    // any: noarch package
-    if (url.filename.endsWith('none-any.whl')) {
-      return { url: url.url, name: url.filename, version, registry: 'PyPi' };
+    // Check if any of the platform tags match the wheel filename
+    for (const tag of platformTags) {
+      // For none-any, check exact match at end
+      if (tag === 'none-any') {
+        if (url.filename.endsWith(`${tag}.whl`)) {
+          return {
+            url: url.url,
+            name: url.filename,
+            version,
+            registry: 'PyPi'
+          };
+        }
+      } else {
+        // For platform-specific tags, check if the tag appears in the filename
+        // This handles cases like manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        if (url.filename.includes(tag) && url.filename.endsWith('.whl')) {
+          return {
+            url: url.url,
+            name: url.filename,
+            version,
+            registry: 'PyPi'
+          };
+        }
+      }
     }
   }
 }
@@ -189,7 +306,8 @@ async function processRequirement(
   installedWheels: { [name: string]: string },
   installPipPackagesLookup: ISolvedPipPackages,
   logger?: ILogger,
-  required = false
+  required = false,
+  platform?: string
 ) {
   const pkgMetadata = await (
     await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
@@ -208,7 +326,8 @@ async function processRequirement(
   const solved = getSuitableVersion(
     pkgMetadata,
     requirement.constraints,
-    logger
+    logger,
+    platform
   );
   if (!solved) {
     const requirementSpec =
@@ -263,8 +382,8 @@ async function processRequirement(
       const msg =
         `Cannot install '${requirement.package}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
         `To resolve this issue, you can: ` +
-          `1) Try to install it from emscripten-forge instead: "%mamba install ${requirement.package}" ` +
-          `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `;
+        `1) Try to install it from emscripten-forge instead: "%mamba install ${requirement.package}" ` +
+        `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `;
 
       // Package is a direct requirement requested by the user, we throw an error
       if (required) {
@@ -357,7 +476,8 @@ async function processRequirement(
       installedWheels,
       installPipPackagesLookup,
       logger,
-      false
+      false,
+      platform
     );
   }
 }
@@ -368,7 +488,8 @@ export async function solvePip(
   installedWheels: { [name: string]: string },
   installedPipPackages: ISolvedPipPackages,
   packageNames: Array<string> = [],
-  logger?: ILogger
+  logger?: ILogger,
+  platform?: string
 ): Promise<ISolvedPipPackages> {
   let specs: ISpec[] = [];
 
@@ -425,7 +546,8 @@ export async function solvePip(
       installedWheels,
       installPipPackagesLookup,
       logger,
-      true
+      true,
+      platform
     );
   }
 

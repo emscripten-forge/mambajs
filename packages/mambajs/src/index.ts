@@ -1,4 +1,5 @@
 import {
+  DEFAULT_PLATFORM,
   formatChannels,
   getPythonVersion,
   ILock,
@@ -23,6 +24,7 @@ function logBanner(logger?: ILogger) {
 
 export async function solve(options: ISolveOptions): Promise<ILock> {
   const { logger, ymlOrSpecs, pipSpecs, currentLock } = options;
+  const platform = options.platform ?? DEFAULT_PLATFORM;
 
   const installedCondaPackages = currentLock?.packages ?? {};
   const installedPipPackages = currentLock?.pipPackages
@@ -94,7 +96,8 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
         installedWheels,
         installedPipPackages,
         [],
-        logger
+        logger,
+        platform
       );
     } else {
       logger?.log('Process pip requirements ...\n');
@@ -104,7 +107,8 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
         installedWheels,
         installedPipPackages,
         pipSpecs,
-        logger
+        logger,
+        platform
       );
     }
   }
