@@ -1,4 +1,4 @@
-import { FilesData, IUnpackJSAPI } from '@emscripten-forge/untarjs';
+import { FilesData, IUnpackJSAPI, resolveFile } from '@emscripten-forge/untarjs';
 import { parse } from 'yaml';
 import {
   DEFAULT_CHANNELS,
@@ -37,7 +37,7 @@ export function getSharedLibs(files: FilesData, prefix: string): TSharedLibs {
   Object.keys(files).map(file => {
     if (
       (file.endsWith('.so') || file.includes('.so.')) &&
-      checkWasmMagicNumber(files[file])
+      checkWasmMagicNumber(resolveFile(files, file))
     ) {
       sharedLibs.push(`${prefix}/${file}`);
     }
@@ -273,7 +273,7 @@ export async function untarCondaPackage(
   // Prefix relocation
   if (info['info/paths.json']) {
     const paths = JSON.parse(
-      new TextDecoder('utf-8').decode(info['info/paths.json'])
+      new TextDecoder('utf-8').decode(resolveFile(info, 'info/paths.json'))
     );
     for (const filedesc of paths['paths']) {
       // If it doesn't need to be relocated, or if the file has
@@ -289,15 +289,16 @@ export async function untarCondaPackage(
       // TextDecoder cannot decode the null bytes (zero-padding), so we cannot do the zero-padding
       // for any file that will be text decoded (.json, .py etc)
       // We only do the zero-padding on detected binary files. Is there a better way to detect them?
-      if (hasNullBytes(pkg[filedesc['_path']])) {
+      const filedescContent = resolveFile(pkg, filedesc['_path']);
+      if (hasNullBytes(filedescContent)) {
         pkg[filedesc['_path']] = replaceStringWithZeroPadding(
-          pkg[filedesc['_path']],
+          filedescContent,
           prefixPlaceholder,
           relocatePrefix || ''
         );
       } else {
         pkg[filedesc['_path']] = replaceString(
-          pkg[filedesc['_path']],
+          filedescContent,
           prefixPlaceholder,
           relocatePrefix || ''
         );
@@ -348,9 +349,9 @@ export async function splitPackageInfo(
 
     Object.keys(files).map(file => {
       if (file.startsWith('pkg-')) {
-        condaPackage = files[file];
+        condaPackage = resolveFile(files, file);
       } else if (file.startsWith('info-')) {
-        packageInfo = files[file];
+        packageInfo = resolveFile(files, file);
       }
     });
 
@@ -398,7 +399,7 @@ export function getCondaMetaFile(
       const regexp = 'index.json';
 
       if (filename.match(regexp)) {
-        infoData = files[filename];
+        infoData = resolveFile(files, filename);
       }
     });
     if (infoData.byteLength !== 0) {
@@ -439,7 +440,7 @@ export function getCondaMetaFile(
     Object.keys(files).forEach(filename => {
       const regexp = 'conda-meta';
       if (filename.match(regexp)) {
-        condaMetaFileData = files[filename];
+        condaMetaFileData = resolveFile(files, filename);
         path = filename;
       }
     });
