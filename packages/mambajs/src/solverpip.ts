@@ -2,6 +2,7 @@
 
 import { parse } from 'yaml';
 import {
+  DEFAULT_PLATFORM,
   ILogger,
   ISolvedPackages,
   ISolvedPipPackage,
@@ -496,6 +497,7 @@ export async function solvePip(
   platform?: Platform
 ): Promise<ISolvedPipPackages> {
   let specs: ISpec[] = [];
+  platform = platform ?? DEFAULT_PLATFORM;
 
   if (yml) {
     const data = parseEnvYml(yml);
