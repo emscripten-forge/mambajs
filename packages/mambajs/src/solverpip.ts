@@ -263,8 +263,8 @@ async function processRequirement(
       const msg =
         `Cannot install '${requirement.package}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
         `To resolve this issue, you can: ` +
-          `1) Try to install it from emscripten-forge instead: "%mamba install ${requirement.package}" ` +
-          `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `;
+        `1) Try to install it from emscripten-forge instead: "%mamba install ${requirement.package}" ` +
+        `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `;
 
       // Package is a direct requirement requested by the user, we throw an error
       if (required) {
