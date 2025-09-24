@@ -9,6 +9,7 @@ import {
   packageNameFromSpec,
   parseEnvYml
 } from '@emscripten-forge/mambajs-core';
+import { Platform } from '@conda-org/rattler';
 
 interface ISpec {
   package: string;
@@ -298,6 +299,19 @@ function getSuitableVersion(
   }
 }
 
+function getUnavailableWheelError(requirement: ISpec, platform?: Platform) {
+  if (platform === 'emscripten-wasm32') {
+    return (
+      `Cannot install '${requirement.package}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
+      `To resolve this issue, you can: ` +
+      `1) Try to install it from emscripten-forge instead: "%mamba install ${requirement.package}" ` +
+      `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `
+    );
+  }
+
+  return `No wheel available for '${requirement.package}' for platform '${platform}'`;
+}
+
 async function processRequirement(
   requirement: ISpec,
   warnedPackages: Set<string>,
@@ -307,7 +321,7 @@ async function processRequirement(
   installPipPackagesLookup: ISolvedPipPackages,
   logger?: ILogger,
   required = false,
-  platform?: string
+  platform?: Platform
 ) {
   const pkgMetadata = await (
     await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
@@ -359,12 +373,7 @@ async function processRequirement(
         logger?.error(notFoundMsg);
         throw new Error(msg);
       } else {
-        // Constraint resolution succeeded but no compatible wheel - show improved message
-        const msg =
-          `Cannot install '${requirement.package}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
-          `To resolve this issue, you can: ` +
-          `1) Try to install it from emscripten-forge instead: "%mamba install ${requirement.package}" ` +
-          `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `;
+        const msg = getUnavailableWheelError(requirement, platform);
 
         // Package is a direct requirement requested by the user, we throw an error
         if (required) {
@@ -378,12 +387,7 @@ async function processRequirement(
         }
       }
     } else {
-      // No constraints - show improved message
-      const msg =
-        `Cannot install '${requirement.package}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
-        `To resolve this issue, you can: ` +
-        `1) Try to install it from emscripten-forge instead: "%mamba install ${requirement.package}" ` +
-        `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `;
+      const msg = getUnavailableWheelError(requirement, platform);
 
       // Package is a direct requirement requested by the user, we throw an error
       if (required) {
@@ -489,7 +493,7 @@ export async function solvePip(
   installedPipPackages: ISolvedPipPackages,
   packageNames: Array<string> = [],
   logger?: ILogger,
-  platform?: string
+  platform?: Platform
 ): Promise<ISolvedPipPackages> {
   let specs: ISpec[] = [];
 
