@@ -82,9 +82,9 @@ class SquashFileFetcher {
     }
 
     // got it now init
-    const blockNum = fileSize
-      ? fileSize / blockSize
-      : Math.ceil(Number(bytesUsed / BigInt(blockSize)));
+    const blockNum = Math.ceil(
+      fileSize ? fileSize / blockSize : Number(bytesUsed / BigInt(blockSize))
+    );
     const blocks = this.blocks_;
     for (let block = 1; block < blockNum; block++) {
       blocks[block] = {};
@@ -105,9 +105,8 @@ class SquashFileFetcher {
     } else {
       this.blockSize_ = blockSize;
     }
-
     await this.storeRead(0n, value);
-    this.contineReading(BigInt(value.byteLength), reader); // we are not awaiting this
+    await this.contineReading(BigInt(value.byteLength), reader); // we are actually awaiting it...
   }
 
   private async contineReading(
@@ -137,19 +136,24 @@ class SquashFileFetcher {
     let curreadStart: undefined | number = undefined;
     let curreadEnd: undefined | number = undefined;
     for (let block = blockstart; block <= blockend; block++) {
-      if (
+      let include = false;
+      if 
         (typeof this.blocks_[block].reads === 'undefined' ||
           (block === 0 &&
             this.blocks_[0]?.reads?.length == 1 &&
-            this.blocks_[0].reads[0].byteLength !== this.blockSize_)) &&
-        !curreadStart
+            this.blocks_[0]?.reads[0]?.byteLength !== this.blockSize_)
       ) {
-        if (!curreadStart) {
+        if (typeof curreadStart === 'undefined') {
           curreadStart = block;
         }
         curreadEnd = block;
-      } else {
-        if (curreadStart && curreadEnd) {
+        include = true;
+      }
+      if (!include || block == blockend) {
+        if (
+          typeof curreadStart !== 'undefined' &&
+          typeof curreadEnd !== 'undefined'
+        ) {
           // commit
           const readProm = this.readBlockRange(curreadStart, curreadEnd);
           this.blocks_.slice(curreadStart, curreadEnd + 1).forEach(curblock => {
@@ -213,8 +217,9 @@ class SquashFileFetcher {
         ? await this.blockSize_?.promise
         : this.blockSize_;
     const firstBlock = Number(offset / BigInt(blockSize));
-    const lastBlock =
-      (offset + BigInt(read.byteLength) - 1n) / BigInt(blockSize);
+    const lastBlock = Number(
+      (offset + BigInt(read.byteLength) - 1n) / BigInt(blockSize)
+    );
     for (let blocknum = firstBlock; blocknum <= lastBlock; blocknum++) {
       const block = this.blocks_[blocknum];
       let calcoffset = 0;
@@ -234,8 +239,8 @@ class SquashFileFetcher {
               (curoffset - BigInt(blocknum) * BigInt(blockSize))
           );
       }
+      block.reads ||= [];
       if (calcoffset + curread.byteLength > blockSize) {
-        block.reads ||= [];
         block.reads.push(
           new Uint8Array(
             curread.buffer,
@@ -248,6 +253,10 @@ class SquashFileFetcher {
           curread.byteOffset + blockSize - calcoffset,
           curread.byteLength - blockSize + calcoffset
         );
+      } else {
+        block.reads.push(curread);
+        if (blocknum !== lastBlock)
+          throw new Error('lastBlock number exceeding current read');
       }
     }
   }
@@ -310,7 +319,7 @@ const fetchLoop = async () => {
         } else {
           // init done now initiate the data fetch
           const startChunk = memFile.triggerChunkStart;
-          const endChunk = memFile.triggerChunkStart;
+          const endChunk = memFile.triggerChunkEnd;
           // reset
           memFile.triggerChunkStart = memFile.triggerChunkEnd = 0;
           await fetcher.readRequestBlockRange(startChunk, endChunk);
@@ -319,13 +328,16 @@ const fetchLoop = async () => {
             const blockdata = await fetcher.getBlock(chunk); // get the block after fetching
             console.log('wloop mark 6');
             const memchunk = memFile.getChunk(chunk);
+            console.log('chunk trigger', memchunk.trigger);
             const memdata = memchunk.data;
             if (typeof memdata === 'undefined')
               throw new Error('Data not set in memchunk');
             if (typeof blockdata === 'undefined')
               throw new Error('Blockdata not returned');
+            console.log('setchunk', chunk, blockdata);
 
             memdata.set(blockdata);
+            console.log('memdata', chunk, memdata);
             memchunk.read = blockdata.byteLength;
           }
         }

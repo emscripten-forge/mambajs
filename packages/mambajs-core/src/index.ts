@@ -337,42 +337,35 @@ export async function installPackagesToEmscriptenFS(
         // we need to mount the pkgRoot or other baseURL as single Filesystem
         let sFS = squashfsFS[url];
         if (!sFS) {
+          // in case it is the first, we need to create the mount point's parent
+          if (Object.entries(squashfsFS).length === 0) {
+            FS.mkdir('/squashfs', 0o777);
+          }
           squashfsFS[url] = true;
-          try {
-            // in case it is the first, we need to create the mount point's parent
-            if (Object.entries(squashfsFS).length === 0) {
-              FS.mkdir('/squashfs', 0o777);
-            }
-            const sqfsFile = await squashfsFetch.openSquashfsFile(url);
-            const success = FS.mount(
-              {
-                createBackend: () => {
-                  return Module._wasmfs_create_squashfs_backend_memfile(
-                    sqfsFile.ptr // FIXME should be pointer of a file object
-                  );
-                }
-              },
-              '/squashfs/' + filename
-            );
-            if (!success) {
-              throw new Error('Mounting of directory failed for ' + filename);
-            }
-          } catch (error) {
-            console.log(
-              'Problem downloading sqfs of file:',
-              url,
-              'with error:',
-              error
-            );
+
+          const sqfsFile = await squashfsFetch.openSquashfsFile(url);
+          const success = FS.mount(
+            {
+              createBackend: () => {
+                return Module._wasmfs_create_squashfs_backend_memfile(
+                  sqfsFile.ptr // FIXME should be pointer of a file object
+                );
+              }
+            },
+            {},
+            '/squashfs/' + filename
+          );
+          if (!success) {
+            throw new Error('Mounting of directory failed for ' + filename);
           }
 
           // then we need to symlink the package content into the normal fs
           const startDirSrc = '/squashfs/' + filename;
           const startDirDest = ''; // equals to '/'
-          console.log('Diagnosis readir', FS.readDir('/'));
-          console.log('Diagnosis readir2', FS.readDir('/squashfs'));
-          console.log('Diagnosis readir3', FS.readDir('/squashfs/'));
-          console.log('Diagnosis readir4', FS.readDir(startDirSrc));
+          console.log('Diagnosis readir', FS.readdir('/'));
+          console.log('Diagnosis readir2', FS.readdir('/squashfs'));
+          console.log('Diagnosis readir3', FS.readdir('/squashfs/'));
+          console.log('Diagnosis readir4', FS.readdir(startDirSrc));
           paths[filename] = {};
           const pathTest = ['/lib/python3.13/site-packages/']; // can this be determined programmatically?
           const doSymLink = (
@@ -380,7 +373,7 @@ export async function installPackagesToEmscriptenFS(
             dirDest: string,
             symlink: boolean
           ) => {
-            const entries = FS.readDir(dirSrc);
+            const entries = FS.readdir(dirSrc);
             for (const entry of entries) {
               if (entry === '.' || entry === '..') continue;
               const srcPath = dirSrc + '/' + entry;
@@ -394,7 +387,7 @@ export async function installPackagesToEmscriptenFS(
                 // should we really link them all beforehand or on demand?
                 const file = FS.open(srcPath, 'r');
                 const buffer = new Uint8Array(4);
-                FS.read(file, buffer, 0, 4, 0);
+                FS.read(file, buffer, 0, 4, 0n);
                 FS.close(file);
                 if (checkWasmMagicNumber(buffer)) {
                   sharedLibs.push(destPath);
@@ -432,7 +425,7 @@ export async function installPackagesToEmscriptenFS(
                 } else {
                   // it is a file! We symlink and are done
                   if (symlink) {
-                    Module.symlinkAsync(srcPath, destPath);
+                    FS.symlink(srcPath, destPath);
                     paths[filename][destPath.slice(1)] = destPath;
                   }
                 }
