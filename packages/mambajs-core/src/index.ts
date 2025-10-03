@@ -332,7 +332,7 @@ export async function installPackagesToEmscriptenFS(
   );
   await waitRunDependencies(Module);
 
-  return { sharedLibs: sharedLibsMap, paths: paths, untarjs };
+  return { sharedLibs: sharedLibsMap, paths: paths, untarjs, pythonVersion };
 }
 
 export async function installMountPointToEmscriptenFS(

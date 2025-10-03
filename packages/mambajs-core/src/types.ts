@@ -81,6 +81,7 @@ export type TSharedLibsMap = { [pkgName: string]: TSharedLibs };
 
 export interface IInstalledData {
   sharedLibs: TSharedLibsMap;
+  pythonVersion?: number[];
   paths: { [key: string]: string };
   untarjs: IUnpackJSAPI;
 }
