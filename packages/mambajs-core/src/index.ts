@@ -355,8 +355,8 @@ export async function installPackagesToEmscriptenFS(
             {},
             '/squashfs/' + filename
           );
-          if (!success) {
-            throw new Error('Mounting of directory failed for ' + filename);
+          if (success !== 0) { // Note this behaves differently on wasmfs and the old js implementation
+            throw new Error('Mounting of directory failed for ' + filename + ' with code ' + success);
           }
 
           // then we need to symlink the package content into the normal fs

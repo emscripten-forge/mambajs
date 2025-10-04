@@ -15,8 +15,6 @@ function mayConcatUint8Arrays(arrays: Uint8Array[]) {
   return result;
 }
 
-console.log('worker mark1');
-
 type FetchBlock = {
   reads?: Uint8Array[];
   proms?: Promise<void>[];
@@ -282,7 +280,6 @@ class SquashFileFetcher {
   private fullFile_ = false;
 }
 
-console.log('worker mark2');
 
 let sharedMem: SharedMem | undefined;
 let sharedMemMain: SharedMemMain | undefined;
@@ -307,15 +304,11 @@ const fetchLoop = async () => {
         // now we need to decide the next task
         if (memFile.fileSize === 0) {
           // fileSize is missing, do initial info stuff
-          console.log('wloop mark 1');
           memFile.fileSize = await fetcher.fileSize;
-          console.log('wloop mark 2');
 
           // Then determine and set chunksize
           memFile.chunkSize = await fetcher.blockSize;
-          console.log('wloop mark 3');
           await memFile.waitChunksSet();
-          console.log('wloop mark 4');
         } else {
           // init done now initiate the data fetch
           const startChunk = memFile.triggerChunkStart;
@@ -324,20 +317,16 @@ const fetchLoop = async () => {
           memFile.triggerChunkStart = memFile.triggerChunkEnd = 0;
           await fetcher.readRequestBlockRange(startChunk, endChunk);
           for (let chunk = startChunk; chunk <= endChunk; chunk++) {
-            console.log('wloop mark 5');
             const blockdata = await fetcher.getBlock(chunk); // get the block after fetching
-            console.log('wloop mark 6');
             const memchunk = memFile.getChunk(chunk);
-            console.log('chunk trigger', memchunk.trigger);
             const memdata = memchunk.data;
             if (typeof memdata === 'undefined')
               throw new Error('Data not set in memchunk');
             if (typeof blockdata === 'undefined')
               throw new Error('Blockdata not returned');
-            console.log('setchunk', chunk, blockdata);
 
             memdata.set(blockdata);
-            console.log('memdata', chunk, memdata);
+            
             memchunk.read = blockdata.byteLength;
           }
         }
@@ -391,4 +380,3 @@ globalThis.addEventListener('message', (event: MessageEvent) => {
 
 globalThis.postMessage({ started: true });
 
-console.log('worker end');
