@@ -1,0 +1,143 @@
+{
+  "title": "ILockV101",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lockVersion", "platform", "specs", "channels", "channelInfo", "packages", "pipPackages"],
+  "properties": {
+    "lockVersion": {
+      "type": "string",
+      "enum": ["1.0.0"]
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "noarch",
+        "linux-32",
+        "linux-64",
+        "linux-aarch64",
+        "linux-armv6l",
+        "linux-armv7l",
+        "linux-ppc64le",
+        "linux-ppc64",
+        "linux-ppc",
+        "linux-s390x",
+        "linux-riscv32",
+        "linux-riscv64",
+        "linux-loong64",
+        "freebsd-64",
+        "osx-64",
+        "osx-arm64",
+        "win-32",
+        "win-64",
+        "win-arm64",
+        "emscripten-wasm32",
+        "wasi-wasm32",
+        "zos-z"
+      ]
+    },
+    "specs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "channelInfo": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9._-]+$": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["url", "protocol"],
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "protocol": {
+                "type": "string",
+                "enum": ["https"]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "packages": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "required": ["name", "version", "channel"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "build": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "subdir": {
+              "type": "string"
+            },
+            "channel": {
+              "type": "string"
+            },
+            "hash": {
+              "type": "object",
+              "required": [],
+              "properties": {
+                "md5": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "pipPackages": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "required": ["name", "version", "url", "registry"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "registry": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

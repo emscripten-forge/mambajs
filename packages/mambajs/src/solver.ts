@@ -84,13 +84,27 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     }
 
     result.map(item => {
-      const { filename, packageName, repoName, version, build, subdir } = item;
+      const {
+        filename,
+        packageName,
+        repoName,
+        version,
+        build,
+        subdir,
+        md5,
+        sha256
+      } = item;
+
       condaPackages[filename] = {
         name: packageName,
         build: build,
         version: version,
         channel: repoName ?? '',
-        subdir
+        subdir,
+        hash: {
+          md5,
+          sha256
+        }
       };
     });
   } catch (error) {
