@@ -137,7 +137,7 @@ export async function bootstrapEmpackPackedEnvironment(
       }
     }
 
-    throw new Error(
+    console.warn(
       `Failed to detect channel from ${empackChannel} with known channels ${formattedChannels.channels}`
     );
   };
@@ -156,7 +156,7 @@ export async function bootstrapEmpackPackedEnvironment(
       solvedPkgs[empackPkg.filename] = {
         name: empackPkg.name,
         version: empackPkg.version,
-        channel: getChannel(empackPkg.channel ?? ''),
+        channel: getChannel(empackPkg.channel ?? '') ?? '',
         build: empackPkg.build,
         subdir: empackPkg.subdir ? empackPkg.subdir : ''
       };
