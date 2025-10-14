@@ -6,7 +6,7 @@
   "properties": {
     "lockVersion": {
       "type": "string",
-      "enum": ["1.0.0"]
+      "enum": ["1.0.1"]
     },
     "platform": {
       "type": "string",
