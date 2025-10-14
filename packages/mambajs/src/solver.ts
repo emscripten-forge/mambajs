@@ -63,10 +63,14 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         // Turn mambajs lock definition into what rattler expects
         const installedPkg = installedCondaPackages[filename];
         return {
-          ...installedPkg,
+          filename,
           packageName: installedPkg.name,
           repoName: installedPkg.channel,
-          filename,
+          version: installedPkg.version,
+          build: installedPkg.build,
+          subdir: installedPkg.subdir,
+          md5: installedPkg.hash?.md5,
+          sha256: installedPkg.hash?.sha256,
           url: computePackageUrl(
             installedPkg,
             filename,
