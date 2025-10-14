@@ -145,7 +145,8 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
       build: pkg.build,
       version: pkg.version,
       subdir: pkg.subdir,
-      channel
+      channel,
+      hash: pkg.hash
     };
   });
 
