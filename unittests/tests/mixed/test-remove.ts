@@ -1,5 +1,5 @@
-import { ILockV1 } from "@emscripten-forge/mambajs-core/lib/_interface/lock.v1.0.0";
 import { computeCondaPackagesDiff, computePipPackagesDiff, create, install, pipUninstall, remove } from "../../../packages/mambajs/src";
+import { ILock } from '../../../packages/mambajs-core/src';
 import { TestLogger } from "../../helpers";
 import { expect } from 'earl';
 
@@ -19,7 +19,7 @@ dependencies:
 
 create({yml, logger}).then(async env => {
   let oldLock = env;
-  let newLock: ILockV1;
+  let newLock: ILock;
 
   env = await install(['ipycanvas=0.13.2', 'bqplot<1'], env, [], logger);
 
