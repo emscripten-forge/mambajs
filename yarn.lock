@@ -73,7 +73,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs-core@workspace:packages/mambajs-core"
   dependencies:
-    "@emscripten-forge/untarjs": "npm:^5.3.0"
+    "@emscripten-forge/untarjs": "npm:^5.3.1"
     "@esbuild-plugins/node-globals-polyfill": "npm:^0.2.3"
     "@esbuild-plugins/node-modules-polyfill": "npm:^0.2.2"
     esbuild: "npm:^0.24.0"
@@ -122,14 +122,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@emscripten-forge/untarjs@npm:^5.3.0":
-  version: 5.3.0
-  resolution: "@emscripten-forge/untarjs@npm:5.3.0"
+"@emscripten-forge/untarjs@npm:^5.3.1":
+  version: 5.3.1
+  resolution: "@emscripten-forge/untarjs@npm:5.3.1"
   dependencies:
     assert: "npm:^2.1.0"
     process: "npm:^0.11.10"
     url: "npm:^0.11.4"
-  checksum: 10c0/fecb2e6fdb37b1cb469a9b58c0f89b04841ee9421ebc40a4362b6b31a10bb33fa365b8bccf1b9581b1b8bb9cc9bea66c0a1caabee0dcb5a86bbf358c3779d7c2
+  checksum: 10c0/ec9db2e5f5da79d8a73d3575a009f23b16b993f4520631f7b5ae03b1fe2d6c3a67ce50ae2088ddc0f68446e7fa80301641cbc11149f6f41b3a4cdc7d89ca03b3
   languageName: node
   linkType: hard
 
