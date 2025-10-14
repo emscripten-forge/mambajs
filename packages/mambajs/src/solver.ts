@@ -95,17 +95,21 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         sha256
       } = item;
 
+      const hash: ILock['packages'][string]['hash'] = {};
+      if (md5) hash.md5 = md5;
+      if (sha256) hash.sha256 = sha256;
+
       condaPackages[filename] = {
         name: packageName,
         build: build,
         version: version,
         channel: repoName ?? '',
-        subdir,
-        hash: {
-          md5,
-          sha256
-        }
+        subdir
       };
+
+      if (Object.keys(hash).length) {
+        condaPackages[filename].hash = hash;
+      }
     });
   } catch (error) {
     let message: string = 'Unknown error';
@@ -145,9 +149,12 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
       build: pkg.build,
       version: pkg.version,
       subdir: pkg.subdir,
-      channel,
-      hash: pkg.hash
+      channel
     };
+
+    if (pkg.hash) {
+      packages[filename].hash = pkg.hash;
+    }
   });
 
   return {
