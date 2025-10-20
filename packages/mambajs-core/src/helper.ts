@@ -224,6 +224,11 @@ export interface IUntarCondaPackageOptions {
   url: string;
 
   /**
+   * The data of the package
+   */
+  data?: Uint8Array;
+
+  /**
    * The current untarjs instance
    */
   untarjs: IUnpackJSAPI;
@@ -259,6 +264,7 @@ export async function untarCondaPackage(
 ): Promise<FilesData> {
   const {
     url,
+    data,
     untarjs,
     verbose,
     generateCondaMeta,
@@ -266,7 +272,12 @@ export async function untarCondaPackage(
     pythonVersion
   } = options;
 
-  const extractedFiles = await untarjs.extract(url);
+  let extractedFiles: FilesData;
+  if (data) {
+    extractedFiles = await untarjs.extractData(data);
+  } else {
+    extractedFiles = await untarjs.extract(url);
+  }
 
   const { info, pkg } = await splitPackageInfo(url, extractedFiles, untarjs);
 
