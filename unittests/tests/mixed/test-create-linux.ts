@@ -17,6 +17,7 @@ dependencies:
   - pip:
     - starlette==0.17.1
     - Checkm==0.4
+    - matplotlib==3.10.7
 `;
 
 create({yml, logger, platform: "linux-64"}).then(async result => {

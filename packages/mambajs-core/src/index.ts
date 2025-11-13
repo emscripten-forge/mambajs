@@ -45,8 +45,19 @@ export function getPythonVersion(
     return undefined;
   }
 
+  return getPythonVersionFromPackages(lock.packages);
+}
+
+/**
+ * Given conda packages, get the Python version
+ * @param packages the packages
+ * @returns The Python version as a list of numbers if it is there
+ */
+export function getPythonVersionFromPackages(
+  packages: ILock['packages']
+): number[] | undefined {
   let pythonPackage: ISolvedPackage | undefined = undefined;
-  for (const pkg of Object.values(lock.packages)) {
+  for (const pkg of Object.values(packages)) {
     if (pkg.name == 'python') {
       pythonPackage = pkg;
       break;
