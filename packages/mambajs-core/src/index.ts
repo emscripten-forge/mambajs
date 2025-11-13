@@ -136,10 +136,12 @@ export async function bootstrapEmpackPackedEnvironment(
         }
       }
     }
+    console.log(`Failed to detect channel from ${empackChannel} with known channels ${formattedChannels.channels}`);
+    return empackChannel;
 
-    throw new Error(
-      `Failed to detect channel from ${empackChannel} with known channels ${formattedChannels.channels}`
-    );
+    // throw new Error(
+    //   `Failed to detect channel from ${empackChannel} with known channels ${formattedChannels.channels}`
+    // );
   };
 
   const solvedPkgs: ISolvedPackages = {};

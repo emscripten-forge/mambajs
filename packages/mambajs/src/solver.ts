@@ -121,7 +121,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     const channel = computePackageChannel(pkg, formattedChannels);
 
     if (!channel) {
-      throw new Error(
+      console.warn(
         `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channels}`
       );
     }

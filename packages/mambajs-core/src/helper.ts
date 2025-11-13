@@ -555,9 +555,13 @@ export function computePackageChannel(
     }
   }
 
-  throw new Error(
+  // throw new Error(
+  //   `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channels}`
+  // );
+  console.warn(
     `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channels}`
   );
+  return pkg.channel;
 }
 
 export function computePackageUrl(
