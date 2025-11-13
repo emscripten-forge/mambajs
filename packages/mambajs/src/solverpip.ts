@@ -13,6 +13,61 @@ import {
 } from '@emscripten-forge/mambajs-core';
 import { Platform } from '@conda-org/rattler';
 
+const PLATFORM_TAGS = {
+  'linux-64': [
+    'linux_x86_64',
+    'manylinux1_x86_64',
+    'manylinux2010_x86_64',
+    'manylinux2014_x86_64',
+    'manylinux_2_17_x86_64',
+    'manylinux_2_24_x86_64',
+    'manylinux_2_28_x86_64'
+  ],
+  'linux-32': [
+    'linux_i686',
+    'manylinux1_i686',
+    'manylinux2010_i686',
+    'manylinux2014_i686'
+  ],
+  'linux-aarch64': [
+    'linux_aarch64',
+    'manylinux2014_aarch64',
+    'manylinux_2_17_aarch64',
+    'manylinux_2_24_aarch64',
+    'manylinux_2_28_aarch64'
+  ],
+  'linux-armv6l': ['linux_armv6l'],
+  'linux-armv7l': ['linux_armv7l'],
+  'linux-ppc64le': [
+    'linux_ppc64le',
+    'manylinux2014_ppc64le',
+    'manylinux_2_17_ppc64le'
+  ],
+  'linux-ppc64': ['linux_ppc64'],
+  'linux-s390x': ['linux_s390x', 'manylinux2014_s390x', 'manylinux_2_17_s390x'],
+  'osx-64': [
+    'macosx_10_6_x86_64',
+    'macosx_10_9_x86_64',
+    'macosx_10_12_x86_64',
+    'macosx_10_13_x86_64',
+    'macosx_10_14_x86_64',
+    'macosx_10_15_x86_64',
+    'macosx_11_0_x86_64',
+    'macosx_12_0_x86_64'
+  ],
+  'osx-arm64': [
+    'macosx_11_0_arm64',
+    'macosx_12_0_arm64',
+    'macosx_13_0_arm64',
+    'macosx_14_0_arm64'
+  ],
+  'win-64': ['win_amd64'],
+  'win-32': ['win32'],
+  'win-arm64': ['win_arm64'],
+  'emscripten-wasm32': [],
+  'wasi-wasm32': []
+};
+
 interface ISpec {
   package: string;
   constraints: string | null;
@@ -258,101 +313,10 @@ function getSuitableVersion(
 
   const urls: any[] = pkgInfo.releases[version];
 
-  // Helper function to convert conda platform to pip wheel platform tags
-  const getPlatformTags = (platform?: string): string[] => {
-    if (!platform) {
-      return ['any'];
-    }
-
-    const tags: string[] = ['any']; // Always include pure Python packages
-
-    switch (platform) {
-      case 'linux-64':
-        tags.push(
-          'linux_x86_64',
-          'manylinux1_x86_64',
-          'manylinux2010_x86_64',
-          'manylinux2014_x86_64',
-          'manylinux_2_17_x86_64',
-          'manylinux_2_24_x86_64',
-          'manylinux_2_28_x86_64'
-        );
-        break;
-      case 'linux-32':
-        tags.push(
-          'linux_i686',
-          'manylinux1_i686',
-          'manylinux2010_i686',
-          'manylinux2014_i686'
-        );
-        break;
-      case 'linux-aarch64':
-        tags.push(
-          'linux_aarch64',
-          'manylinux2014_aarch64',
-          'manylinux_2_17_aarch64',
-          'manylinux_2_24_aarch64',
-          'manylinux_2_28_aarch64'
-        );
-        break;
-      case 'linux-armv6l':
-        tags.push('linux_armv6l');
-        break;
-      case 'linux-armv7l':
-        tags.push('linux_armv7l');
-        break;
-      case 'linux-ppc64le':
-        tags.push(
-          'linux_ppc64le',
-          'manylinux2014_ppc64le',
-          'manylinux_2_17_ppc64le'
-        );
-        break;
-      case 'linux-ppc64':
-        tags.push('linux_ppc64');
-        break;
-      case 'linux-s390x':
-        tags.push('linux_s390x', 'manylinux2014_s390x', 'manylinux_2_17_s390x');
-        break;
-      case 'osx-64':
-        tags.push(
-          'macosx_10_6_x86_64',
-          'macosx_10_9_x86_64',
-          'macosx_10_12_x86_64',
-          'macosx_10_13_x86_64',
-          'macosx_10_14_x86_64',
-          'macosx_10_15_x86_64',
-          'macosx_11_0_x86_64',
-          'macosx_12_0_x86_64'
-        );
-        break;
-      case 'osx-arm64':
-        tags.push(
-          'macosx_11_0_arm64',
-          'macosx_12_0_arm64',
-          'macosx_13_0_arm64',
-          'macosx_14_0_arm64'
-        );
-        break;
-      case 'win-64':
-        tags.push('win_amd64');
-        break;
-      case 'win-32':
-        tags.push('win32');
-        break;
-      case 'win-arm64':
-        tags.push('win_arm64');
-        break;
-      case 'emscripten-wasm32':
-      case 'wasi-wasm32':
-        // These platforms typically only support pure Python packages
-        break;
-    }
-
-    return tags;
-  };
-
-  const suitablePlatformTags = getPlatformTags(platform);
+  const suitablePlatformTags = ['any'];
+  if (platform) {
+    suitablePlatformTags.push(...PLATFORM_TAGS[platform]);
+  }
 
   const wheelUrls = urls.filter(url => url.filename.endsWith('.whl'));
   const sourceUrls = urls.filter(url => url.filename.endsWith('.tar.gz'));
@@ -401,7 +365,10 @@ function getSuitableVersion(
   throw new Error([msg, notFoundMsg].join('\n'));
 }
 
-function getUnavailableWheelError(packageName: string, platform: Platform = 'emscripten-wasm32') {
+function getUnavailableWheelError(
+  packageName: string,
+  platform: Platform = 'emscripten-wasm32'
+) {
   if (platform === 'emscripten-wasm32') {
     return (
       `Cannot install '${packageName}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
