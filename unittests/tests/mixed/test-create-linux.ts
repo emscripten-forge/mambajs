@@ -34,5 +34,4 @@ create({yml, logger, platform: "linux-64"}).then(async result => {
   expect(condaPackageNames).toInclude('xeus-python', 'xeus-python-shell', 'pandas', 'ipycanvas', 'ipywidgets');
 
   expect(condaPackages['ipycanvas'].version).toEqual('0.13.2');
-
 });
