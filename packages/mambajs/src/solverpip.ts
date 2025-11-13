@@ -181,7 +181,7 @@ function getSuitableVersion(
       return ['none-any'];
     }
 
-    const tags: string[] = ['none-any']; // Always include pure Python packages
+    const tags: string[] = ['none-any.whl']; // Always include pure Python packages
 
     switch (platform) {
       case 'linux-64':
@@ -192,7 +192,8 @@ function getSuitableVersion(
           'manylinux2014_x86_64',
           'manylinux_2_17_x86_64',
           'manylinux_2_24_x86_64',
-          'manylinux_2_28_x86_64'
+          'manylinux_2_28_x86_64',
+          '.tar.gz'
         );
         break;
       case 'linux-32':
@@ -200,7 +201,8 @@ function getSuitableVersion(
           'linux_i686',
           'manylinux1_i686',
           'manylinux2010_i686',
-          'manylinux2014_i686'
+          'manylinux2014_i686',
+          '.tar.gz'
         );
         break;
       case 'linux-aarch64':
@@ -209,27 +211,43 @@ function getSuitableVersion(
           'manylinux2014_aarch64',
           'manylinux_2_17_aarch64',
           'manylinux_2_24_aarch64',
-          'manylinux_2_28_aarch64'
+          'manylinux_2_28_aarch64',
+          '.tar.gz'
         );
         break;
       case 'linux-armv6l':
-        tags.push('linux_armv6l');
+        tags.push(
+          'linux_armv6l',
+          '.tar.gz'
+        );
         break;
       case 'linux-armv7l':
-        tags.push('linux_armv7l');
+        tags.push(
+          'linux_armv7l',
+          '.tar.gz'
+        );
         break;
       case 'linux-ppc64le':
         tags.push(
           'linux_ppc64le',
           'manylinux2014_ppc64le',
-          'manylinux_2_17_ppc64le'
+          'manylinux_2_17_ppc64le',
+          '.tar.gz'
         );
         break;
       case 'linux-ppc64':
-        tags.push('linux_ppc64');
+        tags.push(
+          'linux_ppc64',
+          '.tar.gz'
+        );
         break;
       case 'linux-s390x':
-        tags.push('linux_s390x', 'manylinux2014_s390x', 'manylinux_2_17_s390x');
+        tags.push(
+          'linux_s390x',
+          'manylinux2014_s390x',
+          'manylinux_2_17_s390x',
+          '.tar.gz'
+        );
         break;
       case 'osx-64':
         tags.push(
@@ -240,7 +258,8 @@ function getSuitableVersion(
           'macosx_10_14_x86_64',
           'macosx_10_15_x86_64',
           'macosx_11_0_x86_64',
-          'macosx_12_0_x86_64'
+          'macosx_12_0_x86_64',
+          '.tar.gz'
         );
         break;
       case 'osx-arm64':
@@ -248,17 +267,27 @@ function getSuitableVersion(
           'macosx_11_0_arm64',
           'macosx_12_0_arm64',
           'macosx_13_0_arm64',
-          'macosx_14_0_arm64'
+          'macosx_14_0_arm64',
+          '.tar.gz'
         );
         break;
       case 'win-64':
-        tags.push('win_amd64');
+        tags.push(
+          'win_amd64',
+          '.tar.gz'
+        );
         break;
       case 'win-32':
-        tags.push('win32');
+        tags.push(
+          'win32',
+          '.tar.gz'
+        );
         break;
       case 'win-arm64':
-        tags.push('win_arm64');
+        tags.push(
+          'win_arm64',
+          '.tar.gz'
+        );
         break;
       case 'emscripten-wasm32':
       case 'wasi-wasm32':
@@ -274,27 +303,13 @@ function getSuitableVersion(
   for (const url of urls) {
     // Check if any of the platform tags match the wheel filename
     for (const tag of platformTags) {
-      // For none-any, check exact match at end
-      if (tag === 'none-any') {
-        if (url.filename.endsWith(`${tag}.whl`)) {
-          return {
-            url: url.url,
-            name: url.filename,
-            version,
-            registry: 'PyPi'
-          };
-        }
-      } else {
-        // For platform-specific tags, check if the tag appears in the filename
-        // This handles cases like manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-        if (url.filename.includes(tag) && url.filename.endsWith('.whl')) {
-          return {
-            url: url.url,
-            name: url.filename,
-            version,
-            registry: 'PyPi'
-          };
-        }
+      if (url.filename.includes(tag)) {
+        return {
+          url: url.url,
+          name: url.filename,
+          version,
+          registry: 'PyPi'
+        };
       }
     }
   }
