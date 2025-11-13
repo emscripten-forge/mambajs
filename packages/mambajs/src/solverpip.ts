@@ -356,13 +356,6 @@ function getSuitableVersion(
       registry: 'PyPi'
     };
   }
-
-  const versionsStr = availableVersions.join(', ');
-  const msg = `ERROR: Could not find a valid distribution for ${pkgInfo.info.name}${constraints} (from versions: ${versionsStr})`;
-  const notFoundMsg = getUnavailableWheelError(pkgInfo.info.name, platform);
-
-  logger?.error([msg, notFoundMsg].join('\n'));
-  throw new Error([msg, notFoundMsg].join('\n'));
 }
 
 function getUnavailableWheelError(
