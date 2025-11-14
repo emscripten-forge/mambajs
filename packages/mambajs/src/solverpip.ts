@@ -254,7 +254,7 @@ function resolveVersion(availableVersions: string[], constraint: string) {
     : validVersions[0] || undefined;
 }
 
-function parsePyPiRequirement(requirement: string): ISpec | null {
+export function parsePyPiRequirement(requirement: string): ISpec | null {
   const extrasMatch = requirement.match(/^([^\[]+)\[([^\]]+)\]/);
   const packageName = extrasMatch
     ? extrasMatch[1]
@@ -374,18 +374,32 @@ function getUnavailableWheelError(
   return `No wheel available for '${packageName}' for platform '${platform}'`;
 }
 
-async function processRequirement(
-  requirement: ISpec,
-  warnedPackages: Set<string>,
-  pipSolvedPackages: ISolvedPipPackages,
-  installedCondaPackagesNames: Set<string>,
-  installedWheels: { [name: string]: string },
-  installPipPackagesLookup: ISolvedPipPackages,
-  pythonVersion: number[],
-  logger?: ILogger,
-  required = false,
-  platform?: Platform
-) {
+export async function processRequirement(options: {
+  requirement: ISpec;
+  pythonVersion: number[];
+  warnedPackages?: Set<string>;
+  pipSolvedPackages: ISolvedPipPackages;
+  installedCondaPackagesNames?: Set<string>;
+  installedWheels?: { [name: string]: string };
+  installPipPackagesLookup?: ISolvedPipPackages;
+  logger?: ILogger;
+  required?: boolean;
+  platform?: Platform;
+}) {
+  const {
+    requirement,
+    pipSolvedPackages,
+    pythonVersion,
+    logger,
+    required,
+    platform
+  } = options;
+  const warnedPackages = options.warnedPackages ?? new Set();
+  const installPipPackagesLookup = options.installPipPackagesLookup ?? {};
+  const installedWheels = options.installedWheels ?? {};
+  const installedCondaPackagesNames =
+    options.installedCondaPackagesNames ?? new Set();
+
   const pkgMetadata = await (
     await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
   ).json();
@@ -536,8 +550,8 @@ async function processRequirement(
       continue;
     }
 
-    await processRequirement(
-      parsedRequirement,
+    await processRequirement({
+      requirement: parsedRequirement,
       warnedPackages,
       pipSolvedPackages,
       installedCondaPackagesNames,
@@ -545,9 +559,9 @@ async function processRequirement(
       installPipPackagesLookup,
       pythonVersion,
       logger,
-      false,
+      required: false,
       platform
-    );
+    });
   }
 }
 
@@ -613,8 +627,8 @@ export async function solvePip(
       throw new Error('Failed to get Python version');
     }
 
-    await processRequirement(
-      spec,
+    await processRequirement({
+      requirement: spec,
       warnedPackages,
       pipSolvedPackages,
       installedCondaPackagesNames,
@@ -622,9 +636,9 @@ export async function solvePip(
       installPipPackagesLookup,
       pythonVersion,
       logger,
-      true,
+      required: true,
       platform
-    );
+    });
   }
 
   const oldPackagesLookup: ISolvedPipPackages = {};
