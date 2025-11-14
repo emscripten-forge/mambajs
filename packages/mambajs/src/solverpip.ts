@@ -68,7 +68,8 @@ const PLATFORM_TAGS = {
   'wasi-wasm32': []
 };
 
-interface IParsedGitHubUrl {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+interface ParsedGitHubUrl {
   owner: string;
   repo: string;
   ref: string;
@@ -303,43 +304,6 @@ function decodeBase64(base64: string): string {
 }
 
 /**
- * Fetch with retry logic for handling rate limits
- */
-async function fetchWithRetry(
-  url: string,
-  maxRetries = 5,
-  initialDelay = 2000
-): Promise<Response> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(url);
-
-      // If rate limited (403 or 429), wait and retry
-      if (
-        (response.status === 403 || response.status === 429) &&
-        attempt < maxRetries
-      ) {
-        const delay = initialDelay * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      return response;
-    } catch (error: any) {
-      lastError = error;
-      if (attempt < maxRetries) {
-        const delay = initialDelay * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  throw lastError || new Error('Max retries exceeded');
-}
-
-/**
  * Parse GitHub git+ URLs and fetch the default branch if ref is not provided.
  *
  * Examples:
@@ -349,7 +313,7 @@ async function fetchWithRetry(
  */
 export async function parseGitHubUrl(
   url: string
-): Promise<IParsedGitHubUrl | null> {
+): Promise<ParsedGitHubUrl | null> {
   // Pattern with optional @ref
   const match = url.match(
     /^git\+https:\/\/github\.com\/([^\/]+)\/([^@\/]+?)(?:\.git)?(?:@(.+))?$/
@@ -367,7 +331,7 @@ export async function parseGitHubUrl(
 
   // No ref: fetch default branch from GitHub API
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
-  const response = await fetchWithRetry(apiUrl);
+  const response = await fetch(apiUrl);
 
   if (!response.ok) {
     throw new Error(
@@ -399,7 +363,7 @@ async function fetchGitHubPackageInfo(
 
   for (const file of files) {
     try {
-      const response = await fetchWithRetry(
+      const response = await fetch(
         `https://api.github.com/repos/${owner}/${repo}/contents/${file}?ref=${ref}`
       );
 
