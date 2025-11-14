@@ -555,7 +555,8 @@ function getSuitableVersion(
   constraints: string | null,
   pythonVersion: number[],
   logger?: ILogger,
-  platform?: Platform
+  platform?: Platform,
+  required = false
 ): ISolvedPipPackage | undefined {
   const availableVersions = Object.keys(pkgInfo.releases);
 
@@ -569,7 +570,7 @@ function getSuitableVersion(
       throw new Error(msg);
     }
 
-    if (!version) {
+    if (!version && required) {
       const versionsStr = availableVersions.join(', ');
       const msg = `ERROR: Could not find a version that satisfies the requirement ${pkgInfo.info.name}${constraints} (from versions: ${versionsStr})`;
       const notFoundMsg = `ERROR: No matching distribution found for ${pkgInfo.info.name}${constraints}`;
@@ -784,9 +785,12 @@ export async function processRequirement(options: {
 
       return;
     } catch (error: any) {
-      const msg = `Failed to resolve GitHub package ${requirement.gitHubUrl}: ${error.message || error}`;
-      logger?.error(msg);
-      throw new Error(msg);
+      // Fail if package is really required, otherwise continue silently
+      if (required) {
+        const msg = `Failed to resolve GitHub package ${requirement.gitHubUrl}: ${error.message || error}`;
+        logger?.error(msg);
+        throw new Error(msg);
+      }
     }
   }
 
@@ -809,7 +813,8 @@ export async function processRequirement(options: {
     requirement.constraints,
     pythonVersion,
     logger,
-    platform
+    platform,
+    required
   );
   if (!solved) {
     const requirementSpec =
@@ -832,14 +837,18 @@ export async function processRequirement(options: {
       }
 
       if (constraintResolutionFailed) {
-        // Constraint resolution failed - show pip-style error
-        const versionsStr = availableVersions.join(', ');
-        const msg = `ERROR: Could not find a version that satisfies the requirement ${requirementSpec} (from versions: ${versionsStr})`;
-        const notFoundMsg = `ERROR: No matching distribution found for ${requirementSpec}`;
+        if (required) {
+          // Constraint resolution failed - show pip-style error
+          const versionsStr = availableVersions.join(', ');
+          const msg = `ERROR: Could not find a version that satisfies the requirement ${requirementSpec} (from versions: ${versionsStr})`;
+          const notFoundMsg = `ERROR: No matching distribution found for ${requirementSpec}`;
 
-        logger?.error(msg);
-        logger?.error(notFoundMsg);
-        throw new Error(msg);
+          logger?.error(msg);
+          logger?.error(notFoundMsg);
+          throw new Error(msg);
+        }
+
+        return;
       } else {
         const msg = getUnavailableWheelError(requirement.package, platform);
 
