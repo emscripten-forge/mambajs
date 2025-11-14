@@ -68,7 +68,7 @@ const PLATFORM_TAGS = {
   'wasi-wasm32': []
 };
 
-interface ParsedGitHubUrl {
+interface IParsedGitHubUrl {
   owner: string;
   repo: string;
   ref: string;
@@ -303,6 +303,43 @@ function decodeBase64(base64: string): string {
 }
 
 /**
+ * Fetch with retry logic for handling rate limits
+ */
+async function fetchWithRetry(
+  url: string,
+  maxRetries = 5,
+  initialDelay = 2000
+): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url);
+
+      // If rate limited (403 or 429), wait and retry
+      if (
+        (response.status === 403 || response.status === 429) &&
+        attempt < maxRetries
+      ) {
+        const delay = initialDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      return response;
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < maxRetries) {
+        const delay = initialDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
+}
+
+/**
  * Parse GitHub git+ URLs and fetch the default branch if ref is not provided.
  *
  * Examples:
@@ -310,7 +347,9 @@ function decodeBase64(base64: string): string {
  *  - git+https://github.com/owner/repo.git
  *  - git+https://github.com/owner/repo@ref
  */
-export async function parseGitHubUrl(url: string): Promise<ParsedGitHubUrl | null> {
+export async function parseGitHubUrl(
+  url: string
+): Promise<IParsedGitHubUrl | null> {
   // Pattern with optional @ref
   const match = url.match(
     /^git\+https:\/\/github\.com\/([^\/]+)\/([^@\/]+?)(?:\.git)?(?:@(.+))?$/
@@ -328,10 +367,12 @@ export async function parseGitHubUrl(url: string): Promise<ParsedGitHubUrl | nul
 
   // No ref: fetch default branch from GitHub API
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
-  const response = await fetch(apiUrl);
+  const response = await fetchWithRetry(apiUrl);
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch repo info from GitHub: ${response.status}`);
+    throw new Error(
+      `Failed to fetch repo info from GitHub: ${response.status}`
+    );
   }
 
   const data = await response.json();
@@ -343,7 +384,7 @@ export async function parseGitHubUrl(url: string): Promise<ParsedGitHubUrl | nul
   return {
     owner,
     repo,
-    ref: data.default_branch,
+    ref: data.default_branch
   };
 }
 
@@ -358,7 +399,7 @@ async function fetchGitHubPackageInfo(
 
   for (const file of files) {
     try {
-      const response = await fetch(
+      const response = await fetchWithRetry(
         `https://api.github.com/repos/${owner}/${repo}/contents/${file}?ref=${ref}`
       );
 
@@ -413,14 +454,29 @@ function parseSetupPy(content: string): IGitHubPackageInfo | null {
 
   // Extract install_requires for dependencies
   const dependencies: string[] = [];
-  const installRequiresMatch = content.match(
+
+  // Try to match list format: install_requires = [...]
+  const installRequiresListMatch = content.match(
     /install_requires\s*=\s*\[([\s\S]*?)\]/
   );
-  if (installRequiresMatch) {
-    const depsContent = installRequiresMatch[1];
+  if (installRequiresListMatch) {
+    const depsContent = installRequiresListMatch[1];
     const depsMatches = depsContent.matchAll(/['"]([\w\->=<.,\s]+)['"]/g);
     for (const match of depsMatches) {
       dependencies.push(match[1].trim());
+    }
+  } else {
+    // Try to match inline single dependency format: install_requires = package >= version
+    const installRequiresInlineMatch = content.match(
+      /install_requires\s*=\s*([^,\n]+?)(?:\n|$)/
+    );
+    if (installRequiresInlineMatch) {
+      const dep = installRequiresInlineMatch[1].trim();
+      // Remove quotes if present
+      const cleanDep = dep.replace(/['"]/g, '').trim();
+      if (cleanDep && !cleanDep.startsWith('[')) {
+        dependencies.push(cleanDep);
+      }
     }
   }
 
@@ -493,7 +549,9 @@ function parsePyprojectToml(content: string): IGitHubPackageInfo | null {
   };
 }
 
-export async function parsePyPiRequirement(requirement: string): Promise<ISpec | null> {
+export async function parsePyPiRequirement(
+  requirement: string
+): Promise<ISpec | null> {
   // Check if it's a GitHub URL
   const gitHubUrlInfo = await parseGitHubUrl(requirement);
   if (gitHubUrlInfo) {
