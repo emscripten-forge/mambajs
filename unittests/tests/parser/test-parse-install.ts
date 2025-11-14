@@ -47,6 +47,17 @@ expect(cmd.commands[0].type).toEqual('install');
 expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual(['ipycanvas', 'numpy>2']);
 expect((cmd.commands[0].data as IInstallationCommandOptions).channels).toEqual(['conda-forge', 'emscripten-forge']);
 
-expect(() => parse('%pip install git+https://github.com/org/repo.git')).toThrow(`Unsupported option 'git+https://github.com/org/repo.git'`);
-expect(() => parse('%pip install pathToWheel.whl')).toThrow(`Unsupported option 'pathToWheel.whl'`);
-expect(() => parse('%pip install --index-url ipycanvas')).toThrow(`Unsupported option '--index-url'`);
+// GitHub URLs are now supported, so this should not throw
+cmd = parse('%pip install git+https://github.com/org/repo.git@main');
+expect(cmd.commands[0].data.type).toEqual('pip');
+expect(cmd.commands[0].type).toEqual('install');
+expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual([
+  'git+https://github.com/org/repo.git@main'
+]);
+
+expect(() => parse('%pip install pathToWheel.whl')).toThrow(
+  `Unsupported option 'pathToWheel.whl'`
+);
+expect(() => parse('%pip install --index-url ipycanvas')).toThrow(
+  `Unsupported option '--index-url'`
+);
