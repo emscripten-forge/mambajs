@@ -186,7 +186,7 @@ export async function bootstrapEmpackPackedEnvironment(
   return {
     ...installed,
     lock: {
-      lockVersion: '1.0.1',
+      lockVersion: '1.0.2',
       specs: empackEnvMeta.specs ?? [],
       platform: DEFAULT_PLATFORM,
       channels: formattedChannels.channels,

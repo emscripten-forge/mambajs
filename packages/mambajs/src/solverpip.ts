@@ -332,12 +332,21 @@ function getSuitableVersion(
     // Check if any of the platform tags match the wheel filename
     for (const tag of suitablePlatformTags) {
       if (wheelInfo.platformTags.includes(tag)) {
-        return {
+        const solvedPkg: ISolvedPipPackage = {
           url: url.url,
           name: url.filename,
+          size: url.size,
           version,
           registry: 'PyPi'
         };
+
+        if (url.digests && (url.digests.md5 || url.digests.sha256)) {
+          solvedPkg.hash = {};
+          if (url.digests.md5) solvedPkg.hash.md5 = url.digests.md5;
+          if (url.digests.sha256) solvedPkg.hash.sha256 = url.digests.sha256;
+        }
+
+        return solvedPkg;
       }
     }
   }
@@ -503,8 +512,12 @@ export async function processRequirement(options: {
     name: requirement.package,
     version: solved.version,
     url: solved.url,
+    size: solved.size,
     registry: 'PyPi'
   };
+  if (solved.hash) {
+    pipSolvedPackages[solved.name].hash = solved.hash;
+  }
   installedWheels[requirement.package] = solved.name;
   installPipPackagesLookup[requirement.package] =
     pipSolvedPackages[solved.name];

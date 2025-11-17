@@ -111,6 +111,9 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         subdir
       };
 
+      // @ts-expect-error waiting https://github.com/conda/rattler/pull/1841
+      if (item.size) condaPackages[filename].size = item.size;
+
       if (Object.keys(hash).length) {
         condaPackages[filename].hash = hash;
       }
@@ -159,10 +162,13 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     if (pkg.hash) {
       packages[filename].hash = pkg.hash;
     }
+    if (pkg.size) {
+      packages[filename].size = pkg.size;
+    }
   });
 
   return {
-    lockVersion: '1.0.1',
+    lockVersion: '1.0.2',
     platform,
     specs,
     channels: formattedChannels.channels,

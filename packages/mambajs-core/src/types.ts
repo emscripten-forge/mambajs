@@ -2,7 +2,8 @@ import type { IUnpackJSAPI } from '@emscripten-forge/untarjs';
 import { ILock } from './types';
 
 export type { ILockV1 } from './_interface/lock.v1.0.0';
-export type { ILockV101 as ILock } from './_interface/lock.v1.0.1';
+export type { ILockV101 } from './_interface/lock.v1.0.1';
+export type { ILockV102 as ILock } from './_interface/lock.v1.0.2';
 
 export interface ILogger {
   log(...msg: any[]): void;

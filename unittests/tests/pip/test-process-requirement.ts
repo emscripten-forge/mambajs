@@ -41,6 +41,8 @@ testInstall(
   (installed) => {
     const pkg = getPackage('pandas', installed);
     expect(pkg.version).toEqual('2.3.3');
+    expect(pkg.hash.md5).toEqual('4d60ea1e94ec268ba0daab994f5311f3');
+    expect(pkg.hash.sha256).toEqual('318d77e0e42a628c04dc56bcef4b40de67918f7041c2b061af1da41dcff670ac');
     expect(pkg.url).toInclude('pandas-2.3.3-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl');
   }
 );
@@ -85,6 +87,7 @@ testInstall(
   (installed) => {
     const pkg = getPackage('ipycanvas', installed);
     expect(pkg.version).toEqual('0.14.1');
+    expect(pkg.size).toEqual(142972);
     expect(pkg.url).toInclude('ipycanvas-0.14.1-py2.py3-none-any.whl');
   }
 );
