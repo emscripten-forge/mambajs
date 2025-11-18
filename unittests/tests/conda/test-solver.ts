@@ -29,4 +29,5 @@ solve({ymlOrSpecs: yml, logger}).then(async result => {
   const ipycanvas = condaPackages['ipycanvas'];
 
   expect(ipycanvas.version).toEqual('0.13.2');
+  expect(ipycanvas.size).toEqual(57060);
 });
