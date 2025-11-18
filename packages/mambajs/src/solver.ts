@@ -111,8 +111,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         subdir
       };
 
-      // @ts-expect-error waiting https://github.com/conda/rattler/pull/1841
-      if (item.size) condaPackages[filename].size = item.size;
+      if (item.size) condaPackages[filename].size = Number(item.size);
 
       if (Object.keys(hash).length) {
         condaPackages[filename].hash = hash;
