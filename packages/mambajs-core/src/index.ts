@@ -76,6 +76,11 @@ export interface IBootstrapEmpackPackedEnvironmentOptions {
   empackEnvMeta: IEmpackEnvMeta;
 
   /**
+   * The mambajs lock file
+   */
+  lock?: ILock;
+
+  /**
    * The URL (CDN or similar) from which to download packages
    */
   pkgRootUrl: string;
@@ -123,6 +128,38 @@ export async function bootstrapEmpackPackedEnvironment(
       ...options
     });
   }
+
+  const lock = options.lock ?? empackLockToMambajsLock(options);
+
+  const installed = await installPackagesToEmscriptenFS({
+    ...options,
+    channels: lock.channelInfo,
+    packages: {
+      packages: lock.packages,
+      pipPackages: lock.pipPackages
+    }
+  });
+
+  return { ...installed, lock };
+}
+
+export interface IEmpackLockToMambajsLockOptions {
+  /**
+   * The empack lock file
+   */
+  empackEnvMeta: IEmpackEnvMeta;
+}
+
+/**
+ * Turn an empack lock into a mambajs-compatible lock.
+ *
+ * @param options
+ * @returns The generated lock
+ */
+export function empackLockToMambajsLock(
+  options: IEmpackLockToMambajsLockOptions
+): ILock {
+  const { empackEnvMeta } = options;
 
   const formattedChannels = formatChannels(empackEnvMeta.channels);
   const channelCache: { [url: string]: string } = {};
@@ -174,26 +211,14 @@ export async function bootstrapEmpackPackedEnvironment(
     }
   }
 
-  const installed = await installPackagesToEmscriptenFS({
-    ...options,
-    channels: formattedChannels.channelInfo,
-    packages: {
-      packages: solvedPkgs,
-      pipPackages: solvedPipPkgs
-    }
-  });
-
   return {
-    ...installed,
-    lock: {
-      lockVersion: '1.0.2',
-      specs: empackEnvMeta.specs ?? [],
-      platform: DEFAULT_PLATFORM,
-      channels: formattedChannels.channels,
-      channelInfo: formattedChannels.channelInfo,
-      packages: solvedPkgs,
-      pipPackages: solvedPipPkgs
-    }
+    lockVersion: '1.0.2',
+    specs: empackEnvMeta.specs ?? [],
+    platform: DEFAULT_PLATFORM,
+    channels: formattedChannels.channels,
+    channelInfo: formattedChannels.channelInfo,
+    packages: solvedPkgs,
+    pipPackages: solvedPipPkgs
   };
 }
 
