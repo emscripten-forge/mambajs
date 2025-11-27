@@ -155,13 +155,15 @@ export async function install(
 ): Promise<ILock> {
   logBanner(logger);
 
-  // Merge existing channels with new ones
-  const newChannels = formatChannels(channels);
+  if (channels?.length) {
+    // Merge existing channels with new ones
+    const newChannels = formatChannels(channels);
 
-  for (const channel of newChannels.channels) {
-    if (!env.channels.includes(channel)) {
-      env.channels.push(channel);
-      env.channelInfo[channel] = newChannels.channelInfo[channel];
+    for (const channel of newChannels.channels) {
+      if (!env.channels.includes(channel)) {
+        env.channels.push(channel);
+        env.channelInfo[channel] = newChannels.channelInfo[channel];
+      }
     }
   }
 
@@ -169,7 +171,7 @@ export async function install(
   const newSpecs = Array.from(new Set([...env.specs, ...(specs || [])]));
 
   logger?.log(`Specs: ${newSpecs.join(', ')}`);
-  logger?.log(`Channels: ${newChannels.channels.join(', ')}`);
+  logger?.log(`Channels: ${env.channels.join(', ')}`);
   logger?.log('');
 
   return await solve({
