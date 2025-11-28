@@ -578,7 +578,7 @@ export function computePackageUrl(
 ) {
   if (!channels[pkg.channel]) {
     throw new Error(
-      `Unknown conda channel ${pkg.channel} for package ${pkg.name}. Known channels are ${channels}`
+      `Unknown conda channel ${pkg.channel} for package ${pkg.name}. Known channels are ["${Object.keys(channels).join('", "')}"]`
     );
   }
 
