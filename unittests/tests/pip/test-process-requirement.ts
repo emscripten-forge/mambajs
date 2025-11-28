@@ -23,15 +23,17 @@ function testInstall(
   testFct: (pkgs: ISolvedPipPackages) => void
 ) {
   const installed: ISolvedPipPackages = {};
-  processRequirement({
-    requirement: parsePyPiRequirement(requirement),
-    pythonVersion,
-    pipSolvedPackages: installed,
-    platform,
-    logger
-  }).then(() => {
-    testFct(installed);
-  });
+  parsePyPiRequirement(requirement).then((parsedReq) => {
+    processRequirement({
+      requirement: parsedReq,
+      pythonVersion,
+      pipSolvedPackages: installed,
+      platform,
+      logger
+    }).then(() => {
+      testFct(installed);
+    });
+  })
 }
 
 testInstall(
@@ -100,5 +102,31 @@ testInstall(
     const pkg = getPackage('Checkm', installed);
     expect(pkg.version).toEqual('0.4');
     expect(pkg.url).toInclude('Checkm-0.4.tar.gz');
+  }
+);
+
+testInstall(
+  'git+https://github.com/jupyter-widgets-contrib/ipycanvas@0.12.0',
+  [3, 12, 0],
+  'linux-64',
+  (installed) => {
+    const pkg = getPackage('ipycanvas', installed);
+    expect(pkg.registry).toEqual('GitHub');
+    // TODO Better support for detecting the version...
+    // Not easy really
+    // expect(pkg.version).toEqual('0.12.0');
+
+    // Make sure dependencies are there
+    expect(getPackage('ipywidgets', installed).name).not.toBeEmpty();
+  }
+);
+
+testInstall(
+  'git+https://github.com/dateutil/dateutil',
+  [3, 12, 0],
+  'linux-64',
+  (installed) => {
+    const pkg = getPackage('python-dateutil', installed);
+    expect(pkg.registry).toEqual('GitHub');
   }
 );
