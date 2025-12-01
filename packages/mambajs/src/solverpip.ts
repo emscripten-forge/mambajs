@@ -255,25 +255,34 @@ function resolveVersion(availableVersions: string[], constraint: string) {
 }
 
 export function parsePyPiRequirement(requirement: string): ISpec | null {
-  const extrasMatch = requirement.match(/^([^\[]+)\[([^\]]+)\]/);
-  const packageName = extrasMatch
-    ? extrasMatch[1]
-    : packageNameFromSpec(requirement);
-  const extras = extrasMatch
-    ? extrasMatch[2].split(',').map(e => e.trim())
-    : [];
+  const packageName = packageNameFromSpec(requirement);
+  if (!packageName) return null;
 
-  if (!packageName) {
-    return null;
+  let remainder = requirement.slice(packageName.length);
+
+  let extras: string[] | undefined;
+  let constraints: string | null = null;
+
+  // Check for extras at the start of the remainder
+  if (remainder.startsWith('[')) {
+    const end = remainder.indexOf(']');
+    if (end === -1) return null; // malformed
+
+    const extrasContent = remainder.slice(1, end);
+    extras = extrasContent.split(',').map(e => e.trim());
+
+    // Advance remainder past the "]"
+    remainder = remainder.slice(end + 1);
   }
 
-  const extrasSuffix = extras.length ? `[${extras.join(',')}]` : '';
-  const baseNameLength = packageName.length + extrasSuffix.length;
+  // Whatever remains is constraints
+  remainder = remainder.trim();
+  constraints = remainder.length ? remainder : null;
 
   return {
     package: packageName,
-    constraints: requirement.slice(baseNameLength) || null,
-    extras: extras.length ? extras : undefined
+    extras,
+    constraints
   };
 }
 

@@ -956,13 +956,7 @@ export function sort(installed: {
   return new Map(sorted);
 }
 
-export function packageNameFromSpec(specs: string) {
-  const nameMatch = specs.match(/^([a-zA-Z0-9_-]+)/);
-
-  if (!nameMatch) {
-    return null;
-  }
-
-  const packageName = nameMatch[1];
-  return packageName;
+export function packageNameFromSpec(spec: string): string | null {
+  const match = spec.match(/^([A-Za-z0-9._-]+)/);
+  return match ? match[1] : null;
 }

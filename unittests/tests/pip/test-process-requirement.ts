@@ -34,6 +34,37 @@ function testInstall(
   });
 }
 
+const tests = [
+  { req: "requests", pkg: "requests" },
+  { req: "numpy>=1.22", pkg: "numpy" },
+  { req: "pandas==2.1.4", pkg: "pandas" },
+  { req: "pytest~=7.4", pkg: "pytest" },
+  // TODO unsupported notation
+  // { req: "sqlalchemy!=2.0.3", pkg: "sqlalchemy" },
+
+  { req: "jaraco.classes>=2.0", pkg: "jaraco.classes" },
+  { req: "zope.interface==6.0", pkg: "zope.interface" },
+
+  // // 17–20 constraints
+  { req: "Django>=4.2,<5.0", pkg: "Django" },
+  { req: "matplotlib>3.7", pkg: "matplotlib" },
+  { req: "tqdm<=4.66", pkg: "tqdm" },
+  // TODO Not supported yet
+  // { req: "sqlmodel!=0.0.7", pkg: "sqlmodel" },
+];
+
+for (const t of tests) {
+  testInstall(
+    t.req,
+    [3, 11, 0], // arbitrary stable Python version
+    "linux-64",
+    (installed) => {
+      const pkg = getPackage(t.pkg, installed);
+      expect(pkg.name).toEqual(t.pkg);
+    }
+  );
+};
+
 testInstall(
   'pandas===2.3.3',
   [3, 13, 0],
