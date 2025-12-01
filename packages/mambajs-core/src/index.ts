@@ -347,7 +347,7 @@ export async function installPackagesToEmscriptenFS(
       .concat(
         Object.keys(pipPackages).map(async filename => {
           const pkg = pipPackages[filename];
-          const extractedPackage: FilesData = {};
+          let extractedPackage: FilesData = {};
 
           // Special case for wheels
           if (!pythonVersion) {
@@ -361,10 +361,20 @@ export async function installPackagesToEmscriptenFS(
             pkgRootUrl ? `${pkgRootUrl}/${filename}` : pkg.url
           );
           const rawPackageData = await untarjs.extractData(rawData, false);
-          for (const key of Object.keys(rawPackageData)) {
-            extractedPackage[
-              `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
-            ] = rawPackageData[key];
+
+          const hasCondaMeta = Object.keys(rawPackageData).find(key =>
+            key.startsWith('conda-meta')
+          );
+
+          // Then it's an empacked PyPi package -> we copy it raw in the filesystem
+          if (hasCondaMeta) {
+            extractedPackage = rawPackageData;
+          } else {
+            for (const key of Object.keys(rawPackageData)) {
+              extractedPackage[
+                `lib/python${pythonVersion[0]}.${pythonVersion[1]}/site-packages/${key}`
+              ] = rawPackageData[key];
+            }
           }
 
           processExtractedPackage(pkg, filename, extractedPackage);
