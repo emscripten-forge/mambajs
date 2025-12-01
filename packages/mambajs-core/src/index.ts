@@ -148,6 +148,11 @@ export interface IEmpackLockToMambajsLockOptions {
    * The empack lock file
    */
   empackEnvMeta: IEmpackEnvMeta;
+
+  /**
+   * The URL (CDN or similar) from which to download packages
+   */
+  pkgRootUrl: string;
 }
 
 /**
@@ -159,7 +164,7 @@ export interface IEmpackLockToMambajsLockOptions {
 export function empackLockToMambajsLock(
   options: IEmpackLockToMambajsLockOptions
 ): ILock {
-  const { empackEnvMeta } = options;
+  const { empackEnvMeta, pkgRootUrl } = options;
 
   const formattedChannels = formatChannels(empackEnvMeta.channels);
   const channelCache: { [url: string]: string } = {};
@@ -197,7 +202,7 @@ export function empackLockToMambajsLock(
       solvedPipPkgs[empackPkg.filename] = {
         name: empackPkg.name,
         version: empackPkg.version,
-        url: empackPkg.url,
+        url: `${pkgRootUrl}/${empackPkg.filename}`,
         registry: 'PyPi'
       };
     } else {
