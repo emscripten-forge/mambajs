@@ -42,6 +42,7 @@ cmd = parse('!conda install package1');
 expect(cmd.commands[0].data.type).toEqual('conda');
 expect(cmd.commands[0].type).toEqual('install');
 expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual(['package1']);
+expect((cmd.commands[0].data as IInstallationCommandOptions).channels).toEqual([]);
 
 cmd = parse('!micromamba install package2');
 expect(cmd.commands[0].data.type).toEqual('conda');

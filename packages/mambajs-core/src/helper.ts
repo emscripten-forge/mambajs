@@ -471,10 +471,7 @@ export function formatChannels(
   channels?: string[]
 ): Pick<ILock, 'channelInfo' | 'channels'> {
   if (!channels || !channels.length) {
-    return {
-      channelInfo: DEFAULT_CHANNELS_INFO,
-      channels: DEFAULT_CHANNELS
-    };
+    throw new Error('No channels specified');
   }
 
   const formattedChannels: Pick<ILock, 'channelInfo' | 'channels'> = {
