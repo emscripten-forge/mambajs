@@ -35,6 +35,7 @@ function testInstall(
 }
 
 const tests = [
+  { req: "geemap", pkg: "geemap" },
   { req: "requests", pkg: "requests" },
   { req: "numpy>=1.22", pkg: "numpy" },
   { req: "pandas==2.1.4", pkg: "pandas" },

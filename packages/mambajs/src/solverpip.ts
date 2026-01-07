@@ -185,7 +185,7 @@ function satisfies(version: string, constraint: string) {
   const constraints = constraint.split(',').map(c => c.trim());
 
   return constraints.every(c => {
-    const match = c.match(/(=|~=|>=|<=|>|<|==)?\s*([\w.]+)/);
+    const match = c.match(/(=|~=|!=|>=|<=|>|<|==)?\s*([\w.]+)/);
     if (!match) {
       return false;
     }
@@ -201,6 +201,8 @@ function satisfies(version: string, constraint: string) {
         throw new Error(
           `ERROR: Invalid requirement: '${c}': Hint: = is not a valid operator. Did you mean == ?`
         );
+      case '!=':
+        return cmp != 0;
       case '>':
         return cmp > 0;
       case '>=':
