@@ -40,8 +40,7 @@ const tests = [
   { req: "numpy>=1.22", pkg: "numpy" },
   { req: "pandas==2.1.4", pkg: "pandas" },
   { req: "pytest~=7.4", pkg: "pytest" },
-  // TODO unsupported notation
-  // { req: "sqlalchemy!=2.0.3", pkg: "sqlalchemy" },
+  { req: "sqlalchemy!=2.0.3", pkg: "sqlalchemy" },
 
   { req: "jaraco.classes>=2.0", pkg: "jaraco.classes" },
   { req: "zope.interface==6.0", pkg: "zope.interface" },
@@ -50,8 +49,7 @@ const tests = [
   { req: "Django>=4.2,<5.0", pkg: "Django" },
   { req: "matplotlib>3.7", pkg: "matplotlib" },
   { req: "tqdm<=4.66", pkg: "tqdm" },
-  // TODO Not supported yet
-  // { req: "sqlmodel!=0.0.7", pkg: "sqlmodel" },
+  { req: "sqlmodel!=0.0.7", pkg: "sqlmodel" },
 ];
 
 for (const t of tests) {
