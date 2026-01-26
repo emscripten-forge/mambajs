@@ -8,7 +8,7 @@ export class TestLogger implements ILogger {
 
     const message = msg.join(' ');
     console.log('LOG --', message);
-    this.logs = [this.logs, message].join(' ');
+    this.logs.push(message);
   }
 
   error(...msg: any[]): void {
@@ -24,6 +24,6 @@ export class TestLogger implements ILogger {
   }
 
   warnings = '';
-  logs = '';
+  logs: string[] = [];
   errors = '';
 }

@@ -805,29 +805,17 @@ export function showPackagesList(
     ...installedPackages.pipPackages
   };
 
-  if (Object.keys(merged).length) {
+  if (Object.keys(merged).length && logger !== undefined) {
     const sortedPackages = sort(merged);
 
-    const columnWidth = 30;
-
-    logger?.log(
-      `${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
-    );
-
-    logger?.log('─'.repeat(4 * columnWidth));
-
+    const header = ['Name', 'Version', 'Build', 'Channel'];
+    const rows: string[][] = [];
     for (const [, pkg] of sortedPackages) {
       const buildString = pkg['build'] || 'none';
-      const repoName = pkg['channel']
-        ? pkg['channel']
-        : pkg['registry']
-          ? pkg['registry']
-          : '';
-
-      logger?.log(
-        `${pkg.name.padEnd(columnWidth)}${pkg.version.padEnd(columnWidth)}${buildString.padEnd(columnWidth)}${repoName.padEnd(columnWidth)}`
-      );
+      const repoName = pkg['channel'] ?? pkg['registry'] ?? '';
+      rows.push([pkg.name ?? '', pkg.version ?? '', buildString, repoName]);
     }
+    showTable(logger, header, rows);
   }
 }
 
@@ -869,17 +857,9 @@ export function showEnvironmentDiff(
 
     const sortedPackages = sort(mergedNewPackages);
 
-    const columnWidth = 30;
-
-    let loggedHeader = false;
-
-    const logHeader = () => {
-      logger?.log(
-        `  ${'Name'.padEnd(columnWidth)}${'Version'.padEnd(columnWidth)}${'Build'.padEnd(columnWidth)}${'Channel'.padEnd(columnWidth)}`
-      );
-
-      logger?.log('─'.repeat(4 * columnWidth));
-    };
+    // First column includes space for symbols like '+'
+    const header = ['  Name', 'Version', 'Build', 'Channel'];
+    const rows: string[][] = [];
 
     for (const [, pkg] of sortedPackages) {
       const prevPkg = previousInstall.get(pkg.name);
@@ -891,12 +871,6 @@ export function showEnvironmentDiff(
         prevPkg['build'] === pkg['build']
       ) {
         continue;
-      }
-
-      if (!loggedHeader) {
-        logHeader();
-
-        loggedHeader = true;
       }
 
       let prefix = '';
@@ -922,28 +896,34 @@ export function showEnvironmentDiff(
             : `${oldChannel} -> ${newChannel}`;
       }
 
-      logger?.log(
-        `${prefix} ${pkg.name.padEnd(columnWidth)}\x1b[0m${versionDiff.padEnd(columnWidth)}${buildStringDiff.padEnd(columnWidth)}${channelDiff.padEnd(columnWidth)}`
-      );
+      rows.push([
+        `${prefix} ${pkg.name}\x1b[0m`,
+        versionDiff,
+        buildStringDiff,
+        channelDiff
+      ]);
     }
 
     // Displaying removed packages
     for (const [name, pkg] of previousInstall) {
       if (!newInstall.has(name)) {
-        if (!loggedHeader) {
-          logHeader();
-
-          loggedHeader = true;
-        }
-
-        logger?.log(
-          `\x1b[0;31m- ${pkg.name.padEnd(columnWidth)}\x1b[0m${pkg.version.padEnd(columnWidth)}${(pkg['build'] || 'none')?.padEnd(columnWidth)}${(pkg['channel'] || pkg['registry'])?.padEnd(columnWidth)}`
-        );
+        const build = pkg['build'] || 'none';
+        const channel = pkg['channel'] ?? pkg['registry'] ?? '';
+        rows.push([
+          `\x1b[0;31m- ${pkg.name}\x1b[0m`,
+          pkg.version ?? '',
+          build,
+          channel
+        ]);
       }
     }
 
-    if (!loggedHeader) {
+    if (rows.length < 1) {
       logger?.log('All requested packages already installed.');
+    } else {
+      if (logger) {
+        showTable(logger, header, rows, false);
+      }
     }
   }
 }
@@ -963,4 +943,56 @@ export function sort(installed: {
 export function packageNameFromSpec(spec: string): string | null {
   const match = spec.match(/^([A-Za-z0-9._-]+)/);
   return match ? match[1] : null;
+}
+
+/**
+ * Show table which is a grid of rows and columns, including a single header row,
+ * with each column sized to fit its longest item ignoring ANSI color sequences.
+ * There are two spaces between columns and at the start and end of each row.
+ * If the caller handles the start spacer, such as to add + symbols, pass false
+ * for addSpacerAtStart.
+ */
+function showTable(
+  logger: ILogger,
+  header: string[],
+  rows: string[][],
+  addSpacerAtStart: boolean = true
+) {
+  const spacer = '  ';
+
+  rows.unshift(header);  // Add header to rows.
+
+  // Cope with rows of different lengths.
+  const columnCount = Math.max(...rows.map(row => row.length));
+
+  // Function for string length ignoring ANSI color escape sequences.
+  const regex = /\x1b\[[^m]*m/g;
+  const lengthWithoutColors = (str: string | undefined) =>
+    (str ?? '').replace(regex, '').length;
+
+  const columnWidths = rows.reduce(
+    (acc, row) =>
+      acc.map((accItem, i) =>
+        Math.max(accItem, lengthWithoutColors(row[i]))
+      ),
+    Array(columnCount).fill(0)
+  );
+
+  const totalWidth =
+    columnWidths.reduce((acc, value) => acc + value, 0) +
+    spacer.length * (addSpacerAtStart ? columnCount+1 : columnCount);
+
+  const start = addSpacerAtStart ? spacer : '';
+  rows.forEach((row, rowIndex) => {
+    const line = start + row
+      .map(
+        (item, i) =>
+          i < columnCount-1 ? (item + ' '.repeat(columnWidths[i] - lengthWithoutColors(item))) : item
+      )
+      .join(spacer);
+    logger.log(line);
+    if (rowIndex == 0) {
+      logger.log('-'.repeat(totalWidth));
+    }
+  });
 }
