@@ -2,7 +2,7 @@ import { solvePip } from "../../../packages/mambajs/src/solverpip";
 import { TestLogger } from "../../helpers";
 import { expect } from 'earl';
 
-const packages = {
+const packagesPython310 = {
   "python-3.10.14-hd12c33a_0_cpython.conda": {
     "name": "python",
     "build": "hd12c33a_0_cpython",
@@ -15,6 +15,15 @@ const packages = {
     }
   }
 };
+const packagesPython314 = {
+  "python-3.14.2-h32b2ec7_101_cp314.conda": {
+    "name": "python",
+    "build": "h32b2ec7_101_cp314",
+    "version": "3.14.2",
+    "subdir": "linux-64",
+    "channel": "conda-forge"
+  }
+};
 
 const logger = new TestLogger();
 
@@ -25,7 +34,7 @@ dependencies:
     - pandas
 `;
 
-solvePip(ymlPandas, packages, {}, {}, [], logger, "linux-64").then(result => {
+solvePip(ymlPandas, packagesPython314, {}, {}, [], logger, "linux-64").then(result => {
   const packageNames = Object.values(result).map(pkg => pkg.name);
 
   // pandas should be successfully installed with linux-64 platform
@@ -33,7 +42,6 @@ solvePip(ymlPandas, packages, {}, {}, [], logger, "linux-64").then(result => {
 
   // Check that pandas has platform-specific dependencies
   expect(packageNames).toInclude('python-dateutil');
-  expect(packageNames).toInclude('pytz');
 
   // Verify the pandas package has the correct wheel type
   const pandasPkg = Object.values(result).find(pkg => pkg.name === 'pandas');
@@ -54,7 +62,7 @@ dependencies:
     - requests
 `;
 
-solvePip(ymlPure, packages, {}, {}, [], logger).then(result => {
+solvePip(ymlPure, packagesPython310, {}, {}, [], logger).then(result => {
   const packageNames = Object.values(result).map(pkg => pkg.name);
   expect(packageNames).toInclude('requests');
   expect(packageNames).toInclude('urllib3');
@@ -62,4 +70,4 @@ solvePip(ymlPure, packages, {}, {}, [], logger).then(result => {
 });
 
 // Test 3: Verify platform-specific packages fail without platform
-expect(solvePip(ymlPandas, packages, {}, {}, [], logger)).toBeRejectedWith('binary built package that is not compatible with WASM');
+expect(solvePip(ymlPandas, packagesPython310, {}, {}, [], logger)).toBeRejectedWith('binary built package that is not compatible with WASM');
