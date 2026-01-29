@@ -14,7 +14,8 @@ const esbuild = require("esbuild");
 
       // Output
       outdir: "./dist",
-      format: "esm",
+      // format: "esm",
+      format: "cjs",
 
       // Keep CLI runnable
       banner: {
