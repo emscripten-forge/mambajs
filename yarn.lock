@@ -69,6 +69,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@emscripten-forge/mambajs-cli@workspace:packages/mambajs-cli":
+  version: 0.0.0-use.local
+  resolution: "@emscripten-forge/mambajs-cli@workspace:packages/mambajs-cli"
+  dependencies:
+    "@emscripten-forge/mambajs": "npm:^0.19.13"
+    "@esbuild-plugins/node-globals-polyfill": "npm:^0.2.3"
+    "@esbuild-plugins/node-modules-polyfill": "npm:^0.2.2"
+    "@types/node": "npm:^25.1.0"
+    esbuild: "npm:^0.24.0"
+    rimraf: "npm:^3.0.2"
+    typescript: "npm:^5"
+  bin:
+    mambajs: dist/index.js
+  languageName: unknown
+  linkType: soft
+
 "@emscripten-forge/mambajs-core@npm:^0.19.13, @emscripten-forge/mambajs-core@workspace:packages/mambajs-core":
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs-core@workspace:packages/mambajs-core"
@@ -107,7 +123,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@emscripten-forge/mambajs@workspace:packages/mambajs":
+"@emscripten-forge/mambajs@npm:^0.19.13, @emscripten-forge/mambajs@workspace:packages/mambajs":
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs@workspace:packages/mambajs"
   dependencies:
@@ -1117,6 +1133,15 @@ __metadata:
   version: 1.2.5
   resolution: "@types/minimist@npm:1.2.5"
   checksum: 10c0/3f791258d8e99a1d7d0ca2bda1ca6ea5a94e5e7b8fc6cde84dd79b0552da6fb68ade750f0e17718f6587783c24254bbca0357648dd59dc3812c150305cabdc46
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^25.1.0":
+  version: 25.1.0
+  resolution: "@types/node@npm:25.1.0"
+  dependencies:
+    undici-types: "npm:~7.16.0"
+  checksum: 10c0/5f393a127dc9565e2e152514a271455d580c7095afc51302e73ffe8aac3526b64ebacc3c10dd40c93cef81a95436ef2c6a8b522930df567a3f6b189c0eef649a
   languageName: node
   linkType: hard
 
@@ -7400,6 +7425,13 @@ __metadata:
     has-symbols: "npm:^1.1.0"
     which-boxed-primitive: "npm:^1.1.1"
   checksum: 10c0/7dbd35ab02b0e05fe07136c72cb9355091242455473ec15057c11430129bab38b7b3624019b8778d02a881c13de44d63cd02d122ee782fb519e1de7775b5b982
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~7.16.0":
+  version: 7.16.0
+  resolution: "undici-types@npm:7.16.0"
+  checksum: 10c0/3033e2f2b5c9f1504bdc5934646cb54e37ecaca0f9249c983f7b1fc2e87c6d18399ebb05dc7fd5419e02b2e915f734d872a65da2e3eeed1813951c427d33cc9a
   languageName: node
   linkType: hard
 

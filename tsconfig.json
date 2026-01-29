@@ -16,6 +16,7 @@
     "strict": true,
     "strictNullChecks": true,
     "target": "esnext",
-    "lib": ["esnext", "dom"] 
+    "lib": ["esnext", "dom"] ,
+    "types": []
   }
 }

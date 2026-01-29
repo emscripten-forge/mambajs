@@ -1,6 +1,7 @@
 # Node.js
 node_modules/
 npm-debug.log/
+dist/
 lib/
 unittests/testlib/
 unittests/packages/
