@@ -33,6 +33,7 @@ async function main() {
   writeFileSync(outputPath, JSON.stringify(lock, null, 2));
 
   console.log(`Lockfile successfully written to ${outputPath}`);
+  process.exit(0);
 }
 
 main().catch((err) => {
