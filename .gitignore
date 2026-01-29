@@ -6,6 +6,9 @@ lib/
 unittests/testlib/
 unittests/packages/
 
+# Python stuff
+*egg-info
+
 .yarn
 
 tsconfig.tsbuildinfo

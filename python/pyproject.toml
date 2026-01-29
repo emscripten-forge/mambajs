@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mambajs"
+version = "0.1.0"
+description = "mambajs CLI"
+requires-python = ">=3.8"
+
+[project.scripts]
+mambajs = "mambajs.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+mambajs = ["bin/*"]
