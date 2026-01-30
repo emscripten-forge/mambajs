@@ -15,3 +15,15 @@ def test_create_lock_from_environment_file():
     assert Path(HERE / lockfile).exists()
 
     Path(HERE / lockfile).unlink(missing_ok=True)
+
+
+def test_create_lock_from_environment_file_linux64():
+    lockfile = "lock.json"
+
+    Path(HERE / lockfile).unlink(missing_ok=True)
+
+    subprocess.run(["mambajs", "create-lock", "test-env.yml", lockfile, "--platform", "linux-64"], check=True)
+
+    assert Path(HERE / lockfile).exists()
+
+    Path(HERE / lockfile).unlink(missing_ok=True)

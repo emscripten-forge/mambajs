@@ -16,9 +16,9 @@ program
 
 program
   .command("create-lock")
-  .description("Create a lock.json from an environment.yml")
-  .argument("<env>", "Path to environment.yml")
-  .argument("<output>", "Path to output lock.json")
+  .description("Create a mambajs lock file from an environment.yml file")
+  .argument("<env>", "Path to environment file")
+  .argument("<output>", "Path to output lock JSON file")
   .option(
     "-p, --platform <platform>",
     "Target platform",

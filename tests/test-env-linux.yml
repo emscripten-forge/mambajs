@@ -1,0 +1,11 @@
+name: default-environment
+channels:
+  - conda-forge
+dependencies:
+  # A Jupyter kernel for Python
+  - xeus-python
+  - pandas
+  - numpy
+  - ipyleaflet
+  - pip:
+    - bqplot
