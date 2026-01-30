@@ -11,8 +11,8 @@ old_cwd = os.getcwd()
 # Map sys.platform to Bun cross-compile target + wheel plat-name
 PLATFORMS = {
     "linux":   ("bun-linux-x64-baseline", "manylinux2014_x86_64"),
-    "darwin":  ("bun-darwin-x64", "macosx_11_0_x86_64"),
-    "win32":   ("bun-windows-x64", "win_amd64"),
+    "darwin":  ("bun-darwin-x64", "macosx_10_9_x86_64"),
+    "win32":   ("bun-windows-x64-baseline", "win_amd64"),
 }
 
 ROOT = pathlib.Path(__file__).parent.parent
