@@ -28,7 +28,7 @@
     "url": "git+https://github.com/emscripten-forge/mambajs.git"
   },
   "author": "Emscripten-forge developers",
-  "license": "MIT",
+  "license": " BSD-3-Clause license ",
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",

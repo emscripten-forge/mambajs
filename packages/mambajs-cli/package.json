@@ -22,7 +22,7 @@
     "url": "git+https://github.com/emscripten-forge/mambajs.git"
   },
   "author": "Emscripten-forge developers",
-  "license": "MIT",
+  "license": " BSD-3-Clause license ",
   "dependencies": {
     "@emscripten-forge/mambajs": "^0.19.13"
   },
