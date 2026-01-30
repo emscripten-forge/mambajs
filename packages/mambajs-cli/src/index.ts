@@ -3,6 +3,7 @@ import process from "process";
 
 import { Platform } from '@conda-org/rattler';
 
+import { computeLockId } from "@emscripten-forge/mambajs-core";
 import { create } from "@emscripten-forge/mambajs";
 
 
@@ -29,6 +30,8 @@ async function main() {
     logger: console,
     platform: targetPlatform
   });
+
+  lock.id = computeLockId(environmentYml);
 
   writeFileSync(outputPath, JSON.stringify(lock, null, 2));
 

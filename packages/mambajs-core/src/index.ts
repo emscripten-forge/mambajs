@@ -217,7 +217,7 @@ export function empackLockToMambajsLock(
   }
 
   return {
-    lockVersion: '1.0.2',
+    lockVersion: '1.0.3',
     specs: empackEnvMeta.specs ?? [],
     platform: DEFAULT_PLATFORM,
     channels: formattedChannels.channels,
