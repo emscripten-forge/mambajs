@@ -82,7 +82,7 @@ jobs:
         os: [ubuntu, windows, macos]
         include:
           - os: ubuntu
-            dist: 'mambajs*linux*.whl'
+            dist: 'mambajs*linux*x86_64.whl'
           - os: windows
             dist: 'mambajs*win*.whl'
           - os: macos
