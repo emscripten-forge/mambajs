@@ -10,8 +10,10 @@ old_cwd = os.getcwd()
 
 # Map sys.platform to Bun cross-compile target + wheel plat-name
 PLATFORMS = {
-    "linux":   ("bun-linux-x64-baseline", "manylinux2014_x86_64"),
-    "darwin":  ("bun-darwin-x64", "macosx_10_9_x86_64"),
+    "linux-x64":     ("bun-linux-x64-baseline", "manylinux2014_x86_64"),
+    "linux-arm64":   ("bun-linux-arm64", "manylinux2014_aarch64"),
+    "macos-x64":    ("bun-darwin-x64", "macosx_10_9_x86_64"),
+    "macos-arm64":  ("bun-darwin-arm64", "macosx_11_0_arm64"),
     "win32":   ("bun-windows-x64-baseline", "win_amd64"),
 }
 

@@ -86,7 +86,7 @@ jobs:
           - os: windows
             dist: 'mambajs*win*.whl'
           - os: macos
-            dist: 'mambajs*macos*.whl'
+            dist: 'mambajs*macos*arm64.whl'
 
     steps:
       - name: Checkout
