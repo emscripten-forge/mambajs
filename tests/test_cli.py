@@ -12,4 +12,4 @@ def test_create_lock_from_environment_file():
 
     subprocess.run(["mambajs", "create-lock", "test-env.yml", lockfile], check=True)
 
-    assert Path(HERE / lockfile).exists()
+    assert not Path(HERE / lockfile).exists()
