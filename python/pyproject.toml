@@ -21,9 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-
-[project.license]
-file = "LICENSE"
+license = {file = "LICENSE"}
 
 [project.scripts]
 mambajs = "mambajs.cli:main"
