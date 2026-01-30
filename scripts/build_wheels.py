@@ -47,6 +47,7 @@ try:
 
         # Cleanup
         shutil.rmtree(BIN_DIR, ignore_errors=True)
+        shutil.rmtree(PYTHON_DIR / "build", ignore_errors=True)
 
     print("All wheels built!")
 finally:
