@@ -9,8 +9,9 @@
     "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo",
     "build": "yarn run clean && yarn run build:esbuild",
     "build:esbuild": "node esbuild.config.js",
-    "dev:build:exe": "yarn run build && bun build ./dist/index.js --compile --outfile ../../python/mambajs/bin/mambajs",
-    "windev:build:exe": "yarn run build && bun build ./dist/index.js --compile --outfile ../../python/mambajs/bin/mambajs.exe"
+    "cp:package.json": "cp ./package.json ../../python/mambajs",
+    "dev:build:exe": "yarn run build && yarn run cp:package.json && bun build ./dist/index.js --compile --outfile ../../python/mambajs/bin/mambajs",
+    "windev:build:exe": "yarn run build && yarn run cp:package.json && bun build ./dist/index.js --compile --outfile ../../python/mambajs/bin/mambajs.exe"
   },
   "publishConfig": {
     "access": "public"
