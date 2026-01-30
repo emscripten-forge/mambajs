@@ -33,4 +33,4 @@ version = {attr = "mambajs._version.__version__"}
 include-package-data = true
 
 [tool.setuptools.package-data]
-mambajs = ["bin/*"]
+mambajs = ["bin/*", "package.json"]

@@ -21,3 +21,4 @@ tsconfig.tsbuildinfo
 bin/micromamba
 
 python/mambajs/bin
+python/mambajs/package.json
