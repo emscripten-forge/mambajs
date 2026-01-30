@@ -5,6 +5,7 @@ dependencies:
   - pip
   - python
   - setuptools
+  - twine
   - pytest
   - yarn
   - nodejs
