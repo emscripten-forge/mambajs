@@ -258,17 +258,28 @@ This is a monorepo managed with Lerna:
 ## Development
 
 ```bash
-# Install dependencies
+# Install JS dependencies
 yarn install
 
-# Build all packages
+# Build all JS packages
 yarn build
 
-# Run tests
+# Run JS unittests
 yarn test
 
-# Lint code
+# Lint JS code
 yarn lint
+
+# Build CLI executable whenever you make JS changes (you need to install bun https://bun.com/docs/installation)
+yarn dev:build:exe
+# Or if you are on windows:
+yarn windev:build:exe
+
+# Build Python CLI package (do this only once)
+cd python && pip install -e . -vvv && cd ..
+
+# Run Python tests
+cd tests && pytest . -vvv -s && cd ..
 ```
 
 ### Release Process

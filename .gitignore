@@ -19,3 +19,5 @@ tsconfig.tsbuildinfo
 
 # Temporary micromamba binary (if downloaded for setup)
 bin/micromamba
+
+python/mambajs/bin

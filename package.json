@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "lerna run build",
+    "dev:build:exe": "lerna run dev:build:exe",
+    "windev:build:exe": "lerna run windev:build:exe",
     "lint": "yarn run eslint && yarn run prettier",
     "lint:check": "yarn run eslint:check && yarn run prettier:check",
     "prettier": "prettier --list-different --write \"packages/**/*.ts\"",
