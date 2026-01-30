@@ -4,5 +4,6 @@ channels:
 dependencies:
   - pip
   - python
+  - setuptools
   - yarn
   - nodejs
