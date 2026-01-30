@@ -1,14 +1,12 @@
-name: CI
+name: Tests
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - main
+    - main
   pull_request:
     branches:
-      - main
-
+    - main
 
 defaults:
   run:
@@ -17,17 +15,16 @@ defaults:
 jobs:
 
   lint:
-
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
       - name: Install micromamba
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: environment.yml
           environment-name: mambajs
@@ -38,27 +35,75 @@ jobs:
       - name: Run eslint
         run: yarn run eslint:check
 
-  unittest:
-
+  unittest_and_build_wheels:
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Install micromamba
-        uses: mamba-org/setup-micromamba@v1
+      - name: Install Micromamba dev env
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: environment.yml
           environment-name: mambajs
 
-      - name: Install dependencies
+      - name: Install JS dependencies
         run: yarn install
 
-      - name: Build mambajs
+      - name: Build mambajs JS
         run: yarn run build
 
-      - name: Run tests
+      - name: Run JS tests
         run: yarn run test
+
+      - name: Install bun
+        run: curl -fsSL https://bun.sh/install | bash
+
+      - name: Build Python wheels
+        run: python scripts/build_wheels.py
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v6
+        with:
+          name: dist ${{ github.run_number }}
+          path: ./dist
+
+  test_wheels:
+    runs-on: ${{ matrix.os }}-latest
+    needs: [build]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu, windows, macos]
+        include:
+          - os: ubuntu
+            dist: 'mambajs*linux*.whl'
+          - os: windows
+            dist: 'mambajs*win*.whl'
+          - os: macos
+            dist: 'mambajs*macos*.whl'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Micromamba dev env
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: environment.yml
+          environment-name: mambajs
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dist ${{ github.run_number }}
+          path: ./dist
+
+      - name: Install the package
+        run: |
+          cd dist
+          pip install -vv ${{ matrix.dist }}

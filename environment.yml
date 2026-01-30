@@ -2,5 +2,7 @@ name: mambajs
 channels:
   - conda-forge
 dependencies:
+  - pip
+  - python
   - yarn
   - nodejs
