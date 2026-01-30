@@ -72,7 +72,7 @@ jobs:
           name: dist ${{ github.run_number }}
           path: ./python/dist
 
-  test_wheels:
+  test_wheel:
     runs-on: ${{ matrix.os }}-latest
     needs: [unittest_and_build_wheels]
 
@@ -104,6 +104,9 @@ jobs:
           path: ./dist
 
       - name: Install the package
-        run: |
-          cd dist
-          pip install -vv ${{ matrix.dist }}
+        run: pip install -vv ${{ matrix.dist }}
+        working-directory: dist
+
+      - name: Run CLI test
+        run: python test_cli.py
+        working-directory: tests
