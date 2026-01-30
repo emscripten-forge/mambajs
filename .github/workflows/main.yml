@@ -108,5 +108,5 @@ jobs:
         working-directory: dist
 
       - name: Run CLI test
-        run: python test_cli.py
+        run: pytest . -vvv -s
         working-directory: tests

@@ -8,6 +8,8 @@ unittests/packages/
 
 # Python stuff
 *egg-info
+__pycache__
+.pytest_cache
 
 .yarn
 
