@@ -70,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: dist ${{ github.run_number }}
-          path: ./dist
+          path: ./python/dist
 
   test_wheels:
     runs-on: ${{ matrix.os }}-latest
