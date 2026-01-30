@@ -107,6 +107,9 @@ jobs:
         run: pip install -vv ${{ matrix.dist }}
         working-directory: dist
 
+      - name: Test help
+        run: mambajs --help
+
       - name: Run CLI test
         run: pytest . -vvv -s
         working-directory: tests
