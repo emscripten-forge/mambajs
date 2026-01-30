@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mambajs"
-version = "0.1.0"
+dynamic = ["version"]
 description = "mambajs CLI"
 requires-python = ">=3.8"
 readme = "README.md"
@@ -25,6 +25,9 @@ license = {file = "LICENSE"}
 
 [project.scripts]
 mambajs = "mambajs.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "mambajs._version.__version__"}
 
 [tool.setuptools]
 include-package-data = true
