@@ -1,7 +1,7 @@
 {
   "name": "@emscripten-forge/mambajs-cli",
   "version": "0.19.13",
-  "description": "MambaJS Command Line Interface",
+  "description": "MambaJS CLI for generating lock files",
   "bin": {
     "mambajs": "dist/index.js"
   },
@@ -26,7 +26,8 @@
   "author": "Emscripten-forge developers",
   "license": " BSD-3-Clause license ",
   "dependencies": {
-    "@emscripten-forge/mambajs": "^0.19.13"
+    "@emscripten-forge/mambajs": "^0.19.13",
+    "commander": "^14.0.2"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",

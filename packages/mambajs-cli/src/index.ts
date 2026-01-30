@@ -1,45 +1,47 @@
 import { readFileSync, writeFileSync } from "fs";
-import process from "process";
+import { Command } from "commander";
 
-import { Platform } from '@conda-org/rattler';
-
+import { Platform } from "@conda-org/rattler";
 import { computeLockId } from "@emscripten-forge/mambajs-core";
 import { create } from "@emscripten-forge/mambajs";
 
+import * as packageJSON from '../package.json';
 
-async function main() {
-  const [, , command, envPath, outputPath, platform] = process.argv;
+const program = new Command();
 
-  let targetPlatform = platform as Platform | undefined;
+program
+  .name("mambajs")
+  .description(packageJSON.description)
+  .version(packageJSON.version);
 
-  if (command !== "create-lock" || !envPath || !outputPath) {
-    console.error("Usage: mambajs create-lock environment.yml lock.json");
-    process.exit(1);
-  }
+program
+  .command("create-lock")
+  .description("Create a lock.json from an environment.yml")
+  .argument("<env>", "Path to environment.yml")
+  .argument("<output>", "Path to output lock.json")
+  .option(
+    "-p, --platform <platform>",
+    "Target platform",
+    "emscripten-wasm32"
+  )
+  .action(async (envPath, outputPath, options) => {
+    const targetPlatform = options.platform as Platform;
 
-  if (!targetPlatform) {
-    targetPlatform = 'emscripten-wasm32';
-  }
+    const environmentYml = readFileSync(envPath, "utf8");
 
-  const environmentYml = readFileSync(envPath, "utf8");
+    console.log("Solving environment...");
 
-  console.log("Solving environment...");
+    const lock = await create({
+      yml: environmentYml,
+      logger: console,
+      platform: targetPlatform,
+    });
 
-  const lock = await create({
-    yml: environmentYml,
-    logger: console,
-    platform: targetPlatform
+    lock.id = computeLockId(environmentYml);
+
+    writeFileSync(outputPath, JSON.stringify(lock, null, 2));
+
+    console.log(`Lockfile successfully written to ${outputPath}`);
   });
 
-  lock.id = computeLockId(environmentYml);
-
-  writeFileSync(outputPath, JSON.stringify(lock, null, 2));
-
-  console.log(`Lockfile successfully written to ${outputPath}`);
-  process.exit(0);
-}
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+program.parse();
