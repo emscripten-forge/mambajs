@@ -213,6 +213,7 @@ function satisfies(version: string, constraint: string) {
         return cmp <= 0;
       case '==': {
         // Handle wildcard version matching (e.g., ==1.* matches 1.0, 1.1, 1.2.3, etc.)
+        // Per PEP-440, only trailing wildcards are allowed (e.g., 1.* or 1.2.*)
         if (constraintVersion.includes('*')) {
           // Remove the wildcard and the dot before it
           const prefix = constraintVersion.replace(/\.\*$/, '');
@@ -221,6 +222,10 @@ function satisfies(version: string, constraint: string) {
 
           // Check if the version starts with the prefix
           for (let i = 0; i < prefixParts.length; i++) {
+            // If version has fewer parts than prefix, it doesn't match
+            if (i >= versionParts.length) {
+              return false;
+            }
             if (versionParts[i] !== prefixParts[i]) {
               return false;
             }
