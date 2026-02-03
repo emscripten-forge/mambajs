@@ -960,7 +960,7 @@ function showTable(
 ) {
   const spacer = '  ';
 
-  rows.unshift(header);  // Add header to rows.
+  rows.unshift(header); // Add header to rows.
 
   // Cope with rows of different lengths.
   const columnCount = Math.max(...rows.map(row => row.length));
@@ -972,24 +972,25 @@ function showTable(
 
   const columnWidths = rows.reduce(
     (acc, row) =>
-      acc.map((accItem, i) =>
-        Math.max(accItem, lengthWithoutColors(row[i]))
-      ),
+      acc.map((accItem, i) => Math.max(accItem, lengthWithoutColors(row[i]))),
     Array(columnCount).fill(0)
   );
 
   const totalWidth =
     columnWidths.reduce((acc, value) => acc + value, 0) +
-    spacer.length * (addSpacerAtStart ? columnCount+1 : columnCount);
+    spacer.length * (addSpacerAtStart ? columnCount + 1 : columnCount);
 
   const start = addSpacerAtStart ? spacer : '';
   rows.forEach((row, rowIndex) => {
-    const line = start + row
-      .map(
-        (item, i) =>
-          i < columnCount-1 ? (item + ' '.repeat(columnWidths[i] - lengthWithoutColors(item))) : item
-      )
-      .join(spacer);
+    const line =
+      start +
+      row
+        .map((item, i) =>
+          i < columnCount - 1
+            ? item + ' '.repeat(columnWidths[i] - lengthWithoutColors(item))
+            : item
+        )
+        .join(spacer);
     logger.log(line);
     if (rowIndex == 0) {
       logger.log('-'.repeat(totalWidth));

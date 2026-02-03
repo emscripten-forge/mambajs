@@ -1,40 +1,36 @@
-import { readFileSync, writeFileSync } from "fs";
-import { Command } from "commander";
+import { readFileSync, writeFileSync } from 'fs';
+import { Command } from 'commander';
 
-import { Platform } from "@conda-org/rattler";
-import { computeLockId } from "@emscripten-forge/mambajs-core";
-import { create } from "@emscripten-forge/mambajs";
+import { Platform } from '@conda-org/rattler';
+import { computeLockId } from '@emscripten-forge/mambajs-core';
+import { create } from '@emscripten-forge/mambajs';
 
 import * as packageJSON from '../package.json';
 
 const program = new Command();
 
 program
-  .name("mambajs")
+  .name('mambajs')
   .description(packageJSON.description)
   .version(packageJSON.version);
 
 program
-  .command("create-lock")
-  .description("Create a mambajs lock file from an environment.yml file")
-  .argument("<env>", "Path to environment file")
-  .argument("<output>", "Path to output lock JSON file")
-  .option(
-    "-p, --platform <platform>",
-    "Target platform",
-    "emscripten-wasm32"
-  )
+  .command('create-lock')
+  .description('Create a mambajs lock file from an environment.yml file')
+  .argument('<env>', 'Path to environment file')
+  .argument('<output>', 'Path to output lock JSON file')
+  .option('-p, --platform <platform>', 'Target platform', 'emscripten-wasm32')
   .action(async (envPath, outputPath, options) => {
     const targetPlatform = options.platform as Platform;
 
-    const environmentYml = readFileSync(envPath, "utf8");
+    const environmentYml = readFileSync(envPath, 'utf8');
 
-    console.log("Solving environment...");
+    console.log('Solving environment...');
 
     const lock = await create({
       yml: environmentYml,
       logger: console,
-      platform: targetPlatform,
+      platform: targetPlatform
     });
 
     lock.id = computeLockId(environmentYml);

@@ -28,7 +28,7 @@ solve({ymlOrSpecs: yml, logger}).then(async result => {
   const ncol = colIndices.length;
 
   // Find minimum number of spaces between columns in table.
-  let nspaces = [Infinity, Infinity, Infinity, Infinity];
+  const nspaces = [Infinity, Infinity, Infinity, Infinity];
   tableBody.forEach(line => {
     for (let i = 0; i < ncol; i++) {
       const item = line.slice(colIndices[i], i == ncol-1 ? -1 : colIndices[i+1]);

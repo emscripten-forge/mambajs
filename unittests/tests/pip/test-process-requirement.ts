@@ -132,3 +132,26 @@ testInstall(
     expect(pkg.url).toInclude('Checkm-0.4.tar.gz');
   }
 );
+
+// Test wildcard version matching
+testInstall(
+  'httpcore==1.*',
+  [3, 11, 0],
+  'linux-64',
+  (installed) => {
+    const pkg = getPackage('httpcore', installed);
+    expect(pkg.name).toEqual('httpcore');
+    expect(pkg.version.startsWith('1.')).toEqual(true); // Should start with "1."
+  }
+);
+
+testInstall(
+  'certifi==2024.*',
+  [3, 11, 0],
+  'linux-64',
+  (installed) => {
+    const pkg = getPackage('certifi', installed);
+    expect(pkg.name).toEqual('certifi');
+    expect(pkg.version.startsWith('2024.')).toEqual(true); // Should start with "2024."
+  }
+);

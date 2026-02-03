@@ -185,7 +185,7 @@ function satisfies(version: string, constraint: string) {
   const constraints = constraint.split(',').map(c => c.trim());
 
   return constraints.every(c => {
-    const match = c.match(/(=|~=|!=|>=|<=|>|<|==)?\s*([\w.]+)/);
+    const match = c.match(/(=|~=|!=|>=|<=|>|<|==)?\s*([\w.*]+)/);
     if (!match) {
       return false;
     }
@@ -211,8 +211,24 @@ function satisfies(version: string, constraint: string) {
         return cmp < 0;
       case '<=':
         return cmp <= 0;
-      case '==':
+      case '==': {
+        // Handle wildcard version matching (e.g., ==1.* matches 1.0, 1.1, 1.2.3, etc.)
+        if (constraintVersion.includes('*')) {
+          // Remove the wildcard and the dot before it
+          const prefix = constraintVersion.replace(/\.\*$/, '');
+          const versionParts = version.split('.');
+          const prefixParts = prefix.split('.');
+
+          // Check if the version starts with the prefix
+          for (let i = 0; i < prefixParts.length; i++) {
+            if (versionParts[i] !== prefixParts[i]) {
+              return false;
+            }
+          }
+          return true;
+        }
         return cmp === 0;
+      }
       case '~=': {
         // Compatible release: ~=X.Y is equivalent to >=X.Y, ==X.*
         const constraintParts = constraintVersion.split('.');
