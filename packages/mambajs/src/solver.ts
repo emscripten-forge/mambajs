@@ -19,6 +19,29 @@ export interface ISolveOptions {
   nRetries?: number;
 }
 
+const VIRTUAL_PACKAGES = {
+  __unix: makeVirtualPackage('__unix'),
+  __linux: makeVirtualPackage('__linux'),
+  __glibc: makeVirtualPackage('__glibc'),
+  __osx: makeVirtualPackage('__osx'),
+  __win: makeVirtualPackage('__win'),
+  __archspec: makeVirtualPackage('__archspec')
+};
+
+function makeVirtualPackage(name: string) {
+  return {
+    filename: name,
+    packageName: name,
+    repoName: '@',
+    version: '0',
+    build: '@',
+    subdir: '@',
+    md5: '@',
+    sha256: '@',
+    url: 'https://prefix.dev/@/@'
+  };
+}
+
 export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   const { ymlOrSpecs, currentLock, logger } = options;
   const platform = options.platform ?? DEFAULT_PLATFORM;
@@ -48,6 +71,50 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     logger.log('Solving environment...');
   }
 
+  const installedPackages = Object.keys(installedCondaPackages).map(
+    (filename: string) => {
+      // Turn mambajs lock definition into what rattler expects
+      const installedPkg = installedCondaPackages[filename];
+      return {
+        filename,
+        packageName: installedPkg.name,
+        repoName: installedPkg.channel,
+        version: installedPkg.version,
+        build: installedPkg.build,
+        subdir: installedPkg.subdir,
+        md5: installedPkg.hash?.md5,
+        sha256: installedPkg.hash?.sha256,
+        url: computePackageUrl(
+          installedPkg,
+          filename,
+          formattedChannels.channelInfo
+        )
+      };
+    }
+  );
+
+  // Inject virtual packages
+  if (
+    platform.includes('wasm') ||
+    platform.includes('linux') ||
+    platform.includes('osx') ||
+    platform.includes('zos') ||
+    platform.includes('freebsd')
+  ) {
+    installedPackages.push(VIRTUAL_PACKAGES['__unix']);
+  }
+  if (platform.includes('linux')) {
+    installedPackages.push(VIRTUAL_PACKAGES['__linux']);
+    installedPackages.push(VIRTUAL_PACKAGES['__glibc']);
+  }
+  if (platform.includes('osx')) {
+    installedPackages.push(VIRTUAL_PACKAGES['__osx']);
+  }
+  if (platform.includes('win')) {
+    installedPackages.push(VIRTUAL_PACKAGES['__win']);
+  }
+  installedPackages.push(VIRTUAL_PACKAGES['__archspec']);
+
   try {
     const startSolveTime = performance.now();
 
@@ -59,25 +126,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         return formattedChannels.channelInfo[channelName][0].url;
       }),
       ['noarch', platform],
-      Object.keys(installedCondaPackages).map((filename: string) => {
-        // Turn mambajs lock definition into what rattler expects
-        const installedPkg = installedCondaPackages[filename];
-        return {
-          filename,
-          packageName: installedPkg.name,
-          repoName: installedPkg.channel,
-          version: installedPkg.version,
-          build: installedPkg.build,
-          subdir: installedPkg.subdir,
-          md5: installedPkg.hash?.md5,
-          sha256: installedPkg.hash?.sha256,
-          url: computePackageUrl(
-            installedPkg,
-            filename,
-            formattedChannels.channelInfo
-          )
-        };
-      })
+      installedPackages
     )) as SolvedPackage[];
 
     const endSolveTime = performance.now();
@@ -98,6 +147,10 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
         md5,
         sha256
       } = item;
+
+      if (filename in VIRTUAL_PACKAGES) {
+        return;
+      }
 
       const hash: ILock['packages'][string]['hash'] = {};
       if (md5) hash.md5 = md5;
