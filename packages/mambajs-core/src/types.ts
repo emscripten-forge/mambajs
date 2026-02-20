@@ -21,17 +21,27 @@ export type ISolvedPipPackages = ILock['pipPackages'];
 
 export const DEFAULT_PLATFORM: ILock['platform'] = 'emscripten-wasm32';
 export const DEFAULT_CHANNELS: ILock['channels'] = [
-  'emscripten-forge',
+  'emscripten-forge-4x',
   'conda-forge'
 ];
 export const DEFAULT_CHANNELS_INFO: ILock['channelInfo'] = {
-  'emscripten-forge': [
+  'emscripten-forge-4x': [
     {
-      url: 'https://prefix.dev/emscripten-forge-dev',
+      url: 'https://prefix.dev/emscripten-forge-4x',
       protocol: 'https'
     },
     {
-      url: 'https://repo.prefix.dev/emscripten-forge-dev',
+      url: 'https://repo.prefix.dev/emscripten-forge-4x',
+      protocol: 'https'
+    }
+  ],
+  'emscripten-forge-3x': [
+    {
+      url: 'https://prefix.dev/emscripten-forge-3x',
+      protocol: 'https'
+    },
+    {
+      url: 'https://repo.prefix.dev/emscripten-forge-3x',
       protocol: 'https'
     }
   ],

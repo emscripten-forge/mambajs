@@ -4,6 +4,7 @@ import {
   DEFAULT_CHANNELS,
   DEFAULT_CHANNELS_INFO,
   ILock,
+  ILogger,
   ISolvedPackage,
   TSharedLibs
 } from './types';
@@ -468,8 +469,13 @@ export function getCondaMetaFile(
 }
 
 export function formatChannels(
-  channels?: string[]
+  channels?: string[],
+  logger?: ILogger
 ): Pick<ILock, 'channelInfo' | 'channels'> {
+  if (!logger) {
+    logger = console;
+  }
+
   if (!channels || !channels.length) {
     throw new Error('No channels specified');
   }
@@ -518,6 +524,17 @@ export function formatChannels(
     if (channel === 'defaults') {
       DEFAULT_CHANNELS.forEach(pushChannel);
       return;
+    }
+
+    if (channel === 'emscripten-forge') {
+      logger.warn('emscripten-forge channel alias is deprecated. Please use https://prefix.dev/emscripten-forge-3x explicitely.')
+      channel = 'https://prefix.dev/emscripten-forge-3x';
+    }
+
+    if (channel === 'https://prefix.dev/emscripten-forge') {
+      const error = 'https://prefix.dev/emscripten-forge channel does not exist. Please use https://prefix.dev/emscripten-forge-3x or https://prefix.dev/emscripten-forge-4x explicitely.';
+      logger.error(error)
+      throw new Error(error);
     }
 
     // If it's one of the default channels and it's not included yet, add it

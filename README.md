@@ -57,7 +57,7 @@ import { create } from '@emscripten-forge/mambajs';
 
 const yml = `
 channels:
-  - https://prefix.dev/emscripten-forge-dev
+  - https://prefix.dev/emscripten-forge-3x
   - https://prefix.dev/conda-forge
 dependencies:
   - python=3.11
@@ -297,7 +297,7 @@ npx lerna version --no-private
 Mambajs is designed primarily for WebAssembly/Emscripten environments but can work in Node.js for lock file manipulation.
 
 **Default Platform**: `emscripten-wasm32`
-**Default Channels**: `emscripten-forge` (https://prefix.dev/emscripten-forge-dev), `conda-forge` (https://prefix.dev/conda-forge)
+**Default Channels**: `emscripten-forge` (https://prefix.dev/emscripten-forge-3x), `conda-forge` (https://prefix.dev/conda-forge)
 
 ## License
 

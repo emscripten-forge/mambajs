@@ -7,7 +7,7 @@ const logger = new TestLogger();
 
 const yml = `
 channels:
-  - https://prefix.dev/emscripten-forge-dev
+  - https://prefix.dev/emscripten-forge-3x
   - https://prefix.dev/conda-forge
 dependencies:
   - pandas

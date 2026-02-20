@@ -162,7 +162,7 @@ export async function install(
 
   if (channels?.length) {
     // Merge existing channels with new ones
-    const newChannels = formatChannels(channels);
+    const newChannels = formatChannels(channels, logger);
 
     for (const channel of newChannels.channels) {
       if (!env.channels.includes(channel)) {

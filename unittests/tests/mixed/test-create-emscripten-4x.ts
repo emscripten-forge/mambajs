@@ -42,7 +42,7 @@ create({yml, logger}).then(async env => {
   expect(condaPackages['ipycanvas'].version).toEqual('0.13.2');
 
   // Make sure channels haven't changed
-  expect(env.channels).toEqual(['https://repo.prefix.dev/emscripten-forge-4x', 'conda-forge']);
+  expect(env.channels).toEqual(['emscripten-forge-4x', 'conda-forge']);
 
   // Make sure we keep the emscripten version
   expect(condaPackages['emscripten-abi'].version[0]).toEqual('4');

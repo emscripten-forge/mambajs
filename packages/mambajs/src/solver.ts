@@ -60,7 +60,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   if (typeof ymlOrSpecs === 'string') {
     const ymlData = parseEnvYml(ymlOrSpecs);
     specs = ymlData.specs;
-    formattedChannels = formatChannels(ymlData.channels);
+    formattedChannels = formatChannels(ymlData.channels, logger);
   } else {
     installedCondaPackages = currentLock?.packages ?? {};
     formattedChannels = currentLock!;
