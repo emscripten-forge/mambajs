@@ -22,18 +22,18 @@ export interface ISolveOptions {
 const VIRTUAL_PACKAGES = {
   __unix: makeVirtualPackage('__unix'),
   __linux: makeVirtualPackage('__linux'),
-  __glibc: makeVirtualPackage('__glibc'),
+  __glibc: makeVirtualPackage('__glibc', '2.25'),
   __osx: makeVirtualPackage('__osx'),
   __win: makeVirtualPackage('__win'),
   __archspec: makeVirtualPackage('__archspec')
 };
 
-function makeVirtualPackage(name: string) {
+function makeVirtualPackage(name: string, version='0') {
   return {
     filename: name,
     packageName: name,
     repoName: '@',
-    version: '0',
+    version,
     build: '@',
     subdir: '@',
     md5: '@',
