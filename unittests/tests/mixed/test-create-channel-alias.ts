@@ -38,4 +38,7 @@ create({yml, logger}).then(async result => {
 
   expect(condaPackages['ipycanvas'].version).toEqual('0.13.2');
   expect(pipPackages['bqplot'].version).toEqual('0.12.42');
+
+  // Channel alias is deprecated
+  expect(logger.warnings).toInclude('deprecated');
 });
