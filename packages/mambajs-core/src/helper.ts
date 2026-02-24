@@ -493,7 +493,7 @@ export function formatChannels(
     channel: ILock['channelInfo'][keyof ILock['channelInfo']];
   } | null => {
     // Check if it's a known channel alias
-    if (DEFAULT_CHANNELS.includes(urlOrName)) {
+    if (Object.keys(DEFAULT_CHANNELS_INFO).includes(urlOrName)) {
       return {
         name: urlOrName,
         channel: DEFAULT_CHANNELS_INFO[urlOrName]
