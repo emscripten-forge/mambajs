@@ -95,17 +95,15 @@ function parseCommandLine(line: string): IParsedCommand | null {
 
   const commandLine = line.split(' ').filter(val => !!val);
 
-  if (
-    !commandLine[0] ||
-    (!commandLine[0].startsWith('%') && !commandLine[0].startsWith('!'))
-  ) {
+  if (!commandLine[0]) {
     return null;
   }
 
   let command: 'conda' | 'pip' | null = null;
-  const alias = commandLine[0].startsWith('%')
-    ? commandLine[0].split('%')[1]
-    : commandLine[0].split('!')[1];
+  const alias =
+    commandLine[0].startsWith('%') || commandLine[0].startsWith('!')
+      ? commandLine[0].substring(1)
+      : commandLine[0];
   if (CONDA_ALIASES.includes(alias as TCondaAliases)) {
     command = 'conda';
   } else if (alias === 'pip') {
