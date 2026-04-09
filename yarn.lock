@@ -73,7 +73,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs-cli@workspace:packages/mambajs-cli"
   dependencies:
-    "@emscripten-forge/mambajs": "npm:^0.21.1"
+    "@emscripten-forge/mambajs": "npm:^0.21.2"
     "@esbuild-plugins/node-globals-polyfill": "npm:^0.2.3"
     "@esbuild-plugins/node-modules-polyfill": "npm:^0.2.2"
     "@types/node": "npm:^25.1.0"
@@ -86,7 +86,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@emscripten-forge/mambajs-core@npm:^0.21.1, @emscripten-forge/mambajs-core@workspace:packages/mambajs-core":
+"@emscripten-forge/mambajs-core@npm:^0.21.2, @emscripten-forge/mambajs-core@workspace:packages/mambajs-core":
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs-core@workspace:packages/mambajs-core"
   dependencies:
@@ -124,12 +124,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@emscripten-forge/mambajs@npm:^0.21.1, @emscripten-forge/mambajs@workspace:packages/mambajs":
+"@emscripten-forge/mambajs@npm:^0.21.2, @emscripten-forge/mambajs@workspace:packages/mambajs":
   version: 0.0.0-use.local
   resolution: "@emscripten-forge/mambajs@workspace:packages/mambajs"
   dependencies:
     "@conda-org/rattler": "npm:^0.3.5"
-    "@emscripten-forge/mambajs-core": "npm:^0.21.1"
+    "@emscripten-forge/mambajs-core": "npm:^0.21.2"
     "@esbuild-plugins/node-globals-polyfill": "npm:^0.2.3"
     "@esbuild-plugins/node-modules-polyfill": "npm:^0.2.2"
     esbuild: "npm:^0.24.0"

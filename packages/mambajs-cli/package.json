@@ -1,6 +1,6 @@
 {
   "name": "@emscripten-forge/mambajs-cli",
-  "version": "0.21.1",
+  "version": "0.21.2",
   "description": "MambaJS CLI for generating lock files",
   "bin": {
     "mambajs": "dist/index.js"
@@ -27,7 +27,7 @@
   "author": "Emscripten-forge developers",
   "license": " BSD-3-Clause license ",
   "dependencies": {
-    "@emscripten-forge/mambajs": "^0.21.1",
+    "@emscripten-forge/mambajs": "^0.21.2",
     "commander": "^14.0.2"
   },
   "devDependencies": {
