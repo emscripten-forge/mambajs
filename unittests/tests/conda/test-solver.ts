@@ -8,6 +8,7 @@ const yml = `
 channels:
   - https://prefix.dev/emscripten-forge-3x
   - https://prefix.dev/conda-forge
+  - nodefaults
 dependencies:
   - pandas
   - xeus-python
