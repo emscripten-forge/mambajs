@@ -520,6 +520,11 @@ export function formatChannels(
     // Cleanup trailing url slash
     channel = cleanUrl(channel);
 
+    // If it's nodefaults, ignore. Since we don't inject default anaconda channels anyway.
+    if (channel === 'nodefaults') {
+      return;
+    }
+
     // If it's defaults, push all default channels
     if (channel === 'defaults') {
       DEFAULT_CHANNELS.forEach(pushChannel);
