@@ -14,6 +14,7 @@
 - [Working with Lock Files](#working-with-lock-files)
 - [Advanced Usage](#advanced-usage)
 - [API Reference](#api-reference)
+- [CLI](#cli)
 - [Project Structure](#project-structure)
 - [Development](#development)
 - [Platform Support](#platform-support)
@@ -249,12 +250,46 @@ showEnvironmentDiff(oldEnv, newEnv, console);
 - **`showEnvironmentDiff(old, new, logger)`**: Show environment changes
 - **`packageNameFromSpec(spec)`**: Extract package name from spec
 
+## CLI
+
+The `mambajs` CLI can be used to generate lock files from environment YAML definitions.
+
+### Installation
+
+```bash
+pip install mambajs
+```
+
+Or with `conda`/`micromamba`/`mamba`:
+
+```bash
+micromamba install -c conda-forge mambajs
+```
+
+### Usage
+
+```
+Usage: mambajs [options] [command]
+
+MambaJS CLI for generating lock files
+
+Options:
+  -V, --version                         output the version number
+  -h, --help                            display help for command
+
+Commands:
+  create-lock [options] <env> <output>  Create a mambajs lock file from an
+                                        environment.yml file
+  help [command]                        display help for command
+```
+
 ## Project Structure
 
 This is a monorepo managed with Lerna:
 
 - **`@emscripten-forge/mambajs`**: Main package with high-level API
 - **`@emscripten-forge/mambajs-core`**: Core utilities and filesystem operations
+- **`@emscripten-forge/mambajs-cli`**: CLI for generating lock files from environment YAML definitions
 
 ## Development
 
