@@ -38,4 +38,8 @@ solve({ymlOrSpecs: yml, logger}).then(async result => {
 
   expect(condaPackages['ipycanvas'].version).toEqual('0.13.2');
   expect(pipPackages['bqplot'].version).toEqual('0.12.42');
+
+  const matches = logger.logs.filter(line => line.startsWith('Solving took'));
+  expect(matches).toHaveLength(1);
+  expect(matches[0]).toMatchRegex(/^Solving took \d+\.\d{3} seconds$/);
 });

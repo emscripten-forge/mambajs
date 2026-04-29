@@ -132,7 +132,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     const endSolveTime = performance.now();
     if (logger) {
       logger.log(
-        `Solving took ${(endSolveTime - startSolveTime) / 1000} seconds`
+        `Solving took ${((endSolveTime - startSolveTime) / 1000).toFixed(3)} seconds`
       );
     }
 
