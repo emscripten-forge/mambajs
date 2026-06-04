@@ -83,6 +83,10 @@ interface IWheelInfo {
   platformTags: string[];
 }
 
+function normalizePackageName(packageName: string): string {
+  return packageName.toLowerCase().replace(/[-_.]+/g, '-');
+}
+
 function parseWheelFilename(filename: string): IWheelInfo {
   if (!filename.endsWith('.whl')) {
     throw new Error('Invalid wheel filename: must end with .whl');
@@ -590,7 +594,11 @@ export async function processRequirement(options: {
 
     // Don't pass down parent extras unless needed (PyPI handles it via markers)
     parsedRequirement.extras = undefined;
-    if (installedCondaPackagesNames.has(parsedRequirement.package)) {
+    if (
+      installedCondaPackagesNames.has(
+        normalizePackageName(parsedRequirement.package)
+      )
+    ) {
       if (!warnedPackages.has(parsedRequirement.package)) {
         logger?.log(
           `Requirement ${parsedRequirement.package} already satisfied.`
@@ -657,7 +665,7 @@ export async function solvePip(
   const installedCondaPackagesNames = new Set<string>();
   for (const installedPackage of Object.values(installedCondaPackages)) {
     const pipPackageName = await getPipPackageName(installedPackage.name);
-    installedCondaPackagesNames.add(pipPackageName);
+    installedCondaPackagesNames.add(normalizePackageName(pipPackageName));
   }
 
   // Create pip package lookup we can more easily use (index by package name, not wheel name)
@@ -669,8 +677,9 @@ export async function solvePip(
   const warnedPackages = new Set<string>();
   const pipSolvedPackages: ISolvedPipPackages = { ...installedPipPackages };
   for (const spec of specs) {
+    const normalizedSpecName = normalizePackageName(spec.package);
     // Ignoring already installed package via conda
-    if (installedCondaPackagesNames.has(spec.package)) {
+    if (installedCondaPackagesNames.has(normalizedSpecName)) {
       logger?.log(
         `Requirement ${spec.package} already handled by conda/micromamba/mamba.`
       );

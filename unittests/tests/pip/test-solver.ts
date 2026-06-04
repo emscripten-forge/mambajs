@@ -51,3 +51,29 @@ solvePip(ymlPrerelease, packages, {}, {}, [], logger, 'linux-64').then(
     expect(packageVersions['jupytergis-lab']).toEqual('0.16.0a0');
   }
 );
+
+const packagesWithMarkupSafe = {
+  ...packages,
+  'markupsafe-3.0.2-pyhd8ed1ab_0.conda': {
+    name: 'markupsafe',
+    build: 'pyhd8ed1ab_0',
+    version: '3.0.2',
+    subdir: 'noarch',
+    channel: 'conda-forge'
+  }
+};
+
+const ymlCaseInsensitiveCondaName = `
+dependencies:
+  - pip:
+    - MarkupSafe
+`;
+
+solvePip(ymlCaseInsensitiveCondaName, packagesWithMarkupSafe, {}, {}, [], logger).then(
+  result => {
+    expect(Object.values(result)).toBeEmpty();
+    expect(logger.logs).toInclude(
+      'Requirement MarkupSafe already handled by conda/micromamba/mamba.'
+    );
+  }
+);
