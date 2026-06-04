@@ -39,15 +39,26 @@ dependencies:
     - jupytergis-lite==0.16.0a0
 `;
 
-solvePip(ymlPrerelease, packages, {}, {}, [], logger, 'linux-64').then(
-  result => {
-    const packageVersions = Object.values(result).reduce(
-      (acc, pkg) => ({ ...acc, [pkg.name]: pkg.version }),
-      {} as Record<string, string>
-    );
+async function testPrereleaseSubDependencies() {
+  const result = await solvePip(
+    ymlPrerelease,
+    packages,
+    {},
+    {},
+    [],
+    logger,
+    'linux-64'
+  );
+  const packageVersions = Object.values(result).reduce(
+    (acc, pkg) => ({ ...acc, [pkg.name]: pkg.version }),
+    {} as Record<string, string>
+  );
 
-    expect(packageVersions['jupytergis-lite']).toEqual('0.16.0a0');
-    expect(packageVersions['jupytergis-core']).toEqual('0.16.0a0');
-    expect(packageVersions['jupytergis-lab']).toEqual('0.16.0a0');
-  }
-);
+  expect(packageVersions['jupytergis-lite']).toEqual('0.16.0a0');
+  expect(packageVersions['jupytergis-core']).toEqual('0.16.0a0');
+  expect(packageVersions['jupytergis-lab']).toEqual('0.16.0a0');
+}
+
+testPrereleaseSubDependencies().catch(err => {
+  throw err;
+});

@@ -532,16 +532,26 @@ export async function processRequirement(options: {
 
   let requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
   try {
-    const versionMetadata = await (
-      await fetch(
-        `https://pypi.org/pypi/${requirement.package}/${solved.version}/json`
-      )
-    ).json();
-    if (versionMetadata?.info?.requires_dist) {
-      requiresDist = versionMetadata.info.requires_dist;
+    const encodedPackageName = encodeURIComponent(requirement.package);
+    const encodedVersion = encodeURIComponent(solved.version);
+    const versionResponse = await fetch(
+      `https://pypi.org/pypi/${encodedPackageName}/${encodedVersion}/json`
+    );
+    if (!versionResponse.ok) {
+      throw new Error(`HTTP ${versionResponse.status}`);
     }
-  } catch {
-    // Keep fallback metadata from the unversioned endpoint.
+    const versionMetadata = await versionResponse.json();
+    const versionRequiresDist = versionMetadata?.info?.requires_dist as
+      | string[]
+      | undefined;
+    if (versionRequiresDist?.length) {
+      requiresDist = versionRequiresDist;
+    }
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    logger?.warn(
+      `WARNING: Failed to fetch version-specific metadata for ${requirement.package}==${solved.version}: ${errorMessage}. Falling back to package metadata.`
+    );
   }
 
   const filteredRequiresDist = (requiresDist || []).filter(raw => {
