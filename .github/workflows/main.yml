@@ -155,8 +155,15 @@ jobs:
       - name: Publish all packages under packages/ to npm
         run: |
           for pkg in packages/*; do
-            if [ -f "$pkg/package.json" ]; then
-              echo "Publishing $pkg..."
+            [ -f "$pkg/package.json" ] || continue
+
+            name=$(node -p "require('./$pkg/package.json').name")
+            version=$(node -p "require('./$pkg/package.json').version")
+
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "Skipping $name@$version (already published)"
+            else
+              echo "Publishing $name@$version"
               (cd "$pkg" && npm publish)
             fi
           done
