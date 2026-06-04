@@ -69,11 +69,20 @@ dependencies:
     - MarkupSafe
 `;
 
-solvePip(ymlCaseInsensitiveCondaName, packagesWithMarkupSafe, {}, {}, [], logger).then(
-  result => {
+solvePip(
+  ymlCaseInsensitiveCondaName,
+  packagesWithMarkupSafe,
+  {},
+  {},
+  [],
+  logger
+)
+  .then(result => {
     expect(Object.values(result)).toBeEmpty();
     expect(logger.logs).toInclude(
       'Requirement MarkupSafe already handled by conda/micromamba/mamba.'
     );
-  }
-);
+  })
+  .catch(err => {
+    throw err;
+  });
