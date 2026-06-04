@@ -550,7 +550,7 @@ export async function processRequirement(options: {
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : String(e);
     logger?.warn(
-      `WARNING: Failed to fetch version-specific metadata for ${requirement.package}==${solved.version}: ${errorMessage}. Falling back to package metadata.`
+      `Failed to fetch version-specific metadata for ${requirement.package}==${solved.version}: ${errorMessage}. Falling back to package metadata.`
     );
   }
 
