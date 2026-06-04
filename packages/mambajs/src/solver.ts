@@ -6,6 +6,7 @@ import {
   ILock,
   ILogger,
   ISolvedPackages,
+  MAMBAJS_LOCK_VERSION,
   parseEnvYml
 } from '@emscripten-forge/mambajs-core';
 import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
@@ -220,7 +221,7 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   });
 
   return {
-    lockVersion: '1.0.3',
+    lockVersion: MAMBAJS_LOCK_VERSION,
     platform,
     specs,
     channels: formattedChannels.channels,

@@ -33,6 +33,8 @@ export * from './types';
 export * from './helper';
 export * from './parser';
 
+export const MAMBAJS_LOCK_VERSION = '1.0.3';
+
 /**
  * Given a lock file, get the Python version
  * @param lock representation
@@ -217,7 +219,7 @@ export function empackLockToMambajsLock(
   }
 
   return {
-    lockVersion: '1.0.3',
+    lockVersion: MAMBAJS_LOCK_VERSION,
     specs: empackEnvMeta.specs ?? [],
     platform: DEFAULT_PLATFORM,
     channels: formattedChannels.channels,
