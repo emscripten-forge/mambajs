@@ -530,7 +530,19 @@ export async function processRequirement(options: {
     delete installedWheels[requirement.package];
   }
 
-  const requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
+  let requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
+  try {
+    const versionMetadata = await (
+      await fetch(
+        `https://pypi.org/pypi/${requirement.package}/${solved.version}/json`
+      )
+    ).json();
+    if (versionMetadata?.info?.requires_dist) {
+      requiresDist = versionMetadata.info.requires_dist;
+    }
+  } catch {
+    // Keep fallback metadata from the unversioned endpoint.
+  }
 
   const filteredRequiresDist = (requiresDist || []).filter(raw => {
     const [, envMarker] = raw.split(';').map(s => s.trim());
