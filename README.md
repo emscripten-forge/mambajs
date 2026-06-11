@@ -50,6 +50,12 @@ Or with yarn:
 yarn add @emscripten-forge/mambajs
 ```
 
+This is also available on conda-forge (with conda/mamba/pixi):
+
+```bash
+conda install -c conda-forge mambajs
+```
+
 ## Quick Start
 
 ### Basic Environment Creation
