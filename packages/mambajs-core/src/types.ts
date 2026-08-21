@@ -4,7 +4,8 @@ import { ILock } from './types';
 export type { ILockV1 } from './_interface/lock.v1.0.0';
 export type { ILockV101 } from './_interface/lock.v1.0.1';
 export type { ILockV102 } from './_interface/lock.v1.0.2';
-export type { ILockV103 as ILock } from './_interface/lock.v1.0.3';
+export type { ILockV103 } from './_interface/lock.v1.0.3';
+export type { ILockV104 as ILock } from './_interface/lock.v1.0.4';
 
 export interface ILogger {
   log(...msg: any[]): void;

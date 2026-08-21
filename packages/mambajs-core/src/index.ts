@@ -33,7 +33,7 @@ export * from './types';
 export * from './helper';
 export * from './parser';
 
-export const MAMBAJS_LOCK_VERSION = '1.0.3';
+export const MAMBAJS_LOCK_VERSION = '1.0.4';
 
 /**
  * Given a lock file, get the Python version

@@ -37,7 +37,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@conda-org/rattler": "^0.3.5",
+    "@conda-org/rattler": "^0.4.0",
     "@emscripten-forge/mambajs-core": "^0.21.5",
     "yaml": "^2.7.0"
   }
