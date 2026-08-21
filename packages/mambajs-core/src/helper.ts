@@ -532,13 +532,16 @@ export function formatChannels(
     }
 
     if (channel === 'emscripten-forge') {
-      logger.warn('emscripten-forge channel alias is deprecated. Please use https://prefix.dev/emscripten-forge-3x explicitely.')
+      logger.warn(
+        'emscripten-forge channel alias is deprecated. Please use https://prefix.dev/emscripten-forge-3x explicitely.'
+      );
       channel = 'https://prefix.dev/emscripten-forge-3x';
     }
 
     if (channel === 'https://prefix.dev/emscripten-forge') {
-      const error = 'https://prefix.dev/emscripten-forge channel does not exist. Please use https://prefix.dev/emscripten-forge-3x or https://prefix.dev/emscripten-forge-4x explicitely.';
-      logger.error(error)
+      const error =
+        'https://prefix.dev/emscripten-forge channel does not exist. Please use https://prefix.dev/emscripten-forge-3x or https://prefix.dev/emscripten-forge-4x explicitely.';
+      logger.error(error);
       throw new Error(error);
     }
 
@@ -586,7 +589,7 @@ export function computePackageChannel(
   }
 
   throw new Error(
-    `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channels}`
+    `Failed to detect channel from ${pkg.name} (${pkg.channel}), with known channels ${formattedChannels.channels}`
   );
 }
 

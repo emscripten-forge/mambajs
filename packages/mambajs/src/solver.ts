@@ -29,7 +29,7 @@ const VIRTUAL_PACKAGES = {
   __archspec: makeVirtualPackage('__archspec')
 };
 
-function makeVirtualPackage(name: string, version='0') {
+function makeVirtualPackage(name: string, version = '0') {
   return {
     filename: name,
     packageName: name,
@@ -196,11 +196,17 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   Object.keys(condaPackages).forEach(filename => {
     const pkg = condaPackages[filename];
 
+    // Remove virtual package from the result
+    if (pkg.name in VIRTUAL_PACKAGES) {
+      delete condaPackages[filename];
+      return;
+    }
+
     const channel = computePackageChannel(pkg, formattedChannels);
 
     if (!channel) {
       throw new Error(
-        `Failed to detect channel from ${pkg} (${pkg.channel}), with known channels ${formattedChannels.channels}`
+        `Failed to detect channel from ${pkg.name} (${pkg.channel}), with known channels ${formattedChannels.channels}`
       );
     }
 
