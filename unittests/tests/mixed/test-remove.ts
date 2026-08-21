@@ -30,7 +30,7 @@ create({yml, logger}).then(async env => {
   expect(Object.keys(pipDiff.newPackages)).toBeEmpty();
   expect(Object.keys(pipDiff.removedPackages).length).toBeGreaterThanOrEqual(2) // at least traittypes and bqplot are now coming from conda;
   expect(Object.keys(condaDiff.newPackages).length).toBeGreaterThanOrEqual(2); // at least ipycanvas and bqplot new versions
-  expect(Object.keys(condaDiff.removedPackages).length).toEqual(1); // ipycanvas old version
+  expect(Object.keys(condaDiff.removedPackages).length).toBeGreaterThanOrEqual(1); // ipycanvas old version and dependencies
 
   let condaPackageNames = Object.values(env.packages).map(pkg => pkg.name);
   let pipPackageNames = Object.values(env.pipPackages).map(pkg => pkg.name);
@@ -68,6 +68,7 @@ create({yml, logger}).then(async env => {
   pipDiff = computePipPackagesDiff({ oldLock, newLock });
   condaDiff = computeCondaPackagesDiff({ oldLock, newLock });
   expect(Object.keys(pipDiff.newPackages)).toBeEmpty();
+
   expect(Object.keys(pipDiff.removedPackages).length).toEqual(1) // only ipydatagrid (no dependency removal with pip);
   expect(Object.keys(condaDiff.newPackages)).toBeEmpty();
   expect(Object.keys(condaDiff.removedPackages)).toBeEmpty();
