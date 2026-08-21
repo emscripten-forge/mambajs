@@ -9,7 +9,12 @@ import {
   MAMBAJS_LOCK_VERSION,
   parseEnvYml
 } from '@emscripten-forge/mambajs-core';
-import { Platform, simpleSolve, SolvedPackage } from '@conda-org/rattler';
+import {
+  isRattlerError,
+  Platform,
+  simpleSolve,
+  SolvedPackage
+} from '@conda-org/rattler';
 
 export interface ISolveOptions {
   ymlOrSpecs?: string | string[];
@@ -173,7 +178,10 @@ export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
     });
   } catch (error) {
     let message: string = 'Unknown error';
-    if (typeof error === 'string') {
+
+    if (isRattlerError(error)) {
+      message = `${error.name} ${error.code}: ${error.message}`;
+    } else if (typeof error === 'string') {
       message = error;
     } else if (error instanceof Error) {
       message = error.message;
