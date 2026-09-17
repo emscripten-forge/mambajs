@@ -64,7 +64,12 @@ const PLATFORM_TAGS = {
   'win-64': ['win_amd64'],
   'win-32': ['win32'],
   'win-arm64': ['win_arm64'],
-  'emscripten-wasm32': ['pyemscripten_2025_0_wasm32'],
+  'emscripten-wasm32': [
+    'pyemscripten_2024_0_wasm32',
+    'pyemscripten_2025_0_wasm32',
+    'pyemscripten_2026_0_wasm32',
+    'pyemscripten_2026_5_wasm32'
+  ],
   'wasi-wasm32': []
 };
 

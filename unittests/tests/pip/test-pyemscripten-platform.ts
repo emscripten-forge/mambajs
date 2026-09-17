@@ -1,10 +1,10 @@
-import { create, ISolvedPackage, ISolvedPipPackage } from "../../../packages/mambajs/src";
+import { create } from "../../../packages/mambajs/src";
 import { TestLogger } from "../../helpers";
 import { expect } from 'earl';
 
 const logger = new TestLogger();
 
-let yml = `
+const yml = `
 channels:
   - https://repo.prefix.dev/emscripten-forge-4x
   - https://repo.prefix.dev/conda-forge
