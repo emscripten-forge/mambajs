@@ -70,4 +70,4 @@ solvePip(ymlPure, packagesPython310, {}, {}, [], logger).then(result => {
 });
 
 // Test 3: Verify platform-specific packages fail without platform
-expect(solvePip(ymlPandas, packagesPython310, {}, {}, [], logger)).toBeRejectedWith('binary built package that is not compatible with WASM');
+expect(solvePip(ymlPandas, packagesPython310, {}, {}, [], logger)).toBeRejectedWith('We did not find a wheel compiled for WASM environments');

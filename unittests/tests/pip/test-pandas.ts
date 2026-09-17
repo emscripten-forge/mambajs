@@ -24,4 +24,4 @@ dependencies:
     - pandas
 `;
 
-expect(solvePip(yml, packages, {}, {}, [], logger)).toBeRejectedWith('binary built package that is not compatible with WASM');
+expect(solvePip(yml, packages, {}, {}, [], logger)).toBeRejectedWith('We did not find a wheel compiled for WASM environments');
