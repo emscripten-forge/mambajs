@@ -64,7 +64,7 @@ const PLATFORM_TAGS = {
   'win-64': ['win_amd64'],
   'win-32': ['win32'],
   'win-arm64': ['win_arm64'],
-  'emscripten-wasm32': [],
+  'emscripten-wasm32': ['pyemscripten_2025_0_wasm32'],
   'wasi-wasm32': []
 };
 
@@ -409,7 +409,7 @@ function getUnavailableWheelError(
 ) {
   if (platform === 'emscripten-wasm32') {
     return (
-      `Cannot install '${packageName}' from PyPI because it is a binary built package that is not compatible with WASM environments. ` +
+      `Cannot install '${packageName}' from PyPI. We did not find a wheel compiled for WASM environments. ` +
       `To resolve this issue, you can: ` +
       `1) Try to install it from emscripten-forge instead: "!mamba install ${packageName}" ` +
       `2) If that doesn't work, it's probably that the package was not made WASM-compatible on emscripten-forge. You can either request or contribute a new recipe for that package in https://github.com/emscripten-forge/recipes `
