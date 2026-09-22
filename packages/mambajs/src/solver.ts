@@ -23,6 +23,7 @@ export interface ISolveOptions {
   currentLock?: ILock;
   logger?: ILogger;
   nRetries?: number;
+  index?: string;
 }
 
 const VIRTUAL_PACKAGES = {

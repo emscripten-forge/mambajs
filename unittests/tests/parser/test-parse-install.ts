@@ -49,4 +49,23 @@ expect((cmd.commands[0].data as IInstallationCommandOptions).channels).toEqual([
 
 expect(() => parse('%pip install git+https://github.com/org/repo.git')).toThrow(`Unsupported option 'git+https://github.com/org/repo.git'`);
 expect(() => parse('%pip install pathToWheel.whl')).toThrow(`Unsupported option 'pathToWheel.whl'`);
-expect(() => parse('%pip install --index-url ipycanvas')).toThrow(`Unsupported option '--index-url'`);
+expect(() => parse('%pip install --extra-index-url https://example.org/simple ipycanvas')).toThrow(`Unsupported option '--extra-index-url'`);
+expect(() => parse('%pip install -i')).toThrow(`Missing value for option '-i'`);
+expect(() => parse('%pip install --index-url')).toThrow(`Missing value for option '--index-url'`);
+
+cmd = parse('%pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple matplotlib');
+
+expect(cmd.commands[0].data.type).toEqual('pip');
+expect(cmd.commands[0].type).toEqual('install');
+expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual(['matplotlib']);
+expect((cmd.commands[0].data as IInstallationCommandOptions).index).toEqual('https://pypi.anaconda.org/scientific-python-nightly-wheels/simple');
+
+cmd = parse('%pip install matplotlib --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple');
+
+expect(cmd.commands[0].data.type).toEqual('pip');
+expect((cmd.commands[0].data as IInstallationCommandOptions).specs).toEqual(['matplotlib']);
+expect((cmd.commands[0].data as IInstallationCommandOptions).index).toEqual('https://pypi.anaconda.org/scientific-python-nightly-wheels/simple');
+
+cmd = parse('%pip install ipycanvas');
+
+expect((cmd.commands[0].data as IInstallationCommandOptions).index).toEqual(undefined);

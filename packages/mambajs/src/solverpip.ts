@@ -92,6 +92,129 @@ function normalizePackageName(packageName: string): string {
   return packageName.toLowerCase().replace(/[-_.]+/g, '-');
 }
 
+// Accept both the PEP 691 JSON simple API and the legacy HTML simple API
+const SIMPLE_INDEX_ACCEPT =
+  'application/vnd.pypi.simple.v1+json, text/html;q=0.9';
+
+interface ISimpleIndexFile {
+  filename: string;
+  url: string;
+  size?: number;
+  hashes?: { [algo: string]: string };
+}
+
+function parseSimpleIndexHtml(
+  html: string,
+  baseUrl: string
+): ISimpleIndexFile[] {
+  const files: ISimpleIndexFile[] = [];
+  const anchorRegex = /<a\s+[^>]*href=["']([^"'#]+)["'][^>]*>([^<]*)<\/a>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = anchorRegex.exec(html))) {
+    const href = match[1];
+    const filename = match[2].trim();
+    if (!filename) {
+      continue;
+    }
+
+    let url: string;
+    try {
+      url = new URL(href, baseUrl).toString();
+    } catch {
+      continue;
+    }
+
+    files.push({ filename, url });
+  }
+
+  return files;
+}
+
+function versionFromFilename(filename: string): string | undefined {
+  if (filename.endsWith('.whl')) {
+    try {
+      return parseWheelFilename(filename).version;
+    } catch {
+      return undefined;
+    }
+  }
+
+  const sdistExt = ['.tar.gz', '.zip', '.tar.bz2'].find(ext =>
+    filename.endsWith(ext)
+  );
+  if (sdistExt) {
+    const base = filename.slice(0, -sdistExt.length);
+    const parts = base.split('-');
+    if (parts.length >= 2) {
+      return parts[parts.length - 1];
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Fetch package metadata from a PEP 503/691 "simple" package index (e.g. a custom -i/--index-url),
+ * and shape it like the PyPI JSON API response so it can be consumed by the rest of the solver.
+ */
+async function fetchPackageMetadataFromIndex(
+  index: string,
+  packageName: string
+): Promise<any> {
+  const indexUrl = `${index.replace(/\/+$/, '')}/${normalizePackageName(packageName)}/`;
+
+  const response = await fetch(indexUrl, {
+    headers: { Accept: SIMPLE_INDEX_ACCEPT }
+  });
+
+  if (!response.ok) {
+    return { message: 'Not Found' };
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+
+  let files: ISimpleIndexFile[];
+  if (contentType.includes('json')) {
+    const data = await response.json();
+    files = (data.files || []).map((file: any) => ({
+      filename: file.filename,
+      url: file.url,
+      size: file.size,
+      hashes: file.hashes
+    }));
+  } else {
+    files = parseSimpleIndexHtml(await response.text(), indexUrl);
+  }
+
+  const releases: { [version: string]: any[] } = {};
+  for (const file of files) {
+    const version = versionFromFilename(file.filename);
+    if (!version) {
+      continue;
+    }
+
+    if (!releases[version]) {
+      releases[version] = [];
+    }
+    releases[version].push({
+      filename: file.filename,
+      url: file.url,
+      size: file.size,
+      digests: file.hashes
+    });
+  }
+
+  if (!Object.keys(releases).length) {
+    return { message: 'Not Found' };
+  }
+
+  return {
+    info: { name: packageName, requires_dist: undefined },
+    releases
+  };
+}
+
 function parseWheelFilename(filename: string): IWheelInfo {
   if (!filename.endsWith('.whl')) {
     throw new Error('Invalid wheel filename: must end with .whl');
@@ -349,7 +472,11 @@ function getSuitableVersion(
   }
 
   if (!version) {
-    version = availableVersions.filter(isStable).sort(rcompare).reverse()[0];
+    // Fall back to the highest unstable version when no stable release exists
+    // (e.g. nightly-only indices only publish dev versions)
+    const sortedVersions = availableVersions.slice().sort(rcompare).reverse();
+    const stableVersions = sortedVersions.filter(isStable);
+    version = stableVersions.length ? stableVersions[0] : sortedVersions[0];
   }
 
   const urls: any[] = pkgInfo.releases[version];
@@ -435,6 +562,7 @@ export async function processRequirement(options: {
   logger?: ILogger;
   required?: boolean;
   platform?: Platform;
+  index?: string;
 }) {
   const {
     requirement,
@@ -442,7 +570,8 @@ export async function processRequirement(options: {
     pythonVersion,
     logger,
     required,
-    platform
+    platform,
+    index
   } = options;
   const warnedPackages = options.warnedPackages ?? new Set();
   const installPipPackagesLookup = options.installPipPackagesLookup ?? {};
@@ -450,9 +579,11 @@ export async function processRequirement(options: {
   const installedCondaPackagesNames =
     options.installedCondaPackagesNames ?? new Set();
 
-  const pkgMetadata = await (
-    await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
-  ).json();
+  const pkgMetadata = index
+    ? await fetchPackageMetadataFromIndex(index, requirement.package)
+    : await (
+        await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
+      ).json();
 
   if (pkgMetadata.message === 'Not Found') {
     const requirementSpec =
@@ -540,27 +671,50 @@ export async function processRequirement(options: {
   }
 
   let requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
-  try {
-    const encodedPackageName = encodeURIComponent(requirement.package);
-    const encodedVersion = encodeURIComponent(solved.version);
-    const versionResponse = await fetch(
-      `https://pypi.org/pypi/${encodedPackageName}/${encodedVersion}/json`
-    );
-    if (!versionResponse.ok) {
-      throw new Error(`HTTP ${versionResponse.status}`);
+  if (index) {
+    // Custom indices only expose the simple API, try to grab the wheel/sdist
+    // metadata file (PEP 658/691) to resolve dependencies
+    try {
+      const metadataResponse = await fetch(`${solved.url}.metadata`);
+      if (metadataResponse.ok) {
+        const metadataText = await metadataResponse.text();
+        const parsedRequiresDist = metadataText
+          .split('\n')
+          .filter(line => line.startsWith('Requires-Dist:'))
+          .map(line => line.slice('Requires-Dist:'.length).trim());
+        if (parsedRequiresDist.length) {
+          requiresDist = parsedRequiresDist;
+        }
+      }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger?.warn(
+        `Failed to fetch metadata for ${requirement.package}==${solved.version} from ${index}: ${errorMessage}. Dependencies will not be resolved.`
+      );
     }
-    const versionMetadata = await versionResponse.json();
-    const versionRequiresDist = versionMetadata?.info?.requires_dist as
-      | string[]
-      | undefined;
-    if (versionRequiresDist?.length) {
-      requiresDist = versionRequiresDist;
+  } else {
+    try {
+      const encodedPackageName = encodeURIComponent(requirement.package);
+      const encodedVersion = encodeURIComponent(solved.version);
+      const versionResponse = await fetch(
+        `https://pypi.org/pypi/${encodedPackageName}/${encodedVersion}/json`
+      );
+      if (!versionResponse.ok) {
+        throw new Error(`HTTP ${versionResponse.status}`);
+      }
+      const versionMetadata = await versionResponse.json();
+      const versionRequiresDist = versionMetadata?.info?.requires_dist as
+        | string[]
+        | undefined;
+      if (versionRequiresDist?.length) {
+        requiresDist = versionRequiresDist;
+      }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger?.warn(
+        `Failed to fetch version-specific metadata for ${requirement.package}==${solved.version}: ${errorMessage}. Falling back to package metadata.`
+      );
     }
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    logger?.warn(
-      `Failed to fetch version-specific metadata for ${requirement.package}==${solved.version}: ${errorMessage}. Falling back to package metadata.`
-    );
   }
 
   const filteredRequiresDist = (requiresDist || []).filter(raw => {
@@ -640,7 +794,8 @@ export async function processRequirement(options: {
       pythonVersion,
       logger,
       required: false,
-      platform
+      platform,
+      index
     });
   }
 }
@@ -652,7 +807,8 @@ export async function solvePip(
   installedPipPackages: ISolvedPipPackages,
   packageNames: Array<string> = [],
   logger?: ILogger,
-  platform?: Platform
+  platform?: Platform,
+  index?: string
 ): Promise<ISolvedPipPackages> {
   let specs: ISpec[] = [];
   platform = platform ?? DEFAULT_PLATFORM;
@@ -718,7 +874,8 @@ export async function solvePip(
       pythonVersion,
       logger,
       required: true,
-      platform
+      platform,
+      index
     });
   }
 

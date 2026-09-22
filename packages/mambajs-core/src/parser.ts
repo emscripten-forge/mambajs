@@ -26,6 +26,7 @@ export interface IInstallationCommandOptions {
   type: 'conda' | 'pip';
   specs: string[];
   channels: string[];
+  index?: string;
 }
 
 export interface IUninstallationCommandOptions {
@@ -212,21 +213,34 @@ function parseCondaInstallCommand(
 function parsePipInstallCommand(
   parameters: string[]
 ): IInstallationCommandOptions {
-  const limits = [
-    '--index-url',
-    'git+',
-    '.whl',
-    'tar.gz',
-    '--extra-index-url',
-    '-r'
-  ];
+  const limits = ['git+', '.whl', 'tar.gz', '--extra-index-url', '-r'];
 
   const flags = ['--upgrade', '--pre', '--no-cache-dir', '--user', '--no-deps'];
 
+  let index: string | undefined;
+  const remainingParameters: string[] = [];
+
+  for (let i = 0; i < parameters.length; i++) {
+    const parameter = parameters[i];
+
+    if (parameter === '-i' || parameter === '--index-url') {
+      const j = i + 1;
+      if (j >= parameters.length) {
+        throw new Error(`Missing value for option '${parameter}'`);
+      }
+      index = parameters[j];
+      i++;
+      continue;
+    }
+
+    remainingParameters.push(parameter);
+  }
+
   return {
     channels: [],
-    specs: getPipSpecs(parameters, limits, flags),
-    type: 'pip'
+    specs: getPipSpecs(remainingParameters, limits, flags),
+    type: 'pip',
+    ...(index ? { index } : {})
   };
 }
 
