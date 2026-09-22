@@ -815,9 +815,16 @@ export async function solvePip(
 
   if (yml) {
     const data = parseEnvYml(yml);
-    specs = parsePipPackage(data.pipSpecs);
+    const { specs: pipSpecs, index: ymlIndex } = extractPipIndexFromSpecs(
+      data.pipSpecs
+    );
+    specs = parsePipPackage(pipSpecs);
+    index = index ?? ymlIndex;
   } else if (packageNames.length) {
-    specs = parsePipPackage(packageNames);
+    const { specs: pipSpecs, index: specsIndex } =
+      extractPipIndexFromSpecs(packageNames);
+    specs = parsePipPackage(pipSpecs);
+    index = index ?? specsIndex;
   }
 
   // Create lookup tables for already installed packages
@@ -911,6 +918,43 @@ function parsePipPackage(pipPackages: Array<string>): ISpec[] {
     }
   }
   return specs;
+}
+
+const INDEX_URL_FLAGS = ['-i', '--index-url', '--extra-index-url'];
+
+/**
+ * Pulls a `-i`/`--index-url`/`--extra-index-url <url>` entry out of a list of pip requirements
+ * (e.g. coming from the `pip:` section of an environment.yml), whether it's written as a single
+ * `--extra-index-url https://...` string, `--extra-index-url=https://...`, or split across two entries.
+ */
+function extractPipIndexFromSpecs(pipSpecs: string[]): {
+  specs: string[];
+  index?: string;
+} {
+  const specs: string[] = [];
+  let index: string | undefined;
+
+  for (let i = 0; i < pipSpecs.length; i++) {
+    const spec = pipSpecs[i].trim();
+
+    const inlineMatch = INDEX_URL_FLAGS.map(flag =>
+      spec.match(new RegExp(`^${flag}(?:=|\\s+)(\\S+)$`))
+    ).find(Boolean);
+    if (inlineMatch) {
+      index = inlineMatch[1];
+      continue;
+    }
+
+    if (INDEX_URL_FLAGS.includes(spec) && i + 1 < pipSpecs.length) {
+      index = pipSpecs[i + 1].trim();
+      i++;
+      continue;
+    }
+
+    specs.push(pipSpecs[i]);
+  }
+
+  return { specs, index };
 }
 
 const CONDA_PACKAGE_MAPPING_URL =

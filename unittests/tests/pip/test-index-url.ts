@@ -56,3 +56,29 @@ expect(() =>
 ).toBeRejectedWith(
   /ERROR: Could not find a version that satisfies the requirement this-package-definitely-does-not-exist-on-this-index/
 );
+
+// The --extra-index-url notation should also be supported directly from an environment.yml pip section
+const ymlWithExtraIndexUrl = `
+name: my_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+    - --extra-index-url ${customIndex}
+    - matplotlib
+`;
+
+solvePip(ymlWithExtraIndexUrl, packages, {}, {}, [], logger, 'linux-64').then(
+  result => {
+    const packageNames = Object.values(result).map(pkg => pkg.name);
+    expect(packageNames).toInclude('matplotlib');
+
+    const matplotlib = Object.values(result).find(
+      pkg => pkg.name === 'matplotlib'
+    );
+    expect(matplotlib).not.toBeNullish();
+    expect(matplotlib!.url).toInclude('pypi.anaconda.org');
+  }
+);
