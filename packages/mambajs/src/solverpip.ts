@@ -1,6 +1,7 @@
 // A dumb pip "solver" which does a tiny bit of version matching
 
 import { parse } from 'yaml';
+import { inflateRaw } from 'pako';
 import {
   DEFAULT_PLATFORM,
   getPythonVersionFromPackages,
@@ -246,7 +247,132 @@ async function fetchPackageMetadata(
     lastResult = metadata;
   }
 
+  // PyPI is always implicitly searched, unless it already was one of pipIndexes
+  const metadata = await (
+    await fetch(`https://pypi.org/pypi/${packageName}/json`)
+  ).json();
+  if (metadata.message !== 'Not Found') {
+    return { metadata };
+  }
+
   return { metadata: lastResult };
+}
+
+interface IZipEntry {
+  name: string;
+  compressionMethod: number;
+  compressedSize: number;
+  localHeaderOffset: number;
+}
+
+// Minimal ZIP central directory reader, just enough to locate a wheel's dist-info/METADATA
+function parseZipEntries(view: DataView): IZipEntry[] {
+  const EOCD_SIGNATURE = 0x06054b50;
+  const minEocdSize = 22;
+  const maxCommentSize = 0xffff;
+  const searchStart = Math.max(
+    0,
+    view.byteLength - minEocdSize - maxCommentSize
+  );
+
+  let eocdOffset = -1;
+  for (let i = view.byteLength - minEocdSize; i >= searchStart; i--) {
+    if (view.getUint32(i, true) === EOCD_SIGNATURE) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset === -1) {
+    throw new Error('Invalid wheel: end of central directory not found');
+  }
+
+  const totalEntries = view.getUint16(eocdOffset + 10, true);
+  let offset = view.getUint32(eocdOffset + 16, true);
+
+  const entries: IZipEntry[] = [];
+  const decoder = new TextDecoder('utf-8');
+  for (let i = 0; i < totalEntries; i++) {
+    if (view.getUint32(offset, true) !== 0x02014b50) {
+      break;
+    }
+
+    const compressionMethod = view.getUint16(offset + 10, true);
+    const compressedSize = view.getUint32(offset + 20, true);
+    const nameLength = view.getUint16(offset + 28, true);
+    const extraLength = view.getUint16(offset + 30, true);
+    const commentLength = view.getUint16(offset + 32, true);
+    const localHeaderOffset = view.getUint32(offset + 42, true);
+    const name = decoder.decode(
+      new Uint8Array(view.buffer, view.byteOffset + offset + 46, nameLength)
+    );
+
+    entries.push({
+      name,
+      compressionMethod,
+      compressedSize,
+      localHeaderOffset
+    });
+
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+
+  return entries;
+}
+
+function extractZipEntry(view: DataView, entry: IZipEntry): Uint8Array {
+  const nameLength = view.getUint16(entry.localHeaderOffset + 26, true);
+  const extraLength = view.getUint16(entry.localHeaderOffset + 28, true);
+  const dataStart = entry.localHeaderOffset + 30 + nameLength + extraLength;
+  const compressedData = new Uint8Array(
+    view.buffer,
+    view.byteOffset + dataStart,
+    entry.compressedSize
+  );
+
+  if (entry.compressionMethod === 0) {
+    return compressedData;
+  }
+  if (entry.compressionMethod === 8) {
+    return inflateRaw(compressedData);
+  }
+
+  throw new Error(
+    `Unsupported wheel compression method ${entry.compressionMethod}`
+  );
+}
+
+/**
+ * Some indices (e.g. pypi.anaconda.org) don't serve PEP 658 `.metadata` files.
+ * As a last resort, download the wheel itself and read `Requires-Dist` straight
+ * out of its `dist-info/METADATA` file.
+ */
+async function fetchRequiresDistFromWheel(
+  wheelUrl: string
+): Promise<string[] | undefined> {
+  const response = await fetch(wheelUrl);
+  if (!response.ok) {
+    return undefined;
+  }
+
+  const view = new DataView(await response.arrayBuffer());
+  const entries = parseZipEntries(view);
+  const metadataEntry = entries.find(entry =>
+    /\.dist-info\/METADATA$/i.test(entry.name)
+  );
+  if (!metadataEntry) {
+    return undefined;
+  }
+
+  const metadataText = new TextDecoder('utf-8').decode(
+    extractZipEntry(view, metadataEntry)
+  );
+  const requiresDist = metadataText
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.startsWith('Requires-Dist:'))
+    .map(line => line.slice('Requires-Dist:'.length).trim());
+
+  return requiresDist.length ? requiresDist : undefined;
 }
 
 function parseWheelFilename(filename: string): IWheelInfo {
@@ -703,8 +829,8 @@ export async function processRequirement(options: {
 
   let requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
   if (resolvedIndex) {
-    // Custom indices only expose the simple API, try to grab the wheel/sdist
-    // metadata file (PEP 658/691) to resolve dependencies
+    // Custom indices only expose the simple API. Try the PEP 658/691 `.metadata`
+    // file first, and fall back to downloading the wheel itself if it's not served
     try {
       const metadataResponse = await fetch(`${solved.url}.metadata`);
       if (metadataResponse.ok) {
@@ -716,6 +842,10 @@ export async function processRequirement(options: {
         if (parsedRequiresDist.length) {
           requiresDist = parsedRequiresDist;
         }
+      }
+
+      if (!requiresDist?.length && solved.url.endsWith('.whl')) {
+        requiresDist = await fetchRequiresDistFromWheel(solved.url);
       }
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
