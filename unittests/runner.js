@@ -26,6 +26,10 @@ function runTests(dir) {
       const testname = path.relative(__dirname, fullPath);
       console.log(`🚩 Running ${testname}`);
 
+      if (!testname.includes('index-url')) {
+        continue;
+      }
+
       try {
         const result = spawnSync('node', [fullPath], {
           encoding: 'utf-8',

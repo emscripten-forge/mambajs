@@ -215,6 +215,40 @@ async function fetchPackageMetadataFromIndex(
   };
 }
 
+/**
+ * Fetch package metadata trying each configured pip index in order (mirroring
+ * `-i`/`--index-url` + repeatable `--extra-index-url`), falling back to the default
+ * PyPI JSON API when no custom index is configured, or none of them have the package.
+ */
+async function fetchPackageMetadata(
+  pipIndexes: string[] | undefined,
+  packageName: string
+): Promise<{ metadata: any; index?: string }> {
+  if (!pipIndexes?.length) {
+    const metadata = await (
+      await fetch(`https://pypi.org/pypi/${packageName}/json`)
+    ).json();
+    return { metadata };
+  }
+
+  let lastResult: any = { message: 'Not Found' };
+  for (const pipIndex of pipIndexes) {
+    let metadata: any;
+    try {
+      metadata = await fetchPackageMetadataFromIndex(pipIndex, packageName);
+    } catch {
+      // Unreachable/misconfigured index, try the next one
+      continue;
+    }
+    if (metadata.message !== 'Not Found') {
+      return { metadata, index: pipIndex };
+    }
+    lastResult = metadata;
+  }
+
+  return { metadata: lastResult };
+}
+
 function parseWheelFilename(filename: string): IWheelInfo {
   if (!filename.endsWith('.whl')) {
     throw new Error('Invalid wheel filename: must end with .whl');
@@ -562,7 +596,7 @@ export async function processRequirement(options: {
   logger?: ILogger;
   required?: boolean;
   platform?: Platform;
-  index?: string;
+  pipIndexes?: string[];
 }) {
   const {
     requirement,
@@ -571,7 +605,7 @@ export async function processRequirement(options: {
     logger,
     required,
     platform,
-    index
+    pipIndexes
   } = options;
   const warnedPackages = options.warnedPackages ?? new Set();
   const installPipPackagesLookup = options.installPipPackagesLookup ?? {};
@@ -579,11 +613,8 @@ export async function processRequirement(options: {
   const installedCondaPackagesNames =
     options.installedCondaPackagesNames ?? new Set();
 
-  const pkgMetadata = index
-    ? await fetchPackageMetadataFromIndex(index, requirement.package)
-    : await (
-        await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
-      ).json();
+  const { metadata: pkgMetadata, index: resolvedIndex } =
+    await fetchPackageMetadata(pipIndexes, requirement.package);
 
   if (pkgMetadata.message === 'Not Found') {
     const requirementSpec =
@@ -671,7 +702,7 @@ export async function processRequirement(options: {
   }
 
   let requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
-  if (index) {
+  if (resolvedIndex) {
     // Custom indices only expose the simple API, try to grab the wheel/sdist
     // metadata file (PEP 658/691) to resolve dependencies
     try {
@@ -689,7 +720,7 @@ export async function processRequirement(options: {
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       logger?.warn(
-        `Failed to fetch metadata for ${requirement.package}==${solved.version} from ${index}: ${errorMessage}. Dependencies will not be resolved.`
+        `Failed to fetch metadata for ${requirement.package}==${solved.version} from ${resolvedIndex}: ${errorMessage}. Dependencies will not be resolved.`
       );
     }
   } else {
@@ -795,7 +826,7 @@ export async function processRequirement(options: {
       logger,
       required: false,
       platform,
-      index
+      pipIndexes
     });
   }
 }
@@ -808,23 +839,22 @@ export async function solvePip(
   packageNames: Array<string> = [],
   logger?: ILogger,
   platform?: Platform,
-  index?: string
+  pipIndexes?: string[]
 ): Promise<ISolvedPipPackages> {
   let specs: ISpec[] = [];
   platform = platform ?? DEFAULT_PLATFORM;
 
   if (yml) {
     const data = parseEnvYml(yml);
-    const { specs: pipSpecs, index: ymlIndex } = extractPipIndexFromSpecs(
-      data.pipSpecs
-    );
+    const { specs: pipSpecs, pipIndexes: ymlPipIndexes } =
+      extractPipIndexesFromSpecs(data.pipSpecs);
     specs = parsePipPackage(pipSpecs);
-    index = index ?? ymlIndex;
+    pipIndexes = pipIndexes ?? ymlPipIndexes;
   } else if (packageNames.length) {
-    const { specs: pipSpecs, index: specsIndex } =
-      extractPipIndexFromSpecs(packageNames);
+    const { specs: pipSpecs, pipIndexes: specsPipIndexes } =
+      extractPipIndexesFromSpecs(packageNames);
     specs = parsePipPackage(pipSpecs);
-    index = index ?? specsIndex;
+    pipIndexes = pipIndexes ?? specsPipIndexes;
   }
 
   // Create lookup tables for already installed packages
@@ -882,7 +912,7 @@ export async function solvePip(
       logger,
       required: true,
       platform,
-      index
+      pipIndexes
     });
   }
 
@@ -923,16 +953,17 @@ function parsePipPackage(pipPackages: Array<string>): ISpec[] {
 const INDEX_URL_FLAGS = ['-i', '--index-url', '--extra-index-url'];
 
 /**
- * Pulls a `-i`/`--index-url`/`--extra-index-url <url>` entry out of a list of pip requirements
- * (e.g. coming from the `pip:` section of an environment.yml), whether it's written as a single
+ * Pulls `-i`/`--index-url`/`--extra-index-url <url>` entries out of a list of pip requirements
+ * (e.g. coming from the `pip:` section of an environment.yml), whether they're written as a single
  * `--extra-index-url https://...` string, `--extra-index-url=https://...`, or split across two entries.
+ * `--extra-index-url` can appear multiple times.
  */
-function extractPipIndexFromSpecs(pipSpecs: string[]): {
+function extractPipIndexesFromSpecs(pipSpecs: string[]): {
   specs: string[];
-  index?: string;
+  pipIndexes?: string[];
 } {
   const specs: string[] = [];
-  let index: string | undefined;
+  const pipIndexes: string[] = [];
 
   for (let i = 0; i < pipSpecs.length; i++) {
     const spec = pipSpecs[i].trim();
@@ -941,12 +972,12 @@ function extractPipIndexFromSpecs(pipSpecs: string[]): {
       spec.match(new RegExp(`^${flag}(?:=|\\s+)(\\S+)$`))
     ).find(Boolean);
     if (inlineMatch) {
-      index = inlineMatch[1];
+      pipIndexes.push(inlineMatch[1]);
       continue;
     }
 
     if (INDEX_URL_FLAGS.includes(spec) && i + 1 < pipSpecs.length) {
-      index = pipSpecs[i + 1].trim();
+      pipIndexes.push(pipSpecs[i + 1].trim());
       i++;
       continue;
     }
@@ -954,7 +985,7 @@ function extractPipIndexFromSpecs(pipSpecs: string[]): {
     specs.push(pipSpecs[i]);
   }
 
-  return { specs, index };
+  return { specs, pipIndexes: pipIndexes.length ? pipIndexes : undefined };
 }
 
 const CONDA_PACKAGE_MAPPING_URL =
