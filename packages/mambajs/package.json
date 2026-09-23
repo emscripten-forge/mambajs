@@ -39,6 +39,7 @@
   "dependencies": {
     "@conda-org/rattler": "^0.4.0",
     "@emscripten-forge/mambajs-core": "^0.23.0",
+    "pako": "^3.0.2",
     "yaml": "^2.7.0"
   }
 }

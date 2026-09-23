@@ -28,7 +28,7 @@ function logBanner(logger?: ILogger) {
  * @returns the new lock
  */
 export async function solve(options: ISolveOptions): Promise<ILock> {
-  const { logger, ymlOrSpecs, pipSpecs, currentLock } = options;
+  const { logger, ymlOrSpecs, pipSpecs, currentLock, pipIndexes } = options;
   const platform = options.platform ?? DEFAULT_PLATFORM;
 
   const installedCondaPackages = currentLock?.packages ?? {};
@@ -102,7 +102,8 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
         installedPipPackages,
         [],
         logger,
-        platform
+        platform,
+        pipIndexes
       );
     } else {
       logger?.log('Process pip requirements ...\n');
@@ -113,7 +114,8 @@ export async function solve(options: ISolveOptions): Promise<ILock> {
         installedPipPackages,
         pipSpecs,
         logger,
-        platform
+        platform,
+        pipIndexes
       );
     }
   }
@@ -267,14 +269,16 @@ export async function remove(
 export async function pipInstall(
   specs: string[],
   env: ILock,
-  logger?: ILogger
+  logger?: ILogger,
+  pipIndexes?: string[]
 ): Promise<ILock> {
   logBanner(logger);
 
   return await solve({
     pipSpecs: specs,
     currentLock: env,
-    logger
+    logger,
+    pipIndexes
   });
 }
 

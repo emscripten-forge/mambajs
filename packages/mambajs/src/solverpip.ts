@@ -1,6 +1,7 @@
 // A dumb pip "solver" which does a tiny bit of version matching
 
 import { parse } from 'yaml';
+import { inflateRaw } from 'pako';
 import {
   DEFAULT_PLATFORM,
   getPythonVersionFromPackages,
@@ -90,6 +91,288 @@ interface IWheelInfo {
 
 function normalizePackageName(packageName: string): string {
   return packageName.toLowerCase().replace(/[-_.]+/g, '-');
+}
+
+// Accept both the PEP 691 JSON simple API and the legacy HTML simple API
+const SIMPLE_INDEX_ACCEPT =
+  'application/vnd.pypi.simple.v1+json, text/html;q=0.9';
+
+interface ISimpleIndexFile {
+  filename: string;
+  url: string;
+  size?: number;
+  hashes?: { [algo: string]: string };
+}
+
+function parseSimpleIndexHtml(
+  html: string,
+  baseUrl: string
+): ISimpleIndexFile[] {
+  const files: ISimpleIndexFile[] = [];
+  const anchorRegex = /<a\s+[^>]*href=["']([^"'#]+)["'][^>]*>([^<]*)<\/a>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = anchorRegex.exec(html))) {
+    const href = match[1];
+    const filename = match[2].trim();
+    if (!filename) {
+      continue;
+    }
+
+    let url: string;
+    try {
+      url = new URL(href, baseUrl).toString();
+    } catch {
+      continue;
+    }
+
+    files.push({ filename, url });
+  }
+
+  return files;
+}
+
+function versionFromFilename(filename: string): string | undefined {
+  if (filename.endsWith('.whl')) {
+    try {
+      return parseWheelFilename(filename).version;
+    } catch {
+      return undefined;
+    }
+  }
+
+  const sdistExt = ['.tar.gz', '.zip', '.tar.bz2'].find(ext =>
+    filename.endsWith(ext)
+  );
+  if (sdistExt) {
+    const base = filename.slice(0, -sdistExt.length);
+    const parts = base.split('-');
+    if (parts.length >= 2) {
+      return parts[parts.length - 1];
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Fetch package metadata from a PEP 503/691 "simple" package index (e.g. a custom -i/--index-url),
+ * and shape it like the PyPI JSON API response so it can be consumed by the rest of the solver.
+ */
+async function fetchPackageMetadataFromIndex(
+  index: string,
+  packageName: string
+): Promise<any> {
+  const indexUrl = `${index.replace(/\/+$/, '')}/${normalizePackageName(packageName)}/`;
+
+  const response = await fetch(indexUrl, {
+    headers: { Accept: SIMPLE_INDEX_ACCEPT }
+  });
+
+  if (!response.ok) {
+    return { message: 'Not Found' };
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+
+  let files: ISimpleIndexFile[];
+  if (contentType.includes('json')) {
+    const data = await response.json();
+    files = (data.files || []).map((file: any) => ({
+      filename: file.filename,
+      url: file.url,
+      size: file.size,
+      hashes: file.hashes
+    }));
+  } else {
+    files = parseSimpleIndexHtml(await response.text(), indexUrl);
+  }
+
+  const releases: { [version: string]: any[] } = {};
+  for (const file of files) {
+    const version = versionFromFilename(file.filename);
+    if (!version) {
+      continue;
+    }
+
+    if (!releases[version]) {
+      releases[version] = [];
+    }
+    releases[version].push({
+      filename: file.filename,
+      url: file.url,
+      size: file.size,
+      digests: file.hashes
+    });
+  }
+
+  if (!Object.keys(releases).length) {
+    return { message: 'Not Found' };
+  }
+
+  return {
+    info: { name: packageName, requires_dist: undefined },
+    releases
+  };
+}
+
+/**
+ * Fetch package metadata trying each configured pip index in order (mirroring
+ * `-i`/`--index-url` + repeatable `--extra-index-url`), falling back to the default
+ * PyPI JSON API when no custom index is configured, or none of them have the package.
+ */
+async function fetchPackageMetadata(
+  pipIndexes: string[] | undefined,
+  packageName: string
+): Promise<{ metadata: any; index?: string }> {
+  if (!pipIndexes?.length) {
+    const metadata = await (
+      await fetch(`https://pypi.org/pypi/${packageName}/json`)
+    ).json();
+    return { metadata };
+  }
+
+  let lastResult: any = { message: 'Not Found' };
+  for (const pipIndex of pipIndexes) {
+    let metadata: any;
+    try {
+      metadata = await fetchPackageMetadataFromIndex(pipIndex, packageName);
+    } catch {
+      // Unreachable/misconfigured index, try the next one
+      continue;
+    }
+    if (metadata.message !== 'Not Found') {
+      return { metadata, index: pipIndex };
+    }
+    lastResult = metadata;
+  }
+
+  // PyPI is always implicitly searched, unless it already was one of pipIndexes
+  const metadata = await (
+    await fetch(`https://pypi.org/pypi/${packageName}/json`)
+  ).json();
+  if (metadata.message !== 'Not Found') {
+    return { metadata };
+  }
+
+  return { metadata: lastResult };
+}
+
+interface IZipEntry {
+  name: string;
+  compressionMethod: number;
+  compressedSize: number;
+  localHeaderOffset: number;
+}
+
+// Minimal ZIP central directory reader, just enough to locate a wheel's dist-info/METADATA
+function parseZipEntries(view: DataView): IZipEntry[] {
+  const EOCD_SIGNATURE = 0x06054b50;
+  const minEocdSize = 22;
+  const maxCommentSize = 0xffff;
+  const searchStart = Math.max(
+    0,
+    view.byteLength - minEocdSize - maxCommentSize
+  );
+
+  let eocdOffset = -1;
+  for (let i = view.byteLength - minEocdSize; i >= searchStart; i--) {
+    if (view.getUint32(i, true) === EOCD_SIGNATURE) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset === -1) {
+    throw new Error('Invalid wheel: end of central directory not found');
+  }
+
+  const totalEntries = view.getUint16(eocdOffset + 10, true);
+  let offset = view.getUint32(eocdOffset + 16, true);
+
+  const entries: IZipEntry[] = [];
+  const decoder = new TextDecoder('utf-8');
+  for (let i = 0; i < totalEntries; i++) {
+    if (view.getUint32(offset, true) !== 0x02014b50) {
+      break;
+    }
+
+    const compressionMethod = view.getUint16(offset + 10, true);
+    const compressedSize = view.getUint32(offset + 20, true);
+    const nameLength = view.getUint16(offset + 28, true);
+    const extraLength = view.getUint16(offset + 30, true);
+    const commentLength = view.getUint16(offset + 32, true);
+    const localHeaderOffset = view.getUint32(offset + 42, true);
+    const name = decoder.decode(
+      new Uint8Array(view.buffer, view.byteOffset + offset + 46, nameLength)
+    );
+
+    entries.push({
+      name,
+      compressionMethod,
+      compressedSize,
+      localHeaderOffset
+    });
+
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+
+  return entries;
+}
+
+function extractZipEntry(view: DataView, entry: IZipEntry): Uint8Array {
+  const nameLength = view.getUint16(entry.localHeaderOffset + 26, true);
+  const extraLength = view.getUint16(entry.localHeaderOffset + 28, true);
+  const dataStart = entry.localHeaderOffset + 30 + nameLength + extraLength;
+  const compressedData = new Uint8Array(
+    view.buffer,
+    view.byteOffset + dataStart,
+    entry.compressedSize
+  );
+
+  if (entry.compressionMethod === 0) {
+    return compressedData;
+  }
+  if (entry.compressionMethod === 8) {
+    return inflateRaw(compressedData);
+  }
+
+  throw new Error(
+    `Unsupported wheel compression method ${entry.compressionMethod}`
+  );
+}
+
+/**
+ * Some indices (e.g. pypi.anaconda.org) don't serve PEP 658 `.metadata` files.
+ * As a last resort, download the wheel itself and read `Requires-Dist` straight
+ * out of its `dist-info/METADATA` file.
+ */
+async function fetchRequiresDistFromWheel(
+  wheelUrl: string
+): Promise<string[] | undefined> {
+  const response = await fetch(wheelUrl);
+  if (!response.ok) {
+    return undefined;
+  }
+
+  const view = new DataView(await response.arrayBuffer());
+  const entries = parseZipEntries(view);
+  const metadataEntry = entries.find(entry =>
+    /\.dist-info\/METADATA$/i.test(entry.name)
+  );
+  if (!metadataEntry) {
+    return undefined;
+  }
+
+  const metadataText = new TextDecoder('utf-8').decode(
+    extractZipEntry(view, metadataEntry)
+  );
+  const requiresDist = metadataText
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.startsWith('Requires-Dist:'))
+    .map(line => line.slice('Requires-Dist:'.length).trim());
+
+  return requiresDist.length ? requiresDist : undefined;
 }
 
 function parseWheelFilename(filename: string): IWheelInfo {
@@ -349,7 +632,11 @@ function getSuitableVersion(
   }
 
   if (!version) {
-    version = availableVersions.filter(isStable).sort(rcompare).reverse()[0];
+    // Fall back to the highest unstable version when no stable release exists
+    // (e.g. nightly-only indices only publish dev versions)
+    const sortedVersions = availableVersions.slice().sort(rcompare).reverse();
+    const stableVersions = sortedVersions.filter(isStable);
+    version = stableVersions.length ? stableVersions[0] : sortedVersions[0];
   }
 
   const urls: any[] = pkgInfo.releases[version];
@@ -435,6 +722,7 @@ export async function processRequirement(options: {
   logger?: ILogger;
   required?: boolean;
   platform?: Platform;
+  pipIndexes?: string[];
 }) {
   const {
     requirement,
@@ -442,7 +730,8 @@ export async function processRequirement(options: {
     pythonVersion,
     logger,
     required,
-    platform
+    platform,
+    pipIndexes
   } = options;
   const warnedPackages = options.warnedPackages ?? new Set();
   const installPipPackagesLookup = options.installPipPackagesLookup ?? {};
@@ -450,9 +739,8 @@ export async function processRequirement(options: {
   const installedCondaPackagesNames =
     options.installedCondaPackagesNames ?? new Set();
 
-  const pkgMetadata = await (
-    await fetch(`https://pypi.org/pypi/${requirement.package}/json`)
-  ).json();
+  const { metadata: pkgMetadata, index: resolvedIndex } =
+    await fetchPackageMetadata(pipIndexes, requirement.package);
 
   if (pkgMetadata.message === 'Not Found') {
     const requirementSpec =
@@ -540,27 +828,54 @@ export async function processRequirement(options: {
   }
 
   let requiresDist = pkgMetadata.info.requires_dist as string[] | undefined;
-  try {
-    const encodedPackageName = encodeURIComponent(requirement.package);
-    const encodedVersion = encodeURIComponent(solved.version);
-    const versionResponse = await fetch(
-      `https://pypi.org/pypi/${encodedPackageName}/${encodedVersion}/json`
-    );
-    if (!versionResponse.ok) {
-      throw new Error(`HTTP ${versionResponse.status}`);
+  if (resolvedIndex) {
+    // Custom indices only expose the simple API. Try the PEP 658/691 `.metadata`
+    // file first, and fall back to downloading the wheel itself if it's not served
+    try {
+      const metadataResponse = await fetch(`${solved.url}.metadata`);
+      if (metadataResponse.ok) {
+        const metadataText = await metadataResponse.text();
+        const parsedRequiresDist = metadataText
+          .split('\n')
+          .filter(line => line.startsWith('Requires-Dist:'))
+          .map(line => line.slice('Requires-Dist:'.length).trim());
+        if (parsedRequiresDist.length) {
+          requiresDist = parsedRequiresDist;
+        }
+      }
+
+      if (!requiresDist?.length && solved.url.endsWith('.whl')) {
+        requiresDist = await fetchRequiresDistFromWheel(solved.url);
+      }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger?.warn(
+        `Failed to fetch metadata for ${requirement.package}==${solved.version} from ${resolvedIndex}: ${errorMessage}. Dependencies will not be resolved.`
+      );
     }
-    const versionMetadata = await versionResponse.json();
-    const versionRequiresDist = versionMetadata?.info?.requires_dist as
-      | string[]
-      | undefined;
-    if (versionRequiresDist?.length) {
-      requiresDist = versionRequiresDist;
+  } else {
+    try {
+      const encodedPackageName = encodeURIComponent(requirement.package);
+      const encodedVersion = encodeURIComponent(solved.version);
+      const versionResponse = await fetch(
+        `https://pypi.org/pypi/${encodedPackageName}/${encodedVersion}/json`
+      );
+      if (!versionResponse.ok) {
+        throw new Error(`HTTP ${versionResponse.status}`);
+      }
+      const versionMetadata = await versionResponse.json();
+      const versionRequiresDist = versionMetadata?.info?.requires_dist as
+        | string[]
+        | undefined;
+      if (versionRequiresDist?.length) {
+        requiresDist = versionRequiresDist;
+      }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger?.warn(
+        `Failed to fetch version-specific metadata for ${requirement.package}==${solved.version}: ${errorMessage}. Falling back to package metadata.`
+      );
     }
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    logger?.warn(
-      `Failed to fetch version-specific metadata for ${requirement.package}==${solved.version}: ${errorMessage}. Falling back to package metadata.`
-    );
   }
 
   const filteredRequiresDist = (requiresDist || []).filter(raw => {
@@ -640,7 +955,8 @@ export async function processRequirement(options: {
       pythonVersion,
       logger,
       required: false,
-      platform
+      platform,
+      pipIndexes
     });
   }
 }
@@ -652,16 +968,23 @@ export async function solvePip(
   installedPipPackages: ISolvedPipPackages,
   packageNames: Array<string> = [],
   logger?: ILogger,
-  platform?: Platform
+  platform?: Platform,
+  pipIndexes?: string[]
 ): Promise<ISolvedPipPackages> {
   let specs: ISpec[] = [];
   platform = platform ?? DEFAULT_PLATFORM;
 
   if (yml) {
     const data = parseEnvYml(yml);
-    specs = parsePipPackage(data.pipSpecs);
+    const { specs: pipSpecs, pipIndexes: ymlPipIndexes } =
+      extractPipIndexesFromSpecs(data.pipSpecs);
+    specs = parsePipPackage(pipSpecs);
+    pipIndexes = pipIndexes ?? ymlPipIndexes;
   } else if (packageNames.length) {
-    specs = parsePipPackage(packageNames);
+    const { specs: pipSpecs, pipIndexes: specsPipIndexes } =
+      extractPipIndexesFromSpecs(packageNames);
+    specs = parsePipPackage(pipSpecs);
+    pipIndexes = pipIndexes ?? specsPipIndexes;
   }
 
   // Create lookup tables for already installed packages
@@ -718,7 +1041,8 @@ export async function solvePip(
       pythonVersion,
       logger,
       required: true,
-      platform
+      platform,
+      pipIndexes
     });
   }
 
@@ -754,6 +1078,44 @@ function parsePipPackage(pipPackages: Array<string>): ISpec[] {
     }
   }
   return specs;
+}
+
+const INDEX_URL_FLAGS = ['-i', '--index-url', '--extra-index-url'];
+
+/**
+ * Pulls `-i`/`--index-url`/`--extra-index-url <url>` entries out of a list of pip requirements
+ * (e.g. coming from the `pip:` section of an environment.yml), whether they're written as a single
+ * `--extra-index-url https://...` string, `--extra-index-url=https://...`, or split across two entries.
+ * `--extra-index-url` can appear multiple times.
+ */
+function extractPipIndexesFromSpecs(pipSpecs: string[]): {
+  specs: string[];
+  pipIndexes?: string[];
+} {
+  const specs: string[] = [];
+  const pipIndexes: string[] = [];
+
+  for (let i = 0; i < pipSpecs.length; i++) {
+    const spec = pipSpecs[i].trim();
+
+    const inlineMatch = INDEX_URL_FLAGS.map(flag =>
+      spec.match(new RegExp(`^${flag}(?:=|\\s+)(\\S+)$`))
+    ).find(Boolean);
+    if (inlineMatch) {
+      pipIndexes.push(inlineMatch[1]);
+      continue;
+    }
+
+    if (INDEX_URL_FLAGS.includes(spec) && i + 1 < pipSpecs.length) {
+      pipIndexes.push(pipSpecs[i + 1].trim());
+      i++;
+      continue;
+    }
+
+    specs.push(pipSpecs[i]);
+  }
+
+  return { specs, pipIndexes: pipIndexes.length ? pipIndexes : undefined };
 }
 
 const CONDA_PACKAGE_MAPPING_URL =

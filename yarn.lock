@@ -133,6 +133,7 @@ __metadata:
     "@esbuild-plugins/node-globals-polyfill": ^0.2.3
     "@esbuild-plugins/node-modules-polyfill": ^0.2.2
     esbuild: ^0.24.0
+    pako: ^3.0.2
     rimraf: ^3.0.2
     typescript: ^5
     yaml: ^2.7.0
@@ -5834,6 +5835,13 @@ __metadata:
   bin:
     pacote: bin/index.js
   checksum: a28a7aa0f4e1375d3f11917e5982e576611aa9057999e7b3a7fd18706e43d6ae4ab34b1002dc0a9821df95c3136dec6d2b6b72cfc7b02afcc1273cec006dea39
+  languageName: node
+  linkType: hard
+
+"pako@npm:^3.0.2":
+  version: 3.0.2
+  resolution: "pako@npm:3.0.2"
+  checksum: f0b88a3344466474c472962becf0bf2783b816f55590ca0b6008291f95ba0df22f0c6ecea9a3db38dbf4e13dde3b172794a0d2ca891c0f74b64b81bf63a05e9a
   languageName: node
   linkType: hard
 
