@@ -26,16 +26,6 @@ export const DEFAULT_CHANNELS: ILock['channels'] = [
   'conda-forge'
 ];
 export const DEFAULT_CHANNELS_INFO: ILock['channelInfo'] = {
-  'emscripten-forge-6x': [
-    {
-      url: 'https://prefix.dev/emscripten-forge-bot/emscripten-forge-6x',
-      protocol: 'https'
-    },
-    {
-      url: 'https://repo.prefix.dev/emscripten-forge-bot/emscripten-forge-6x',
-      protocol: 'https'
-    }
-  ],
   'emscripten-forge-4x': [
     {
       url: 'https://prefix.dev/emscripten-forge-4x',

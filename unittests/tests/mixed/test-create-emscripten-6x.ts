@@ -7,7 +7,7 @@ const logger = new TestLogger();
 
 const yml = `
 channels:
-  - https://repo.prefix.dev/emscripten-forge-bot/emscripten-forge-6x
+  - https://prefix.dev/emscripten-forge/6x
   - conda-forge
 dependencies:
   - python
@@ -48,7 +48,7 @@ let tests = Promise.resolve();
     expect(condaPackages['pandas'].subdir).toEqual(expectedPlatform);
 
     // Make sure channels haven't changed
-    expect(env.channels).toEqual(['emscripten-forge-6x', 'conda-forge']);
+    expect(env.channels).toEqual(['https://prefix.dev/emscripten-forge/6x', 'conda-forge']);
 
     // Make sure we keep the emscripten version
     expect(condaPackages['emscripten-abi'].version[0]).toEqual('6');

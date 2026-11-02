@@ -41,5 +41,5 @@ solve({ymlOrSpecs: yml, logger}).then(async result => {
     }
   })
 
-  expect(nspaces).toEqual([2, 2, 2, 0]);
+  expect(nspaces).toEqual([2, 3, 2, 0]);
 });

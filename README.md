@@ -334,7 +334,7 @@ Mambajs is designed primarily for WebAssembly/Emscripten environments but can wo
 
 **Default Platform**: `emscripten-wasm32`
 **Supported Emscripten Platforms**: `emscripten-wasm32`, `emscripten-wasm64` (pass `platform: 'emscripten-wasm64'` to `create`, or `-p emscripten-wasm64` to the CLI; `install`/`remove`/`pipInstall` reuse the platform of the existing lock)
-**Channel aliases**: `emscripten-forge-3x`, `emscripten-forge-4x`, `emscripten-forge-6x` (https://prefix.dev/emscripten-forge-bot/emscripten-forge-6x, which provides both `emscripten-wasm32` and `emscripten-wasm64` packages), `conda-forge`
+**Channel aliases**: `emscripten-forge-3x`, `emscripten-forge-4x`, `conda-forge`
 **Default Channels**: `emscripten-forge` (https://prefix.dev/emscripten-forge-3x), `conda-forge` (https://prefix.dev/conda-forge)
 
 ## License
