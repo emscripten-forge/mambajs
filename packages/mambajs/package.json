@@ -1,6 +1,6 @@
 {
   "name": "@emscripten-forge/mambajs",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "Solve conda environments and pip packages in your browser",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@conda-org/rattler": "^0.4.0",
-    "@emscripten-forge/mambajs-core": "^0.23.0",
+    "@emscripten-forge/mambajs-core": "^0.24.0",
     "yaml": "^2.7.0"
   }
 }
