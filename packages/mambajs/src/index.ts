@@ -29,7 +29,8 @@ function logBanner(logger?: ILogger) {
  */
 export async function solve(options: ISolveOptions): Promise<ILock> {
   const { logger, ymlOrSpecs, pipSpecs, currentLock } = options;
-  const platform = options.platform ?? DEFAULT_PLATFORM;
+  const platform =
+    options.platform ?? currentLock?.platform ?? DEFAULT_PLATFORM;
 
   const installedCondaPackages = currentLock?.packages ?? {};
   const installedPipPackages = currentLock?.pipPackages

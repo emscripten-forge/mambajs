@@ -26,7 +26,7 @@ Mambajs is a powerful toolbox designed for manipulating conda environment defini
 - **Conda package management**: Create, solve, install, and remove conda packages
 - **Uses [prefix.dev](https://prefix.dev) by default, not anaconda**
 - **Pip package support**: Install and manage pip packages alongside conda packages
-- **Emscripten/WebAssembly environments**: Built with `emscripten-wasm32` platform in mind
+- **Emscripten/WebAssembly environments**: Supports the `emscripten-wasm32` and `emscripten-wasm64` platforms
 - **Filesystem operations**: Tools for installing/uninstalling packages into an Emscripten FS
 - **Python environment bootstrapping**: Spawn Python interpreters and load shared libraries
 - **Lock file management**: Generate and manipulate conda lock definitions
@@ -333,6 +333,8 @@ npx lerna version --no-private
 Mambajs is designed primarily for WebAssembly/Emscripten environments but can work in Node.js for lock file manipulation.
 
 **Default Platform**: `emscripten-wasm32`
+**Supported Emscripten Platforms**: `emscripten-wasm32`, `emscripten-wasm64` (pass `platform: 'emscripten-wasm64'` to `create`, or `-p emscripten-wasm64` to the CLI; `install`/`remove`/`pipInstall` reuse the platform of the existing lock)
+**Channel aliases**: `emscripten-forge-3x`, `emscripten-forge-4x`, `conda-forge`
 **Default Channels**: `emscripten-forge` (https://prefix.dev/emscripten-forge-3x), `conda-forge` (https://prefix.dev/conda-forge)
 
 ## License

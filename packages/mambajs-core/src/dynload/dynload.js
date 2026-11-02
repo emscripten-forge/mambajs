@@ -185,8 +185,9 @@ async function loadDynlib(prefix, lib, global, searchDirs, readFileFunc, Module)
 
         const libName = Module.PATH.basename(lib);
 
-        // contains cpython-3 and with wasm32-emscripten
-        const is_cython_lib = libName.includes("cpython-3") && libName.includes("wasm32-emscripten");
+        // contains cpython-3 and with wasm32-emscripten or wasm64-emscripten
+        const is_cython_lib = libName.includes("cpython-3") &&
+            (libName.includes("wasm32-emscripten") || libName.includes("wasm64-emscripten"));
 
         // load cython library from full path
         const load_name = is_cython_lib ? lib : libName;

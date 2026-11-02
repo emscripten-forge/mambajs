@@ -50,7 +50,8 @@ function makeVirtualPackage(name: string, version = '0') {
 
 export const solveConda = async (options: ISolveOptions): Promise<ILock> => {
   const { ymlOrSpecs, currentLock, logger } = options;
-  const platform = options.platform ?? DEFAULT_PLATFORM;
+  const platform =
+    options.platform ?? currentLock?.platform ?? DEFAULT_PLATFORM;
   const nRetries = options.nRetries ?? 3;
 
   const condaPackages: ISolvedPackages = {};

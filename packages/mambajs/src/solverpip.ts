@@ -70,6 +70,7 @@ const PLATFORM_TAGS = {
     'pyemscripten_2026_0_wasm32',
     'pyemscripten_2026_5_wasm32'
   ],
+  'emscripten-wasm64': [],
   'wasi-wasm32': []
 };
 
@@ -395,7 +396,7 @@ function getSuitableVersion(
   // Installing from source as a fallback
   if (
     sourceUrls[0] &&
-    !['emscripten-wasm32', 'wasi-wasm32'].includes(
+    !['emscripten-wasm32', 'emscripten-wasm64', 'wasi-wasm32'].includes(
       platform ?? 'emscripten-wasm32'
     )
   ) {
@@ -412,7 +413,7 @@ function getUnavailableWheelError(
   packageName: string,
   platform: Platform = 'emscripten-wasm32'
 ) {
-  if (platform === 'emscripten-wasm32') {
+  if (platform === 'emscripten-wasm32' || platform === 'emscripten-wasm64') {
     return (
       `Cannot install '${packageName}' from PyPI. We did not find a wheel compiled for WASM environments. ` +
       `To resolve this issue, you can: ` +
