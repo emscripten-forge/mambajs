@@ -28,11 +28,11 @@ export const DEFAULT_CHANNELS: ILock['channels'] = [
 export const DEFAULT_CHANNELS_INFO: ILock['channelInfo'] = {
   'emscripten-forge-4x': [
     {
-      url: 'https://prefix.dev/emscripten-forge-4x',
+      url: 'https://prefix.dev/emscripten-forge/4x',
       protocol: 'https'
     },
     {
-      url: 'https://repo.prefix.dev/emscripten-forge-4x',
+      url: 'https://repo.prefix.dev/emscripten-forge/4x',
       protocol: 'https'
     }
   ],

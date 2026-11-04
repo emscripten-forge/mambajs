@@ -540,7 +540,7 @@ export function formatChannels(
 
     if (channel === 'https://prefix.dev/emscripten-forge') {
       const error =
-        'https://prefix.dev/emscripten-forge channel does not exist. Please use https://prefix.dev/emscripten-forge-3x or https://prefix.dev/emscripten-forge-4x explicitely.';
+        'https://prefix.dev/emscripten-forge channel does not exist. Please use https://prefix.dev/emscripten-forge/4x or https://prefix.dev/emscripten-forge/6x explicitely.';
       logger.error(error);
       throw new Error(error);
     }

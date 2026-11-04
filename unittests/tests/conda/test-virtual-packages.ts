@@ -28,7 +28,7 @@ solve({ymlOrSpecs: yml, logger}).then(async result => {
 
 yml = `
 channels:
-  - https://prefix.dev/emscripten-forge-4x
+  - https://prefix.dev/emscripten-forge/4x
   - https://prefix.dev/conda-forge
 dependencies:
   # click requires __unix
